@@ -15,7 +15,7 @@ namespace tgx {
         int height{1080};
         const char *title{"tgx"};
         bool vsync{true};
-        bool debug_context = true;
+        bool debug_context{true};
     };
 
     class Window {

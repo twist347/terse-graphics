@@ -19,11 +19,11 @@ namespace tgx {
         SteadyClock::time_point m_start{};
         SteadyClock::time_point m_last{};
         SteadyClock::time_point m_window_start{};
-        int m_frames = 0;
-        float m_delta = 0.0F;
-        float m_elapsed = 0.0F;
-        float m_fps = 0.0F;
-        bool m_fps_updated = false;
-        bool m_started = false;
+        int m_frames{0};
+        float m_delta{0.f};
+        float m_elapsed{0.f};
+        float m_fps{0.f};
+        bool m_fps_updated{false};
+        bool m_started{false};
     };
 }

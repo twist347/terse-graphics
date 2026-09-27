@@ -2,14 +2,26 @@
 
 #include "tgx/window.h"
 
+#include <cstdint>
+
 #include <glad/gl.h>
+
+namespace {
+    [[nodiscard]] constexpr auto to_unit(std::uint8_t channel) noexcept -> float {
+        return static_cast<float>(channel) / 255.0F;
+    }
+
+    void apply_clear_color(const tgx::Color &color) noexcept {
+        glClearColor(to_unit(color.r), to_unit(color.g), to_unit(color.b), to_unit(color.a));
+    }
+}
 
 namespace tgx {
     Device::Device(Window &window) noexcept {
         const auto [width, height] = window.framebuffer_size();
         set_viewport(0, 0, width, height);
 
-        glClearColor(m_clear_color.r, m_clear_color.g, m_clear_color.b, m_clear_color.a);
+        apply_clear_color(m_clear_color);
     }
 
     void Device::set_clear_color(const Color &color) noexcept {
@@ -18,7 +30,7 @@ namespace tgx {
         }
 
         m_clear_color = color;
-        glClearColor(color.r, color.g, color.b, color.a);
+        apply_clear_color(color);
     }
 
     void Device::clear(ClearMask mask) noexcept {
@@ -40,7 +52,7 @@ namespace tgx {
     }
 
     void Device::set_viewport(int x, int y, int width, int height) noexcept {
-        const std::array<int, 4> next{x, y, width, height};
+        const std::array next{x, y, width, height};
         if (next == m_viewport) {
             return;
         }

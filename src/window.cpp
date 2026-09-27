@@ -71,38 +71,38 @@ namespace tgx {
     }
 
     auto Window::should_close() const noexcept -> bool {
-        TGX_ASSERT(m_handle != nullptr);
+        TGX_ASSERT(m_handle);
 
         return glfwWindowShouldClose(m_handle) == GLFW_TRUE;
     }
 
     void Window::request_close() noexcept {
-        TGX_ASSERT(m_handle != nullptr);
+        TGX_ASSERT(m_handle);
 
         glfwSetWindowShouldClose(m_handle, GLFW_TRUE);
     }
 
     void Window::swap_buffers() noexcept {
-        TGX_ASSERT(m_handle != nullptr);
+        TGX_ASSERT(m_handle);
 
         glfwSwapBuffers(m_handle);
     }
 
     void Window::set_title(std::string_view title) noexcept {
-        TGX_ASSERT(m_handle != nullptr);
+        TGX_ASSERT(m_handle);
 
         const std::string owned{title};
         glfwSetWindowTitle(m_handle, owned.c_str());
     }
 
     void Window::set_vsync(bool enabled) noexcept {
-        TGX_ASSERT(m_handle != nullptr);
+        TGX_ASSERT(m_handle);
 
         glfwSwapInterval(enabled ? 1 : 0);
     }
 
     auto Window::framebuffer_size() const noexcept -> std::pair<int, int> {
-        TGX_ASSERT(m_handle != nullptr);
+        TGX_ASSERT(m_handle);
 
         int width = 0;
         int height = 0;

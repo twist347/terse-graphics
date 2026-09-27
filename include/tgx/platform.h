@@ -8,11 +8,9 @@ namespace tgx {
         [[nodiscard]] static auto create() noexcept -> Result<Platform>;
 
         Platform(const Platform &) = delete;
-
         auto operator=(const Platform &) -> Platform & = delete;
 
         Platform(Platform &&other) noexcept;
-
         auto operator=(Platform &&other) noexcept -> Platform &;
 
         void poll_events() noexcept;
@@ -27,6 +25,6 @@ namespace tgx {
 
         auto shutdown() noexcept -> void;
 
-        bool m_owned = false;
+        bool m_owned{false};
     };
 }
