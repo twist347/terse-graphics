@@ -1,5 +1,6 @@
 #include "tgx/device.h"
 
+#include "tgx/gl/handle.h"
 #include "tgx/gl/version.h"
 #include "tgx/window.h"
 
@@ -7,6 +8,8 @@
 #include <cstdio>
 
 #include <glad/gl.h>
+
+static_assert(std::is_same_v<GLuint, tgx::gl::GlId>);
 
 // Only the 4.5 backend exists: this refuses to build against an unwritten one,
 // it is not a switch.

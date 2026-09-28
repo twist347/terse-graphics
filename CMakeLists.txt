@@ -14,6 +14,8 @@ add_library(tgx STATIC
         src/assert.cpp
         src/clock.cpp
         src/device.cpp
+        src/gl/buffer.cpp
+        src/gl/shader.cpp
         src/platform.cpp
         src/window.cpp
 )
