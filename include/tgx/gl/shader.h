@@ -5,6 +5,7 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace tgx {
     class Device;
@@ -34,7 +35,7 @@ namespace tgx::gl {
         [[nodiscard]] auto id() const noexcept -> GlId;
 
     private:
-        explicit Shader(GlId id) noexcept : m_handle{id} {
+        explicit Shader(Handle<detail::delete_program> handle) noexcept : m_handle{std::move(handle)} {
         }
 
         Handle<detail::delete_program> m_handle;

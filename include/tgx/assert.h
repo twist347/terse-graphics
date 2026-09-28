@@ -27,7 +27,7 @@ namespace tgx::detail {
         const char *expr,
         std::source_location loc,
         std::format_string<Ts...> fmt,
-        Ts &&...args
+        Ts &&... args
     ) noexcept -> void {
         char buf[512];
         const auto res = std::format_to_n(buf, sizeof(buf) - 1, fmt, std::forward<Ts>(args)...);
@@ -44,14 +44,7 @@ namespace tgx::detail {
     ((cond) ? void(0) : ::tgx::detail::assert_failed_fmt( \
         #cond, std::source_location::current(), __VA_ARGS__))
 #else
-    // The discarded branch is still type-checked: the format string keeps being
-    // validated and everything named stays "used", so no -Wunused-variable.
-    #define TGX_ASSERT(cond) ((void) sizeof(bool((cond))))
-    #define TGX_ASSERT_MSG(cond, ...)             \
-        do {                                      \
-            if constexpr (false) {                \
-                (void) bool((cond));              \
-                (void) ::std::format(__VA_ARGS__); \
-            }                                     \
-        } while (false)
+#define TGX_ASSERT(cond) ((void) sizeof(bool((cond))))
+#define TGX_ASSERT_MSG(cond, ...) \
+    ((void) sizeof(bool((cond))), (void) sizeof(::std::format(__VA_ARGS__)))
 #endif

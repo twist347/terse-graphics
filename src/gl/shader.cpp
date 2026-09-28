@@ -7,6 +7,13 @@
 #include "tgx/assert.h"
 
 namespace {
+    auto delete_shader(tgx::gl::GlId id) noexcept -> void {
+        glDeleteShader(id);
+    }
+
+    // Stage objects are only needed until the program is linked.
+    using Stage = tgx::gl::Handle<delete_shader>;
+
     // Appends "<label>:\n<log>" when the driver has anything to say. The length
     // GL reports includes the terminating null.
     auto append_log(std::string *out_log, std::string_view label, GLuint object, bool is_program) -> void {
@@ -45,29 +52,29 @@ namespace {
         }
     }
 
-    // Returns the shader object, or 0 if it failed to compile.
+    // Returns an empty handle if the stage failed to compile.
     [[nodiscard]] auto compile(
         GLenum stage,
         std::string_view label,
         std::string_view source,
         std::string *out_log
-    ) -> GLuint {
+    ) -> Stage {
         TGX_ASSERT(source.size() <= static_cast<std::size_t>(INT_MAX));
 
-        const GLuint shader = glCreateShader(stage);
+        // Owned from the start: append_log allocates and may throw.
+        Stage shader{glCreateShader(stage)};
 
         const GLchar *text = source.data();
         const auto length = static_cast<GLint>(source.size());
-        glShaderSource(shader, 1, &text, &length);
-        glCompileShader(shader);
+        glShaderSource(shader.get(), 1, &text, &length);
+        glCompileShader(shader.get());
 
-        append_log(out_log, label, shader, false);
+        append_log(out_log, label, shader.get(), false);
 
         GLint ok = GL_FALSE;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+        glGetShaderiv(shader.get(), GL_COMPILE_STATUS, &ok);
         if (ok != GL_TRUE) {
-            glDeleteShader(shader);
-            return 0;
+            return {};
         }
         return shader;
     }
@@ -90,34 +97,29 @@ namespace tgx::gl {
 
         // Both stages are compiled even if the first fails, so one run reports
         // every error.
-        const GLuint vs = compile(GL_VERTEX_SHADER, "vertex", vertex, out_log);
-        const GLuint fs = compile(GL_FRAGMENT_SHADER, "fragment", fragment, out_log);
-        if (vs == 0 || fs == 0) {
-            glDeleteShader(vs);
-            glDeleteShader(fs);
+        const Stage vs = compile(GL_VERTEX_SHADER, "vertex", vertex, out_log);
+        const Stage fs = compile(GL_FRAGMENT_SHADER, "fragment", fragment, out_log);
+        if (!vs || !fs) {
             return std::unexpected{Error::compile};
         }
 
-        const GLuint program = glCreateProgram();
-        glAttachShader(program, vs);
-        glAttachShader(program, fs);
-        glLinkProgram(program);
+        Handle<detail::delete_program> program{glCreateProgram()};
+        glAttachShader(program.get(), vs.get());
+        glAttachShader(program.get(), fs.get());
+        glLinkProgram(program.get());
 
-        // The program keeps what it linked; the stage objects are no longer needed.
-        glDetachShader(program, vs);
-        glDetachShader(program, fs);
-        glDeleteShader(vs);
-        glDeleteShader(fs);
+        // The program keeps what it linked; the stages are deleted on return.
+        glDetachShader(program.get(), vs.get());
+        glDetachShader(program.get(), fs.get());
 
-        append_log(out_log, "link", program, true);
+        append_log(out_log, "link", program.get(), true);
 
         GLint ok = GL_FALSE;
-        glGetProgramiv(program, GL_LINK_STATUS, &ok);
+        glGetProgramiv(program.get(), GL_LINK_STATUS, &ok);
         if (ok != GL_TRUE) {
-            glDeleteProgram(program);
             return std::unexpected{Error::link};
         }
-        return Shader{program};
+        return Shader{std::move(program)};
     }
 
     auto Shader::id() const noexcept -> GlId {

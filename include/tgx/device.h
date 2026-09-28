@@ -38,7 +38,7 @@ namespace tgx {
         Device(Device &&) noexcept = default;
         auto operator=(Device &&) noexcept -> Device & = default;
 
-        auto set_clear_color(const Color &color) noexcept -> void;
+        auto set_clear_color(Color color) noexcept -> void;
         auto clear(ClearMask mask = ClearMask::color) noexcept -> void;
 
         auto set_viewport(int x, int y, int width, int height) noexcept -> void;

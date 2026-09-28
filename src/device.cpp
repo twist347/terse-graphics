@@ -87,7 +87,7 @@ namespace tgx {
         return device;
     }
 
-    auto Device::set_clear_color(const Color &color) noexcept -> void {
+    auto Device::set_clear_color(Color color) noexcept -> void {
         if (color == m_clear_color) {
             return;
         }
