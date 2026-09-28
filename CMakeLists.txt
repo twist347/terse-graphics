@@ -15,10 +15,11 @@ add_library(tgx STATIC
         src/assert.cpp
         src/clock.cpp
         src/device.cpp
-        src/gl/buffer.cpp
-        src/gl/shader.cpp
         src/platform.cpp
         src/window.cpp
+        src/gl/buffer.cpp
+        src/gl/shader.cpp
+        src/gl/vertex_array.cpp
 )
 add_library(tgx::tgx ALIAS tgx)
 
