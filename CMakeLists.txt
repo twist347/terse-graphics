@@ -11,6 +11,7 @@ set(TGX_WARNINGS -Wall -Wextra -Wpedantic)
 add_subdirectory(thirdparty)
 
 add_library(tgx STATIC
+        src/app.cpp
         src/assert.cpp
         src/clock.cpp
         src/device.cpp

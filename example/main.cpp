@@ -8,41 +8,20 @@ namespace {
 }
 
 int main() {
-    auto platform = tgx::Platform::create();
-    if (!platform) {
-        std::fprintf(stderr, "platform: %s\n", tgx::to_str(platform.error()));
+    auto app = tgx::App::create({.title = title});
+    if (!app) {
+        std::fprintf(stderr, "app: %s\n", tgx::to_str(app.error()));
         return 1;
     }
 
-    auto window = tgx::Window::create(*platform, {.title = title});
-    if (!window) {
-        std::fprintf(stderr, "window: %s\n", tgx::to_str(window.error()));
-        return 1;
-    }
+    app->device().set_clear_color(tgx::colors::cyan);
 
-    auto device = tgx::Device::create(*window);
-    if (!device) {
-        std::fprintf(stderr, "device: %s\n", tgx::to_str(device.error()));
-        return 1;
-    }
-    device->set_clear_color(tgx::colors::green);
-
-    tgx::Clock clock;
-
-    while (!window->should_close()) {
-        clock.tick();
-
-        if (clock.fps_updated()) {
-            window->set_title(std::format("{} - {:.0f} fps", title, clock.fps()).c_str());
+    while (app->next_frame()) {
+        if (app->clock().fps_updated()) {
+            app->window().set_title(std::format("{} - {:.0f} fps", title, app->clock().fps()).c_str());
         }
 
-        const auto [width, height] = window->framebuffer_size();
-        device->set_viewport(0, 0, width, height);
-
-        device->clear();
-
-        window->swap_buffers();
-        platform->poll_events();
+        app->device().clear();
     }
 
     return 0;

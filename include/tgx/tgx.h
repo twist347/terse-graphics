@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tgx/app.h"
 #include "tgx/assert.h"
 #include "tgx/clock.h"
 #include "tgx/color.h"

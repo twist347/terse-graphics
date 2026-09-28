@@ -8,8 +8,12 @@
 #include "tgx/gl/version.h"
 #include "tgx/platform.h"
 
+#include "platform_internal.h"
+
 namespace tgx {
     auto Window::create(Platform &platform, const WindowParams &params) noexcept -> Result<Window> {
+        TGX_ASSERT_MSG(platform.is_valid(), "creating a window from a moved-from Platform");
+
         if (params.width <= 0 || params.height <= 0 || params.title == nullptr) {
             return std::unexpected{Error::invalid_argument};
         }
@@ -34,7 +38,7 @@ namespace tgx {
 
         glfwMakeContextCurrent(handle);
 
-        Window window{platform, handle};
+        Window window{handle};
         window.set_vsync(params.vsync);
         return window;
     }
@@ -45,19 +49,17 @@ namespace tgx {
         return glfwGetProcAddress;
     }
 
-    Window::Window(Platform &platform, GLFWwindow *handle) noexcept : m_platform{&platform}, m_handle{handle} {
-        ++m_platform->m_window_count;
+    Window::Window(GLFWwindow *handle) noexcept : m_handle{handle} {
+        detail::window_opened();
     }
 
     Window::Window(Window &&other) noexcept
-        : m_platform{std::exchange(other.m_platform, nullptr)},
-          m_handle{std::exchange(other.m_handle, nullptr)} {
+        : m_handle{std::exchange(other.m_handle, nullptr)} {
     }
 
     auto Window::operator=(Window &&other) noexcept -> Window & {
         if (this != &other) {
             destroy();
-            m_platform = std::exchange(other.m_platform, nullptr);
             m_handle = std::exchange(other.m_handle, nullptr);
         }
         return *this;
@@ -115,7 +117,6 @@ namespace tgx {
         glfwDestroyWindow(m_handle);
         m_handle = nullptr;
 
-        --m_platform->m_window_count;
-        m_platform = nullptr;
+        detail::window_closed();
     }
 }

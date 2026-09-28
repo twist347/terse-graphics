@@ -54,11 +54,10 @@ namespace tgx {
         [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow * { return m_handle; }
 
     private:
-        Window(Platform &platform, GLFWwindow *handle) noexcept;
+        explicit Window(GLFWwindow *handle) noexcept;
 
         auto destroy() noexcept -> void;
 
-        Platform *m_platform{nullptr};
         GLFWwindow *m_handle{nullptr};
     };
 }
