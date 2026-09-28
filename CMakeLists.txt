@@ -25,7 +25,7 @@ target_compile_features(tgx PUBLIC cxx_std_23)
 set_target_properties(tgx PROPERTIES CXX_EXTENSIONS OFF)
 
 target_include_directories(tgx
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_link_libraries(tgx PRIVATE glad glfw)

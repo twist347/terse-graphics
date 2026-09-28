@@ -22,7 +22,7 @@ namespace tgx {
         );
     }
 
-    [[nodiscard]] constexpr auto has(ClearMask mask, ClearMask bit) noexcept -> bool {
+    [[nodiscard]] constexpr auto any_of(ClearMask mask, ClearMask bit) noexcept -> bool {
         return (static_cast<std::uint32_t>(mask) & static_cast<std::uint32_t>(bit)) != 0U;
     }
 

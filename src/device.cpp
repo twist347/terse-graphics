@@ -24,7 +24,7 @@ namespace {
         return static_cast<float>(channel) / 255.0F;
     }
 
-    auto apply_clear_color(const tgx::Color &color) noexcept -> void {
+    auto apply_clear_color(tgx::Color color) noexcept -> void {
         glClearColor(to_unit(color.r), to_unit(color.g), to_unit(color.b), to_unit(color.a));
     }
 
@@ -99,13 +99,13 @@ namespace tgx {
     auto Device::clear(ClearMask mask) noexcept -> void {
         GLbitfield bits = 0;
 
-        if (has(mask, ClearMask::color)) {
+        if (any_of(mask, ClearMask::color)) {
             bits |= GL_COLOR_BUFFER_BIT;
         }
-        if (has(mask, ClearMask::depth)) {
+        if (any_of(mask, ClearMask::depth)) {
             bits |= GL_DEPTH_BUFFER_BIT;
         }
-        if (has(mask, ClearMask::stencil)) {
+        if (any_of(mask, ClearMask::stencil)) {
             bits |= GL_STENCIL_BUFFER_BIT;
         }
 
