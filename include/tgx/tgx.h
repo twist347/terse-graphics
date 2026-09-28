@@ -5,5 +5,6 @@
 #include "tgx/color.h"
 #include "tgx/device.h"
 #include "tgx/error.h"
+#include "tgx/gl/version.h"
 #include "tgx/platform.h"
 #include "tgx/window.h"

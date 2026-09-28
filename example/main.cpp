@@ -20,8 +20,12 @@ int main() {
         return 1;
     }
 
-    tgx::Device device{*window};
-    device.set_clear_color(tgx::colors::green);
+    auto device = tgx::Device::create(*window);
+    if (!device) {
+        std::fprintf(stderr, "device: %s\n", tgx::to_str(device.error()).data());
+        return 1;
+    }
+    device->set_clear_color(tgx::colors::green);
 
     tgx::Clock clock;
 
@@ -33,9 +37,9 @@ int main() {
         }
 
         const auto [width, height] = window->framebuffer_size();
-        device.set_viewport(0, 0, width, height);
+        device->set_viewport(0, 0, width, height);
 
-        device.clear();
+        device->clear();
 
         window->swap_buffers();
         platform->poll_events();

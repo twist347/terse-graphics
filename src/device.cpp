@@ -1,10 +1,19 @@
 #include "tgx/device.h"
 
+#include "tgx/gl/version.h"
 #include "tgx/window.h"
 
 #include <cstdint>
+#include <cstdio>
 
 #include <glad/gl.h>
+
+// Only the 4.5 backend exists: this refuses to build against an unwritten one,
+// it is not a switch.
+static_assert(
+    tgx::gl::version_major == 4 && tgx::gl::version_minor == 5,
+    "tgx implements only OpenGL 4.5"
+);
 
 namespace {
     [[nodiscard]] constexpr auto to_unit(std::uint8_t channel) noexcept -> float {
@@ -14,14 +23,62 @@ namespace {
     void apply_clear_color(const tgx::Color &color) noexcept {
         glClearColor(to_unit(color.r), to_unit(color.g), to_unit(color.b), to_unit(color.a));
     }
+
+    void GLAD_API_PTR on_gl_debug(
+        GLenum,
+        GLenum,
+        GLuint id,
+        GLenum,
+        GLsizei,
+        const GLchar *message,
+        const void *
+    ) noexcept {
+        std::fprintf(stderr, "[tgx] gl %u: %s\n", id, message);
+    }
+
+    void install_debug_callback() noexcept {
+        GLint flags = 0;
+        glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+        if ((flags & GL_CONTEXT_FLAG_DEBUG_BIT) == 0) {
+            return;
+        }
+
+        glEnable(GL_DEBUG_OUTPUT);
+        // Report from inside the offending call, so a breakpoint in the
+        // callback shows the caller.
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(on_gl_debug, nullptr);
+        // Notifications are driver chatter (buffer placement and the like).
+        glDebugMessageControl(
+            GL_DONT_CARE,
+            GL_DONT_CARE,
+            GL_DEBUG_SEVERITY_NOTIFICATION,
+            0,
+            nullptr,
+            GL_FALSE
+        );
+    }
 }
 
 namespace tgx {
-    Device::Device(Window &window) noexcept {
-        const auto [width, height] = window.framebuffer_size();
-        set_viewport(0, 0, width, height);
+    auto Device::create(Window &window) noexcept -> Result<Device> {
+        // glad 2 returns the version it loaded, so loading and checking that we
+        // got the requested one is the same call.
+        const int version = gladLoadGL(window.gl_loader());
+        if (version == 0) {
+            return std::unexpected{Error::platform};
+        }
+        if (version < GLAD_MAKE_VERSION(gl::version_major, gl::version_minor)) {
+            return std::unexpected{Error::unsupported};
+        }
 
-        apply_clear_color(m_clear_color);
+        install_debug_callback();
+
+        Device device;
+        const auto [width, height] = window.framebuffer_size();
+        device.set_viewport(0, 0, width, height);
+        apply_clear_color(device.m_clear_color);
+        return device;
     }
 
     void Device::set_clear_color(const Color &color) noexcept {

@@ -22,10 +22,10 @@ namespace tgx::detail {
 
 #if TGX_ENABLE_ASSERTS
 #define TGX_ASSERT(cond) \
-        ((cond) ? void(0) : ::tgx::detail::assert_failed(#cond, {}))
+    ((cond) ? void(0) : ::tgx::detail::assert_failed(#cond, {}))
 #define TGX_ASSERT_MSG(cond, ...) \
-        ((cond) ? void(0) : ::tgx::detail::assert_failed(#cond, std::format(__VA_ARGS__)))
+    ((cond) ? void(0) : ::tgx::detail::assert_failed(#cond, std::format(__VA_ARGS__)))
 #else
-#define TGX_ASSERT(cond)          ((void) sizeof(bool((cond))))
-#define TGX_ASSERT_MSG(cond, ...) ((void) sizeof(bool((cond))))
+    #define TGX_ASSERT(cond)          ((void) sizeof(bool((cond))))
+    #define TGX_ASSERT_MSG(cond, ...) ((void) sizeof(bool((cond))))
 #endif

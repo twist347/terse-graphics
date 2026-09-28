@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tgx/color.h"
+#include "tgx/error.h"
 
 #include <array>
 #include <cstdint>
@@ -27,13 +28,17 @@ namespace tgx {
 
     class Device {
     public:
-        explicit Device(Window &window) noexcept;
+        // Loads GL functions for the window's context and, on a debug context,
+        // routes driver messages to stderr.
+        [[nodiscard]] static auto create(Window &window) noexcept -> Result<Device>;
 
         void set_clear_color(const Color &color) noexcept;
         void clear(ClearMask mask = ClearMask::color) noexcept;
 
         void set_viewport(int x, int y, int width, int height) noexcept;
     private:
+        Device() noexcept = default;
+
         Color m_clear_color{};
         std::array<int, 4> m_viewport{};
     };
