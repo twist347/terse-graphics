@@ -1,12 +1,17 @@
 #include "tgx/device.h"
 
-#include "tgx/gl/handle.h"
-#include "tgx/gl/version.h"
+#include "tgx/assert.h"
 #include "tgx/window.h"
+
+#include "tgx/gl/handle.h"
+#include "tgx/gl/shader.h"
+#include "tgx/gl/version.h"
+#include "tgx/gl/vertex_array.h"
 
 #include <cstdint>
 #include <cstdio>
 #include <type_traits>
+#include <utility>
 
 #include <glad/gl.h>
 
@@ -26,6 +31,18 @@ namespace {
 
     auto apply_clear_color(tgx::Color color) noexcept -> void {
         glClearColor(to_unit(color.r), to_unit(color.g), to_unit(color.b), to_unit(color.a));
+    }
+
+    [[nodiscard]] constexpr auto to_gl(tgx::Primitive primitive) noexcept -> GLenum {
+        using enum tgx::Primitive;
+        switch (primitive) {
+            case triangles: return GL_TRIANGLES;
+            case triangle_strip: return GL_TRIANGLE_STRIP;
+            case lines: return GL_LINES;
+            case line_strip: return GL_LINE_STRIP;
+            case points: return GL_POINTS;
+        }
+        return GL_TRIANGLES;
     }
 
     // Plain "void" on purpose: GLAD_API_PTR is a calling-convention macro on
@@ -122,5 +139,37 @@ namespace tgx {
 
         m_viewport = next;
         glViewport(x, y, width, height);
+    }
+
+    auto Device::draw(
+        const gl::Shader &shader,
+        const gl::VertexArray &vertices,
+        const DrawParams &params
+    ) noexcept -> void {
+        TGX_ASSERT(std::in_range<GLsizei>(params.count) && std::in_range<GLint>(params.first));
+
+        if (params.count == 0) {
+            return;
+        }
+
+        glUseProgram(shader.id());
+        glBindVertexArray(vertices.id());
+
+        const GLenum mode = to_gl(params.primitive);
+        const auto count = static_cast<GLsizei>(params.count);
+
+        if (!vertices.has_index_buffer()) {
+            glDrawArrays(mode, static_cast<GLint>(params.first), count);
+            return;
+        }
+
+        const bool wide = vertices.index_type() == gl::IndexType::uint32;
+        const GLenum type = wide ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+        const std::size_t index_size = wide ? 4 : 2;
+
+        // GL takes the start of an indexed draw as a byte offset into the index
+        // buffer, passed where a pointer used to go.
+        const auto *start = reinterpret_cast<const void *>(params.first * index_size);
+        glDrawElements(mode, count, type, start);
     }
 }

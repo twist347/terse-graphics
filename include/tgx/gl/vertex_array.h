@@ -57,6 +57,12 @@ namespace tgx::gl {
             std::span<const VertexAttribute> attributes
         ) noexcept -> VertexArray;
 
+        VertexArray(const VertexArray &) = delete;
+        auto operator=(const VertexArray &) -> VertexArray & = delete;
+
+        VertexArray(VertexArray &&) noexcept = default;
+        auto operator=(VertexArray &&) noexcept -> VertexArray & = default;
+
         auto set_vertex_buffer(const Buffer &buffer, std::size_t byte_offset = 0) noexcept -> void;
         auto set_index_buffer(const Buffer &buffer, IndexType type) noexcept -> void;
 

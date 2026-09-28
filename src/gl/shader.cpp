@@ -1,6 +1,6 @@
 #include "tgx/gl/shader.h"
 
-#include <climits>
+#include <utility>
 
 #include <glad/gl.h>
 
@@ -59,7 +59,7 @@ namespace {
         std::string_view source,
         std::string *out_log
     ) -> Stage {
-        TGX_ASSERT(source.size() <= static_cast<std::size_t>(INT_MAX));
+        TGX_ASSERT(std::in_range<GLint>(source.size()));
 
         // Owned from the start: append_log allocates and may throw.
         Stage shader{glCreateShader(stage)};

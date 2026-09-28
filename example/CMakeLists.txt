@@ -1,3 +1,8 @@
-add_executable(example_01_window main.cpp)
-target_link_libraries(example_01_window PRIVATE tgx::tgx)
-target_compile_options(example_01_window PRIVATE ${TGX_WARNINGS})
+function(tgx_add_example name)
+    add_executable(example_${name} ${name}.cpp)
+    target_link_libraries(example_${name} PRIVATE tgx::tgx)
+    target_compile_options(example_${name} PRIVATE ${TGX_WARNINGS})
+endfunction()
+
+tgx_add_example(01_window)
+tgx_add_example(02_triangle)

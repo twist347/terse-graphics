@@ -52,6 +52,12 @@ namespace tgx::gl {
             return create(device, std::span<const std::byte>{std::as_bytes(data)}, access);
         }
 
+        Buffer(const Buffer &) = delete;
+        auto operator=(const Buffer &) -> Buffer & = delete;
+
+        Buffer(Buffer &&) noexcept = default;
+        auto operator=(Buffer &&) noexcept -> Buffer & = default;
+
         auto update(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void;
 
         template<typename T, std::size_t Extent>

@@ -32,6 +32,12 @@ namespace tgx::gl {
             std::string *out_log = nullptr
         ) -> Result<Shader>;
 
+        Shader(const Shader &) = delete;
+        auto operator=(const Shader &) -> Shader & = delete;
+
+        Shader(Shader &&) noexcept = default;
+        auto operator=(Shader &&) noexcept -> Shader & = default;
+
         [[nodiscard]] auto id() const noexcept -> GlId;
 
     private:

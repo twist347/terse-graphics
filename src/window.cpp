@@ -5,8 +5,9 @@
 #include <GLFW/glfw3.h>
 
 #include "tgx/assert.h"
-#include "tgx/gl/version.h"
 #include "tgx/platform.h"
+
+#include "tgx/gl/version.h"
 
 #include "platform_internal.h"
 

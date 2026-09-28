@@ -1,6 +1,7 @@
 #include "tgx/gl/buffer.h"
 
 #include <cstdint>
+#include <utility>
 
 #include <glad/gl.h>
 
@@ -22,7 +23,7 @@ namespace {
     ) noexcept -> tgx::Result<GLuint> {
         // GL rejects empty storage, and sizes travel as a signed GLsizeiptr.
         TGX_ASSERT(size > 0);
-        TGX_ASSERT(size <= static_cast<std::size_t>(PTRDIFF_MAX));
+        TGX_ASSERT(std::in_range<GLsizeiptr>(size));
 
         GLuint id = 0;
         glCreateBuffers(1, &id);
