@@ -1,6 +1,5 @@
 #include "tgx/window.h"
 
-#include <string>
 #include <utility>
 
 #include <GLFW/glfw3.h>
@@ -86,11 +85,11 @@ namespace tgx {
         glfwSwapBuffers(m_handle);
     }
 
-    void Window::set_title(std::string_view title) {
+    void Window::set_title(const char *title) noexcept {
         TGX_ASSERT(m_handle);
+        TGX_ASSERT(title != nullptr);
 
-        const std::string owned{title};
-        glfwSetWindowTitle(m_handle, owned.c_str());
+        glfwSetWindowTitle(m_handle, title);
     }
 
     void Window::set_vsync(bool enabled) noexcept {

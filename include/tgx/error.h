@@ -1,7 +1,6 @@
 #pragma once
 
 #include <expected>
-#include <string_view>
 #include <cstdint>
 
 namespace tgx {
@@ -16,7 +15,7 @@ namespace tgx {
         invalid_argument,
     };
 
-    [[nodiscard]] constexpr auto to_str(Error err) noexcept -> std::string_view {
+    [[nodiscard]] constexpr auto to_str(Error err) noexcept -> const char * {
         switch (err) {
             case Error::io: return "io";
             case Error::decode: return "decode";

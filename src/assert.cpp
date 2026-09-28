@@ -4,17 +4,18 @@
 #include <cstdlib>
 
 namespace tgx::detail {
-    void assert_failed(const char *expr, std::string_view msg, std::source_location loc) noexcept {
+    void assert_failed(const char *expr, const char *msg, std::source_location loc) noexcept {
+        const bool has_msg = msg != nullptr && *msg != '\0';
+
         std::fprintf(
             stderr,
-            "%s:%u: assertion failed in %s\n  %s%s%.*s\n",
+            "%s:%u: assertion failed in %s\n  %s%s%s\n",
             loc.file_name(),
             loc.line(),
             loc.function_name(),
             expr,
-            msg.empty() ? "" : "\n  ",
-            static_cast<int>(msg.size()),
-            msg.data()
+            has_msg ? "\n  " : "",
+            has_msg ? msg : ""
         );
         std::fflush(stderr);
         std::abort();

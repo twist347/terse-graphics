@@ -29,7 +29,7 @@ namespace tgx::gl {
             std::string_view vertex,
             std::string_view fragment,
             std::string *out_log = nullptr
-        ) noexcept -> Result<Shader>;
+        ) -> Result<Shader>;
 
         [[nodiscard]] auto id() const noexcept -> GlId;
 

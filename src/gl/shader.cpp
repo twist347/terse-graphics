@@ -24,19 +24,23 @@ namespace {
             return;
         }
 
-        std::string log(static_cast<std::size_t>(length), '\0');
-        GLsizei written = 0;
-        if (is_program) {
-            glGetProgramInfoLog(object, length, &written, log.data());
-        } else {
-            glGetShaderInfoLog(object, length, &written, log.data());
-        }
-        log.resize(static_cast<std::size_t>(written));
-
         out_log->append(label);
         out_log->append(":\n");
-        out_log->append(log);
-        if (!log.empty() && log.back() != '\n') {
+
+        // GL writes at most length bytes counting its own terminator: make room
+        // for that, then shrink to what it actually produced.
+        const std::size_t at = out_log->size();
+        out_log->resize(at + static_cast<std::size_t>(length));
+        GLsizei written = 0;
+        if (is_program) {
+            glGetProgramInfoLog(object, length, &written, out_log->data() + at);
+        } else {
+            glGetShaderInfoLog(object, length, &written, out_log->data() + at);
+        }
+        out_log->resize(at + static_cast<std::size_t>(written));
+
+        // Non-empty for sure: "<label>:\n" is already in there.
+        if (out_log->back() != '\n') {
             out_log->push_back('\n');
         }
     }
@@ -79,7 +83,7 @@ namespace tgx::gl {
         std::string_view vertex,
         std::string_view fragment,
         std::string *out_log
-    ) noexcept -> Result<Shader> {
+    ) -> Result<Shader> {
         if (out_log != nullptr) {
             out_log->clear();
         }

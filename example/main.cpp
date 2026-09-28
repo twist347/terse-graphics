@@ -10,19 +10,19 @@ namespace {
 int main() {
     auto platform = tgx::Platform::create();
     if (!platform) {
-        std::fprintf(stderr, "platform: %s\n", tgx::to_str(platform.error()).data());
+        std::fprintf(stderr, "platform: %s\n", tgx::to_str(platform.error()));
         return 1;
     }
 
     auto window = tgx::Window::create(*platform, {.title = title});
     if (!window) {
-        std::fprintf(stderr, "window: %s\n", tgx::to_str(window.error()).data());
+        std::fprintf(stderr, "window: %s\n", tgx::to_str(window.error()));
         return 1;
     }
 
     auto device = tgx::Device::create(*window);
     if (!device) {
-        std::fprintf(stderr, "device: %s\n", tgx::to_str(device.error()).data());
+        std::fprintf(stderr, "device: %s\n", tgx::to_str(device.error()));
         return 1;
     }
     device->set_clear_color(tgx::colors::green);
@@ -33,7 +33,7 @@ int main() {
         clock.tick();
 
         if (clock.fps_updated()) {
-            window->set_title(std::format("{} - {:.0f} fps", title, clock.fps()));
+            window->set_title(std::format("{} - {:.0f} fps", title, clock.fps()).c_str());
         }
 
         const auto [width, height] = window->framebuffer_size();

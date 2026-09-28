@@ -2,7 +2,6 @@
 
 #include "tgx/error.h"
 
-#include <string_view>
 #include <utility>
 
 struct GLFWwindow;
@@ -42,7 +41,8 @@ namespace tgx {
 
         void swap_buffers() noexcept;
 
-        void set_title(std::string_view title);
+        // Must be nul-terminated UTF-8, as the windowing backend requires.
+        void set_title(const char *title) noexcept;
 
         void set_vsync(bool enabled) noexcept;
 
