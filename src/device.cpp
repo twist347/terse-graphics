@@ -24,10 +24,12 @@ namespace {
         return static_cast<float>(channel) / 255.0F;
     }
 
-    void apply_clear_color(const tgx::Color &color) noexcept {
+    auto apply_clear_color(const tgx::Color &color) noexcept -> void {
         glClearColor(to_unit(color.r), to_unit(color.g), to_unit(color.b), to_unit(color.a));
     }
 
+    // Plain "void" on purpose: GLAD_API_PTR is a calling-convention macro on
+    // some platforms, and it has to sit between the return type and the name.
     void GLAD_API_PTR on_gl_debug(
         GLenum,
         GLenum,
@@ -40,7 +42,7 @@ namespace {
         std::fprintf(stderr, "[tgx] gl %u: %s\n", id, message);
     }
 
-    void install_debug_callback() noexcept {
+    auto install_debug_callback() noexcept -> void {
         GLint flags = 0;
         glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
         if ((flags & GL_CONTEXT_FLAG_DEBUG_BIT) == 0) {
@@ -85,7 +87,7 @@ namespace tgx {
         return device;
     }
 
-    void Device::set_clear_color(const Color &color) noexcept {
+    auto Device::set_clear_color(const Color &color) noexcept -> void {
         if (color == m_clear_color) {
             return;
         }
@@ -94,7 +96,7 @@ namespace tgx {
         apply_clear_color(color);
     }
 
-    void Device::clear(ClearMask mask) noexcept {
+    auto Device::clear(ClearMask mask) noexcept -> void {
         GLbitfield bits = 0;
 
         if (has(mask, ClearMask::color)) {
@@ -112,7 +114,7 @@ namespace tgx {
         }
     }
 
-    void Device::set_viewport(int x, int y, int width, int height) noexcept {
+    auto Device::set_viewport(int x, int y, int width, int height) noexcept -> void {
         const std::array next{x, y, width, height};
         if (next == m_viewport) {
             return;

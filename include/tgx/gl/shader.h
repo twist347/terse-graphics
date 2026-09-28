@@ -12,7 +12,7 @@ namespace tgx {
 
 namespace tgx::gl {
     namespace detail {
-        void delete_program(GlId id) noexcept;
+        auto delete_program(GlId id) noexcept -> void;
     }
 
     // A linked GPU program: a vertex and a fragment stage. Sources carry their

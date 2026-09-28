@@ -13,22 +13,22 @@
 #endif
 
 namespace tgx::detail {
-    [[noreturn]] void assert_failed(
+    [[noreturn]] auto assert_failed(
         const char *expr,
         const char *msg,
         std::source_location loc = std::source_location::current()
-    ) noexcept;
+    ) noexcept -> void;
 
     // Formats into a stack buffer, so a failing assert never needs an allocation
     // to report itself and stays usable from noexcept code. Long messages are
     // truncated.
     template<typename... Ts>
-    [[noreturn]] void assert_failed_fmt(
+    [[noreturn]] auto assert_failed_fmt(
         const char *expr,
         std::source_location loc,
         std::format_string<Ts...> fmt,
         Ts &&...args
-    ) noexcept {
+    ) noexcept -> void {
         char buf[512];
         const auto res = std::format_to_n(buf, sizeof(buf) - 1, fmt, std::forward<Ts>(args)...);
         *res.out = '\0';

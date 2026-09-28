@@ -11,7 +11,7 @@ namespace {
     // first glfwTerminate would pull it out from under the other Platform.
     bool s_platform_alive = false;
 
-    void on_glfw_error(int code, const char *desc) noexcept {
+    auto on_glfw_error(int code, const char *desc) noexcept -> void {
         std::fprintf(stderr, "[tgx] glfw error %d: %s\n", code, desc);
     }
 }

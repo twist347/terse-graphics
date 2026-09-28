@@ -37,14 +37,14 @@ namespace tgx {
 
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
-        void request_close() noexcept;
+        auto request_close() noexcept -> void;
 
-        void swap_buffers() noexcept;
+        auto swap_buffers() noexcept -> void;
 
         // Must be nul-terminated UTF-8, as the windowing backend requires.
-        void set_title(const char *title) noexcept;
+        auto set_title(const char *title) noexcept -> void;
 
-        void set_vsync(bool enabled) noexcept;
+        auto set_vsync(bool enabled) noexcept -> void;
 
         [[nodiscard]] auto framebuffer_size() const noexcept -> std::pair<int, int>;
 

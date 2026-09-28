@@ -1,7 +1,7 @@
 #include "tgx/clock.h"
 
 namespace tgx {
-    void Clock::tick() noexcept {
+    auto Clock::tick() noexcept -> void {
         const auto now = SteadyClock::now();
 
         if (!m_started) {

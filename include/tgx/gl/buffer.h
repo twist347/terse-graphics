@@ -13,7 +13,7 @@ namespace tgx {
 
 namespace tgx::gl {
     namespace detail {
-        void delete_buffer(GlId id) noexcept;
+        auto delete_buffer(GlId id) noexcept -> void;
     }
 
     enum class BufferAccess {
@@ -52,11 +52,11 @@ namespace tgx::gl {
             return create(device, std::span<const std::byte>{std::as_bytes(data)}, access);
         }
 
-        void update(std::size_t byte_offset, std::span<const std::byte> data) noexcept;
+        auto update(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void;
 
         template<typename T, std::size_t Extent>
             requires std::is_trivially_copyable_v<T>
-        void update(std::size_t byte_offset, std::span<T, Extent> data) noexcept {
+        auto update(std::size_t byte_offset, std::span<T, Extent> data) noexcept -> void {
             update(byte_offset, std::span<const std::byte>{std::as_bytes(data)});
         }
 

@@ -40,7 +40,7 @@ namespace tgx::gl {
         [[nodiscard]] explicit operator bool() const noexcept { return m_id != 0; }
 
     private:
-        void reset() noexcept {
+        auto reset() noexcept -> void {
             if (m_id != 0) {
                 Delete(m_id);
                 m_id = 0;

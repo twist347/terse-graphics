@@ -4,7 +4,7 @@
 #include <cstdlib>
 
 namespace tgx::detail {
-    void assert_failed(const char *expr, const char *msg, std::source_location loc) noexcept {
+    auto assert_failed(const char *expr, const char *msg, std::source_location loc) noexcept -> void {
         const bool has_msg = msg != nullptr && *msg != '\0';
 
         std::fprintf(

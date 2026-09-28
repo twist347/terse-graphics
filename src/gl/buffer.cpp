@@ -43,7 +43,7 @@ namespace {
 }
 
 namespace tgx::gl {
-    void detail::delete_buffer(GlId id) noexcept {
+    auto detail::delete_buffer(GlId id) noexcept -> void {
         glDeleteBuffers(1, &id);
     }
 
@@ -59,7 +59,7 @@ namespace tgx::gl {
         });
     }
 
-    void Buffer::update(std::size_t byte_offset, std::span<const std::byte> data) noexcept {
+    auto Buffer::update(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void {
         TGX_ASSERT(m_handle);
         TGX_ASSERT_MSG(m_access == BufferAccess::dynamic, "updating an immutable buffer");
         TGX_ASSERT_MSG(

@@ -73,26 +73,26 @@ namespace tgx {
         return glfwWindowShouldClose(m_handle) == GLFW_TRUE;
     }
 
-    void Window::request_close() noexcept {
+    auto Window::request_close() noexcept -> void {
         TGX_ASSERT(m_handle);
 
         glfwSetWindowShouldClose(m_handle, GLFW_TRUE);
     }
 
-    void Window::swap_buffers() noexcept {
+    auto Window::swap_buffers() noexcept -> void {
         TGX_ASSERT(m_handle);
 
         glfwSwapBuffers(m_handle);
     }
 
-    void Window::set_title(const char *title) noexcept {
+    auto Window::set_title(const char *title) noexcept -> void {
         TGX_ASSERT(m_handle);
         TGX_ASSERT(title != nullptr);
 
         glfwSetWindowTitle(m_handle, title);
     }
 
-    void Window::set_vsync(bool enabled) noexcept {
+    auto Window::set_vsync(bool enabled) noexcept -> void {
         TGX_ASSERT(m_handle);
 
         glfwSwapInterval(enabled ? 1 : 0);
@@ -107,7 +107,7 @@ namespace tgx {
         return {width, height};
     }
 
-    void Window::destroy() noexcept {
+    auto Window::destroy() noexcept -> void {
         if (m_handle == nullptr) {
             return;
         }

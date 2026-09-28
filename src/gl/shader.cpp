@@ -9,7 +9,7 @@
 namespace {
     // Appends "<label>:\n<log>" when the driver has anything to say. The length
     // GL reports includes the terminating null.
-    void append_log(std::string *out_log, std::string_view label, GLuint object, bool is_program) {
+    auto append_log(std::string *out_log, std::string_view label, GLuint object, bool is_program) -> void {
         if (out_log == nullptr) {
             return;
         }
@@ -74,7 +74,7 @@ namespace {
 }
 
 namespace tgx::gl {
-    void detail::delete_program(GlId id) noexcept {
+    auto detail::delete_program(GlId id) noexcept -> void {
         glDeleteProgram(id);
     }
 
