@@ -18,7 +18,7 @@ namespace tgx {
 
         ~Platform();
 
-        void poll_events() noexcept;
+        auto poll_events() noexcept -> void;
 
     private:
         friend class Window;

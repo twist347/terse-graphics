@@ -32,10 +32,16 @@ namespace tgx {
         // routes driver messages to stderr.
         [[nodiscard]] static auto create(Window &window) noexcept -> Result<Device>;
 
-        void set_clear_color(const Color &color) noexcept;
-        void clear(ClearMask mask = ClearMask::color) noexcept;
+        Device(const Device &) = delete;
+        auto operator=(const Device &) -> Device & = delete;
 
-        void set_viewport(int x, int y, int width, int height) noexcept;
+        Device(Device &&) noexcept = default;
+        auto operator=(Device &&) noexcept -> Device & = default;
+
+        auto set_clear_color(const Color &color) noexcept -> void;
+        auto clear(ClearMask mask = ClearMask::color) noexcept -> void;
+
+        auto set_viewport(int x, int y, int width, int height) noexcept -> void;
     private:
         Device() noexcept = default;
 

@@ -44,7 +44,7 @@ namespace tgx {
         s_platform_alive = false;
     }
 
-    void Platform::poll_events() noexcept {
+    auto Platform::poll_events() noexcept -> void {
         glfwPollEvents();
     }
 }

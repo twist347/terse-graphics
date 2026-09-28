@@ -15,7 +15,7 @@ namespace tgx::gl {
         }
 
         Handle(const Handle &) = delete;
-        Handle &operator=(const Handle &) = delete;
+        auto operator=(const Handle &) -> Handle & = delete;
 
         Handle(Handle &&other) noexcept : m_id{std::exchange(other.m_id, 0)} {
         }
