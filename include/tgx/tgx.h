@@ -10,5 +10,6 @@
 #include "tgx/gl/shader.h"
 #include "tgx/gl/version.h"
 #include "tgx/gl/vertex_array.h"
+#include "tgx/log.h"
 #include "tgx/platform.h"
 #include "tgx/window.h"
