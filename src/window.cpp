@@ -104,7 +104,7 @@ namespace tgx {
         glfwSwapInterval(enabled ? 1 : 0);
     }
 
-    auto Window::framebuffer_size() const noexcept -> std::pair<int, int> {
+    auto Window::framebuffer_size() const noexcept -> Size {
         TGX_ASSERT(m_handle);
 
         int width = 0;

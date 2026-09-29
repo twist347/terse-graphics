@@ -1,8 +1,7 @@
 #pragma once
 
 #include "tgx/error.h"
-
-#include <utility>
+#include "tgx/size.h"
 
 struct GLFWwindow;
 
@@ -54,7 +53,7 @@ namespace tgx {
 
         auto set_vsync(bool enabled) noexcept -> void;
 
-        [[nodiscard]] auto framebuffer_size() const noexcept -> std::pair<int, int>;
+        [[nodiscard]] auto framebuffer_size() const noexcept -> Size;
 
         // Resolves GL functions for this window's context; it must be current.
         [[nodiscard]] auto gl_loader() const noexcept -> GlLoader;

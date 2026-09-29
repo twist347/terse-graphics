@@ -14,15 +14,21 @@ namespace {
     // Stage objects are only needed until the program is linked.
     using Stage = tgx::gl::Handle<delete_shader>;
 
+    // Shaders and programs keep their logs behind different, same-shaped calls.
+    enum class LogOf {
+        shader,
+        program,
+    };
+
     // Appends "<label>:\n<log>" when the driver has anything to say. The length
     // GL reports includes the terminating null.
-    auto append_log(std::string *out_log, std::string_view label, GLuint object, bool is_program) -> void {
+    auto append_log(std::string *out_log, std::string_view label, GLuint object, LogOf kind) -> void {
         if (out_log == nullptr) {
             return;
         }
 
         GLint length = 0;
-        if (is_program) {
+        if (kind == LogOf::program) {
             glGetProgramiv(object, GL_INFO_LOG_LENGTH, &length);
         } else {
             glGetShaderiv(object, GL_INFO_LOG_LENGTH, &length);
@@ -39,7 +45,7 @@ namespace {
         const std::size_t at = out_log->size();
         out_log->resize(at + static_cast<std::size_t>(length));
         GLsizei written = 0;
-        if (is_program) {
+        if (kind == LogOf::program) {
             glGetProgramInfoLog(object, length, &written, out_log->data() + at);
         } else {
             glGetShaderInfoLog(object, length, &written, out_log->data() + at);
@@ -69,7 +75,7 @@ namespace {
         glShaderSource(shader.get(), 1, &text, &length);
         glCompileShader(shader.get());
 
-        append_log(out_log, label, shader.get(), false);
+        append_log(out_log, label, shader.get(), LogOf::shader);
 
         GLint ok = GL_FALSE;
         glGetShaderiv(shader.get(), GL_COMPILE_STATUS, &ok);
@@ -112,7 +118,7 @@ namespace tgx::gl {
         glDetachShader(program.get(), vs.get());
         glDetachShader(program.get(), fs.get());
 
-        append_log(out_log, "link", program.get(), true);
+        append_log(out_log, "link", program.get(), LogOf::program);
 
         GLint ok = GL_FALSE;
         glGetProgramiv(program.get(), GL_LINK_STATUS, &ok);

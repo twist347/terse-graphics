@@ -4,9 +4,8 @@
 #include "tgx/device.h"
 #include "tgx/error.h"
 #include "tgx/platform.h"
+#include "tgx/size.h"
 #include "tgx/window.h"
-
-#include <utility>
 
 namespace tgx {
     // The simple way in: one platform, one window, one device and a frame clock,
@@ -59,6 +58,6 @@ namespace tgx {
         Device m_device;
         Clock m_clock;
         // What the viewport was last fitted to, to notice a resize.
-        std::pair<int, int> m_framebuffer_size{};
+        Size m_framebuffer_size{};
     };
 }

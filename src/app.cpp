@@ -42,7 +42,7 @@ namespace tgx {
         const auto size = m_window.framebuffer_size();
         if (size != m_framebuffer_size) {
             m_framebuffer_size = size;
-            m_device.set_viewport(0, 0, size.first, size.second);
+            m_device.set_viewport(0, 0, size.width, size.height);
         }
     }
 

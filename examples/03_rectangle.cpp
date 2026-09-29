@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <format>
 #include <string>
@@ -35,10 +36,19 @@ namespace {
         }
     )";
 
+    // Four corners, each vertex stored once.
     constexpr std::array vertices{
         Vertex{-0.6f, -0.5f, tgx::colors::red},
         Vertex{0.6f, -0.5f, tgx::colors::green},
-        Vertex{0.0f, 0.6f, tgx::colors::blue},
+        Vertex{0.6f, 0.5f, tgx::colors::blue},
+        Vertex{-0.6f, 0.5f, tgx::colors::yellow},
+    };
+
+    // Two triangles sharing the 0-2 diagonal: six indices instead of six
+    // vertices.
+    constexpr std::array<std::uint16_t, 6> indices{
+        0, 1, 2,
+        0, 2, 3,
     };
 
     constexpr std::array layout{
@@ -54,7 +64,7 @@ namespace {
         },
     };
 
-    constexpr const char *title = "tgx - 02 triangle";
+    constexpr const char *title = "tgx - 03 rectangle";
 }
 
 int main() {
@@ -74,13 +84,16 @@ int main() {
     }
 
     auto vbo = tgx::gl::Buffer::create(app->device(), vertices);
-    if (!vbo) {
-        std::fprintf(stderr, "buffer: %s\n", tgx::to_str(vbo.error()));
+    auto ibo = tgx::gl::Buffer::create(app->device(), indices);
+    if (!vbo || !ibo) {
+        std::fprintf(stderr, "buffer: %s\n", tgx::to_str(!vbo ? vbo.error() : ibo.error()));
         return 1;
     }
 
     auto vao = tgx::gl::VertexArray::create<Vertex>(app->device(), layout);
     vao.set_vertex_buffer(*vbo);
+    // With an index buffer attached, draw counts indices, not vertices.
+    vao.set_index_buffer(*ibo, tgx::gl::IndexType::uint16);
 
     app->device().set_clear_color(tgx::colors::dark_gray);
 
@@ -92,7 +105,7 @@ int main() {
         }
 
         app->device().clear();
-        app->device().draw(*shader, vao, {.count = vertices.size()});
+        app->device().draw(*shader, vao, {.count = indices.size()});
 
         app->swap_buffers();
     }

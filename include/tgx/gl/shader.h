@@ -2,6 +2,7 @@
 
 #include "tgx/error.h"
 #include "tgx/gl/handle.h"
+#include "tgx/gl/version.h"
 
 #include <string>
 #include <string_view>
@@ -17,7 +18,8 @@ namespace tgx::gl {
     }
 
     // A linked GPU program: a vertex and a fragment stage. Sources carry their
-    // own #version line.
+    // own #version line; TGX_GLSL_VERSION (tgx/gl/version.h) is the one that
+    // matches the context.
     //
     // The Device in from_source() is proof that GL functions are loaded; it is
     // not stored.

@@ -12,4 +12,5 @@
 #include "tgx/gl/vertex_array.h"
 #include "tgx/log.h"
 #include "tgx/platform.h"
+#include "tgx/size.h"
 #include "tgx/window.h"

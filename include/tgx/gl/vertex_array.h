@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <type_traits>
 
 namespace tgx {
     class Device;
@@ -61,6 +62,15 @@ namespace tgx::gl {
             std::size_t stride,
             std::span<const VertexAttribute> attributes
         ) noexcept -> VertexArray;
+
+        // The stride is sizeof(Vertex). Vertex must be laid out plainly, so the
+        // offsetof() values in the attributes mean what the GPU will read.
+        template<typename Vertex>
+            requires std::is_standard_layout_v<Vertex> && std::is_trivially_copyable_v<Vertex>
+        [[nodiscard]] static auto create(Device &device, std::span<const VertexAttribute> attributes) noexcept
+            -> VertexArray {
+            return create(device, sizeof(Vertex), attributes);
+        }
 
         VertexArray(const VertexArray &) = delete;
         auto operator=(const VertexArray &) -> VertexArray & = delete;
