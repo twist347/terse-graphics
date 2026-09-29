@@ -1,11 +1,10 @@
 #include "tgx/gl/buffer.h"
 
-#include <cstdint>
-#include <utility>
+#include "tgx/assert.h"
 
 #include <glad/gl.h>
 
-#include "tgx/assert.h"
+#include <utility>
 
 namespace {
     // Buffers are bound here only to be edited. COPY_WRITE is not read by draws

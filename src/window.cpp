@@ -1,9 +1,5 @@
 #include "tgx/window.h"
 
-#include <utility>
-
-#include <GLFW/glfw3.h>
-
 #include "tgx/assert.h"
 #include "tgx/platform.h"
 
@@ -11,6 +7,10 @@
 #include "tgx/gl/version.h"
 
 #include "platform_internal.h"
+
+#include <GLFW/glfw3.h>
+
+#include <utility>
 
 namespace tgx {
     auto Window::create(Platform &platform, const WindowParams &params) noexcept -> Result<Window> {

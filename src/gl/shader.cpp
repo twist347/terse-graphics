@@ -1,10 +1,10 @@
 #include "tgx/gl/shader.h"
 
-#include <utility>
+#include "tgx/assert.h"
 
 #include <glad/gl.h>
 
-#include "tgx/assert.h"
+#include <utility>
 
 namespace {
     auto delete_shader(tgx::gl::GlId id) noexcept -> void {

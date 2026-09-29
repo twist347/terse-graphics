@@ -18,7 +18,7 @@ namespace tgx {
         [[nodiscard]] auto started() const noexcept -> bool { return m_started; }
 
         [[nodiscard]] auto delta() const noexcept -> float { return m_delta; }
-        // Seconds since the first tick. A double: a float drops to millisecond
+        // Seconds since the clock started. A double: a float drops to millisecond
         // steps after a few hours.
         [[nodiscard]] auto elapsed() const noexcept -> double { return m_elapsed; }
         [[nodiscard]] auto fps() const noexcept -> float { return m_fps; }

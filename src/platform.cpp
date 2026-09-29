@@ -1,13 +1,13 @@
 #include "tgx/platform.h"
 
-#include <utility>
-
-#include <GLFW/glfw3.h>
-
 #include "tgx/assert.h"
 
 #include "log_internal.h"
 #include "platform_internal.h"
+
+#include <GLFW/glfw3.h>
+
+#include <utility>
 
 namespace {
     // Mirrors GLFW's own process-wide state: a second glfwInit is a no-op, but the

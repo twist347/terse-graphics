@@ -1,7 +1,7 @@
 #pragma once
 
-#include <expected>
 #include <cstdint>
+#include <expected>
 
 namespace tgx {
     enum class Error : std::int32_t {

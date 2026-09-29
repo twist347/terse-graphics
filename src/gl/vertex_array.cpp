@@ -1,12 +1,13 @@
 #include "tgx/gl/vertex_array.h"
 
-#include <algorithm>
-#include <cstdint>
+#include "tgx/assert.h"
+
+#include "tgx/gl/buffer.h"
 
 #include <glad/gl.h>
 
-#include "tgx/assert.h"
-#include "tgx/gl/buffer.h"
+#include <algorithm>
+#include <cstdint>
 
 namespace {
     using tgx::gl::VertexArray;

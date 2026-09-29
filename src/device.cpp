@@ -10,12 +10,12 @@
 
 #include "log_internal.h"
 
+#include <glad/gl.h>
+
 #include <cstdint>
 #include <string_view>
 #include <type_traits>
 #include <utility>
-
-#include <glad/gl.h>
 
 static_assert(std::is_same_v<GLuint, tgx::gl::GlId>);
 

@@ -4,6 +4,7 @@ project(terse-graphics LANGUAGES C CXX)
 
 option(TGX_BUILD_EXAMPLES "Build tgx examples" ON)
 set(TGX_ASSERTS "" CACHE STRING "tgx asserts: ON, OFF, or empty to follow the build type")
+set_property(CACHE TGX_ASSERTS PROPERTY STRINGS "" ON OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -43,12 +44,19 @@ target_compile_definitions(tgx PRIVATE GLFW_INCLUDE_NONE)
 # Public headers hold inline code and defaults that depend on this, so the
 # library and everything linking it must see the same value. By default asserts
 # are off in the configurations where CMake defines NDEBUG.
-if (TGX_ASSERTS STREQUAL "")
+# Checked by hand: if() would read a mistyped value such as ONN as a variable
+# name and quietly turn asserts off.
+string(TOUPPER "${TGX_ASSERTS}" tgx_asserts)
+set(tgx_on_values ON TRUE YES 1)
+set(tgx_off_values OFF FALSE NO 0)
+if (tgx_asserts STREQUAL "")
     set(tgx_enable_asserts "$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,0,1>")
-elseif (TGX_ASSERTS)
+elseif (tgx_asserts IN_LIST tgx_on_values)
     set(tgx_enable_asserts 1)
-else ()
+elseif (tgx_asserts IN_LIST tgx_off_values)
     set(tgx_enable_asserts 0)
+else ()
+    message(FATAL_ERROR "TGX_ASSERTS must be ON, OFF or empty, not '${TGX_ASSERTS}'")
 endif ()
 target_compile_definitions(tgx PUBLIC TGX_ENABLE_ASSERTS=${tgx_enable_asserts})
 target_compile_options(tgx PRIVATE ${TGX_WARNINGS})
