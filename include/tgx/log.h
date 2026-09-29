@@ -33,6 +33,8 @@ namespace tgx {
     // synchronised with logging: set it before creating the App.
     auto set_log_sink(LogSink sink, void *user = nullptr) noexcept -> void;
 
-    // Messages below the level are dropped before they are formatted.
+    // Messages below the level are dropped before they are formatted. The
+    // default is warn: quiet unless something is wrong. Set info to also see
+    // the context the driver gave at startup.
     auto set_log_level(LogLevel level) noexcept -> void;
 }

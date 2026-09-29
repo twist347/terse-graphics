@@ -8,6 +8,8 @@ namespace {
 }
 
 int main() {
+    tgx::set_log_level(tgx::LogLevel::info);
+
     auto app = tgx::App::create({.title = title});
     if (!app) {
         std::fprintf(stderr, "app: %s\n", tgx::to_str(app.error()));

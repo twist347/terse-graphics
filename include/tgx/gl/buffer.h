@@ -32,8 +32,8 @@ namespace tgx::gl {
         dynamic,
     };
 
-    // A GPU buffer with immutable storage: its size is fixed at creation, its
-    // contents may change only when created as dynamic.
+    // A GPU buffer whose size is fixed at creation and whose contents may
+    // change only when created as dynamic.
     //
     // The Device in create() is proof that GL functions are loaded; it is not
     // stored.

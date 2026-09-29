@@ -14,7 +14,7 @@ namespace {
     };
 
     constexpr const char *vertex_source = R"(
-        #version 450 core
+        #version 330 core
         layout(location = 0) in vec2 in_position;
         layout(location = 1) in vec4 in_color;
 
@@ -27,7 +27,7 @@ namespace {
     )";
 
     constexpr const char *fragment_source = R"(
-        #version 450 core
+        #version 330 core
         in vec4 color;
 
         out vec4 out_color;
@@ -60,6 +60,8 @@ namespace {
 }
 
 int main() {
+    tgx::set_log_level(tgx::LogLevel::info);
+
     auto app = tgx::App::create({.title = title});
     if (!app) {
         std::fprintf(stderr, "app: %s\n", tgx::to_str(app.error()));

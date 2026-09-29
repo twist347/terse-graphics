@@ -19,11 +19,11 @@
 
 static_assert(std::is_same_v<GLuint, tgx::gl::GlId>);
 
-// Only the 4.5 backend exists: this refuses to build against an unwritten one,
+// Only the 3.3 backend exists: this refuses to build against an unwritten one,
 // it is not a switch.
 static_assert(
-    tgx::gl::version_major == 4 && tgx::gl::version_minor == 5,
-    "tgx implements only OpenGL 4.5"
+    tgx::gl::version_major == 3 && tgx::gl::version_minor == 3,
+    "tgx implements only OpenGL 3.3"
 );
 
 namespace {
@@ -47,8 +47,6 @@ namespace {
         return GL_TRIANGLES;
     }
 
-    // Plain "void" on purpose: GLAD_API_PTR is a calling-convention macro on
-    // some platforms, and it has to sit between the return type and the name.
     [[nodiscard]] constexpr auto to_log_level(GLenum severity) noexcept -> tgx::LogLevel {
         switch (severity) {
             case GL_DEBUG_SEVERITY_HIGH: return tgx::LogLevel::error;
@@ -57,6 +55,8 @@ namespace {
         }
     }
 
+    // Plain "void" on purpose: GLAD_API_PTR is a calling-convention macro on
+    // some platforms, and it has to sit between the return type and the name.
     void GLAD_API_PTR on_gl_debug(
         GLenum,
         GLenum,
@@ -85,6 +85,12 @@ namespace {
     }
 
     auto install_debug_callback() noexcept -> void {
+        // Core only since 4.3. Without KHR_debug (macOS has none) there are
+        // simply no driver messages.
+        if (GLAD_GL_KHR_debug == 0) {
+            return;
+        }
+
         GLint flags = 0;
         glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
         if ((flags & GL_CONTEXT_FLAG_DEBUG_BIT) == 0) {

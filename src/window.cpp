@@ -23,6 +23,9 @@ namespace tgx {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, gl::version_major);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, gl::version_minor);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        // Required by macOS for any core context; ignored elsewhere, where core
+        // profiles have no deprecated functions left to remove anyway.
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, params.debug_context ? GLFW_TRUE : GLFW_FALSE);
 
         GLFWwindow *handle = glfwCreateWindow(

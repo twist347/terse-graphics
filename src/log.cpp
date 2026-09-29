@@ -28,7 +28,7 @@ namespace {
     tgx::LogSink g_sink = default_sink;
     void *g_user = nullptr;
     // Atomic because the level is read on every log call, from any thread.
-    std::atomic<tgx::LogLevel> g_level{tgx::LogLevel::info};
+    std::atomic<tgx::LogLevel> g_level{tgx::LogLevel::warn};
 }
 
 namespace tgx {

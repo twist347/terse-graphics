@@ -8,12 +8,18 @@
 #include "tgx/assert.h"
 
 namespace {
-    [[nodiscard]] auto to_gl_flags(tgx::gl::BufferAccess access) noexcept -> GLbitfield {
+    // Buffers are bound here only to be edited. COPY_WRITE is not read by draws
+    // and is not VAO state, so binding to it cannot disturb anything; binding
+    // to ELEMENT_ARRAY would swap the index buffer of whatever VAO is bound.
+    constexpr GLenum edit_target = GL_COPY_WRITE_BUFFER;
+
+    // Only a hint in 3.3: nothing stops a rewrite, the assert in update() does.
+    [[nodiscard]] auto to_gl_usage(tgx::gl::BufferAccess access) noexcept -> GLenum {
         switch (access) {
-            case tgx::gl::BufferAccess::immutable: return 0;
-            case tgx::gl::BufferAccess::dynamic: return GL_DYNAMIC_STORAGE_BIT;
+            case tgx::gl::BufferAccess::immutable: return GL_STATIC_DRAW;
+            case tgx::gl::BufferAccess::dynamic: return GL_DYNAMIC_DRAW;
         }
-        return 0;
+        return GL_STATIC_DRAW;
     }
 
     [[nodiscard]] auto make(
@@ -31,8 +37,9 @@ namespace {
         }
 
         GLuint id = 0;
-        glCreateBuffers(1, &id);
-        glNamedBufferStorage(id, static_cast<GLsizeiptr>(size), data, to_gl_flags(access));
+        glGenBuffers(1, &id);
+        glBindBuffer(edit_target, id);
+        glBufferData(edit_target, static_cast<GLsizeiptr>(size), data, to_gl_usage(access));
 
         // Any error leaves the buffer without storage, so none is survivable.
         // Caller mistakes are asserted above; what is left is the driver.
@@ -76,8 +83,9 @@ namespace tgx::gl {
             return;
         }
 
-        glNamedBufferSubData(
-            m_handle.get(),
+        glBindBuffer(edit_target, m_handle.get());
+        glBufferSubData(
+            edit_target,
             static_cast<GLintptr>(byte_offset),
             static_cast<GLsizeiptr>(data.size()),
             data.data()

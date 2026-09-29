@@ -2,6 +2,7 @@
 
 #include "tgx/gl/handle.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -51,6 +52,10 @@ namespace tgx::gl {
     // loaded; it is not stored.
     class VertexArray {
     public:
+        // Attribute locations must be below this: the lower bound every GL 3.3
+        // implementation guarantees for GL_MAX_VERTEX_ATTRIBS.
+        static constexpr std::uint32_t max_attributes = 16;
+
         [[nodiscard]] static auto create(
             Device &device,
             std::uint32_t stride,
@@ -77,11 +82,14 @@ namespace tgx::gl {
         [[nodiscard]] auto index_type() const noexcept -> IndexType;
 
     private:
-        VertexArray(GlId id, std::uint32_t stride) noexcept : m_handle{id}, m_stride{stride} {
-        }
+        VertexArray(GlId id, std::uint32_t stride, std::span<const VertexAttribute> attributes) noexcept;
 
         Handle<detail::delete_vertex_array> m_handle;
         std::uint32_t m_stride{0};
+        // GL 3.3 ties an attribute's format to the buffer it reads from, so the
+        // layout is kept here and handed to GL again whenever the buffer changes.
+        std::array<VertexAttribute, max_attributes> m_attributes{};
+        std::uint32_t m_attribute_count{0};
         // Cached at attach time: buffer sizes are fixed at creation.
         std::size_t m_vertex_count{0};
         std::size_t m_index_count{0};

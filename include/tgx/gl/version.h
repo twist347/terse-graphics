@@ -3,6 +3,6 @@
 namespace tgx::gl {
     // The OpenGL version tgx is written against: the context it requests and
     // the minimum it accepts.
-    inline constexpr int version_major = 4;
-    inline constexpr int version_minor = 5;
+    inline constexpr int version_major = 3;
+    inline constexpr int version_minor = 3;
 }
