@@ -19,15 +19,21 @@ Creation order is the dependency chain, and each step fails on its own:
     auto window   = tgx::Window::create(*platform, {...});
     auto device   = tgx::Device::create(*window);
 
-`App` does the same in one call and runs the frame loop:
+`App` does the same in one call. Its frame loop has the shape of a plain GLFW
+one; `poll_events` also fits the viewport after a resize, `swap_buffers` also
+ticks the clock:
 
     auto app = tgx::App::create({.title = "tgx"});
-    while (app->next_frame()) {
+    while (!app->should_close()) {
+        app->poll_events();
+
         app->device().clear();
         app->device().draw(*shader, vao, {.count = 3});
+
+        app->swap_buffers();
     }
 
-See `example/` for complete programs.
+See `examples/` for complete programs.
 
 ## Rules
 

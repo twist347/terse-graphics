@@ -25,26 +25,29 @@ namespace tgx {
     App::App(Platform platform, Window window, Device device) noexcept
         : m_platform{std::move(platform)},
           m_window{std::move(window)},
-          m_device{std::move(device)} {
+          m_device{std::move(device)},
+          m_framebuffer_size{m_window.framebuffer_size()} {
+        // Device::create has already fitted the viewport to this size. Starting
+        // the clock here makes the first delta() the time to the first present.
+        m_clock.tick();
     }
 
-    auto App::next_frame() noexcept -> bool {
-        if (m_in_frame) {
-            m_window.swap_buffers();
-        }
+    auto App::should_close() const noexcept -> bool {
+        return m_window.should_close();
+    }
+
+    auto App::poll_events() noexcept -> void {
         m_platform.poll_events();
 
-        if (m_window.should_close()) {
-            m_in_frame = false;
-            return false;
+        const auto size = m_window.framebuffer_size();
+        if (size != m_framebuffer_size) {
+            m_framebuffer_size = size;
+            m_device.set_viewport(0, 0, size.first, size.second);
         }
+    }
 
+    auto App::swap_buffers() noexcept -> void {
+        m_window.swap_buffers();
         m_clock.tick();
-
-        const auto [width, height] = m_window.framebuffer_size();
-        m_device.set_viewport(0, 0, width, height);
-
-        m_in_frame = true;
-        return true;
     }
 }

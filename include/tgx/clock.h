@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 
 namespace tgx {
     class Clock {
@@ -21,7 +22,7 @@ namespace tgx {
         SteadyClock::time_point m_start{};
         SteadyClock::time_point m_last{};
         SteadyClock::time_point m_window_start{};
-        int m_frames{0};
+        std::size_t m_frames{0};
         float m_delta{0.f};
         double m_elapsed{0.0};
         float m_fps{0.f};

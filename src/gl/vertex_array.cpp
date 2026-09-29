@@ -14,14 +14,14 @@ namespace {
     // GL 3.3 has no stride limit to query; this is the lower bound 4.4+ drivers
     // guarantee for GL_MAX_VERTEX_ATTRIB_STRIDE, so a layout within it stays
     // portable to them too.
-    constexpr std::uint32_t max_stride = 2048;
+    constexpr std::size_t max_stride = 2048;
 
     struct GlFormat {
         GLint components;
         GLenum type;
         GLboolean normalized;
         bool integer;
-        std::uint32_t size;
+        std::size_t size;
     };
 
     [[nodiscard]] constexpr auto to_gl(tgx::gl::VertexFormat format) noexcept -> GlFormat {
@@ -46,7 +46,7 @@ namespace tgx::gl {
 
     auto VertexArray::create(
         Device &,
-        std::uint32_t stride,
+        std::size_t stride,
         std::span<const VertexAttribute> attributes
     ) noexcept -> VertexArray {
         TGX_ASSERT(stride > 0 && stride <= max_stride);
@@ -94,10 +94,10 @@ namespace tgx::gl {
         return VertexArray{id, stride, attributes};
     }
 
-    VertexArray::VertexArray(GlId id, std::uint32_t stride, std::span<const VertexAttribute> attributes) noexcept
+    VertexArray::VertexArray(GlId id, std::size_t stride, std::span<const VertexAttribute> attributes) noexcept
         : m_handle{id},
           m_stride{stride},
-          m_attribute_count{static_cast<std::uint32_t>(attributes.size())} {
+          m_attribute_count{attributes.size()} {
         std::ranges::copy(attributes, m_attributes.begin());
     }
 
@@ -111,12 +111,13 @@ namespace tgx::gl {
         // captures it, together with the offset and stride.
         glBindVertexArray(m_handle.get());
         glBindBuffer(GL_ARRAY_BUFFER, buffer.id());
-        for (std::uint32_t i = 0; i < m_attribute_count; ++i) {
+        for (std::size_t i = 0; i < m_attribute_count; ++i) {
             const VertexAttribute &attribute = m_attributes[i];
             const GlFormat format = to_gl(attribute.format);
 
             // GL takes the offset into the buffer where a pointer used to go.
             const auto *offset = reinterpret_cast<const void *>(byte_offset + attribute.offset);
+            // Fits: the stride is asserted against max_stride at creation.
             const auto stride = static_cast<GLsizei>(m_stride);
             if (format.integer) {
                 glVertexAttribIPointer(attribute.location, format.components, format.type, stride, offset);
@@ -155,7 +156,7 @@ namespace tgx::gl {
         return m_handle.get();
     }
 
-    auto VertexArray::stride() const noexcept -> std::uint32_t {
+    auto VertexArray::stride() const noexcept -> std::size_t {
         TGX_ASSERT(m_handle);
 
         return m_stride;

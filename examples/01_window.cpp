@@ -16,14 +16,18 @@ int main() {
         return 1;
     }
 
-    app->device().set_clear_color(tgx::colors::cyan);
+    app->device().set_clear_color(tgx::colors::dark_gray);
 
-    while (app->next_frame()) {
+    while (!app->should_close()) {
+        app->poll_events();
+
         if (app->clock().fps_updated()) {
             app->window().set_title(std::format("{} - {:.0f} fps", title, app->clock().fps()).c_str());
         }
 
         app->device().clear();
+
+        app->swap_buffers();
     }
 
     return 0;

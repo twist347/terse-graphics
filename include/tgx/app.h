@@ -6,6 +6,8 @@
 #include "tgx/platform.h"
 #include "tgx/window.h"
 
+#include <utility>
+
 namespace tgx {
     // The simple way in: one platform, one window, one device and a frame clock,
     // created together and torn down in the right order. The layers underneath
@@ -23,10 +25,25 @@ namespace tgx {
         App(const App &) = delete;
         auto operator=(const App &) -> App & = delete;
 
-        // Finishes the previous frame and starts the next one: presents what was
-        // drawn, polls events, ticks the clock and fits the viewport to the
-        // window. Returns false once the window has been asked to close.
-        [[nodiscard]] auto next_frame() noexcept -> bool;
+        // The frame loop, in the same shape as a plain GLFW one:
+        //
+        //     while (!app->should_close()) {
+        //         app->poll_events();
+        //         ... draw ...
+        //         app->swap_buffers();
+        //     }
+        //
+        // Unlike window().swap_buffers() and platform().poll_events(), these
+        // also do the per-frame bookkeeping noted on each.
+        [[nodiscard]] auto should_close() const noexcept -> bool;
+
+        // Polls events, then fits the viewport to the window if its size
+        // changed. A viewport set by hand stays until the next resize.
+        auto poll_events() noexcept -> void;
+
+        // Presents the frame, then ticks the clock: delta() is the time from
+        // one present to the next.
+        auto swap_buffers() noexcept -> void;
 
         [[nodiscard]] auto platform() noexcept -> Platform & { return m_platform; }
         [[nodiscard]] auto window() noexcept -> Window & { return m_window; }
@@ -41,6 +58,7 @@ namespace tgx {
         Window m_window;
         Device m_device;
         Clock m_clock;
-        bool m_in_frame{false};
+        // What the viewport was last fitted to, to notice a resize.
+        std::pair<int, int> m_framebuffer_size{};
     };
 }

@@ -36,7 +36,7 @@ namespace tgx::gl {
         std::uint32_t location{0};
         VertexFormat format{VertexFormat::float32};
         // Byte offset inside one vertex, usually offsetof(Vertex, field).
-        std::uint32_t offset{0};
+        std::size_t offset{0};
     };
 
     enum class IndexType : std::int32_t {
@@ -58,7 +58,7 @@ namespace tgx::gl {
 
         [[nodiscard]] static auto create(
             Device &device,
-            std::uint32_t stride,
+            std::size_t stride,
             std::span<const VertexAttribute> attributes
         ) noexcept -> VertexArray;
 
@@ -72,7 +72,7 @@ namespace tgx::gl {
         auto set_index_buffer(const Buffer &buffer, IndexType type) noexcept -> void;
 
         [[nodiscard]] auto id() const noexcept -> GlId;
-        [[nodiscard]] auto stride() const noexcept -> std::uint32_t;
+        [[nodiscard]] auto stride() const noexcept -> std::size_t;
         // Whole vertices the attached vertex buffer holds past its offset; 0
         // until one is attached.
         [[nodiscard]] auto vertex_count() const noexcept -> std::size_t;
@@ -82,14 +82,14 @@ namespace tgx::gl {
         [[nodiscard]] auto index_type() const noexcept -> IndexType;
 
     private:
-        VertexArray(GlId id, std::uint32_t stride, std::span<const VertexAttribute> attributes) noexcept;
+        VertexArray(GlId id, std::size_t stride, std::span<const VertexAttribute> attributes) noexcept;
 
         Handle<detail::delete_vertex_array> m_handle;
-        std::uint32_t m_stride{0};
+        std::size_t m_stride{0};
         // GL 3.3 ties an attribute's format to the buffer it reads from, so the
         // layout is kept here and handed to GL again whenever the buffer changes.
         std::array<VertexAttribute, max_attributes> m_attributes{};
-        std::uint32_t m_attribute_count{0};
+        std::size_t m_attribute_count{0};
         // Cached at attach time: buffer sizes are fixed at creation.
         std::size_t m_vertex_count{0};
         std::size_t m_index_count{0};

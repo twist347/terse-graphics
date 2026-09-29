@@ -41,5 +41,5 @@ target_compile_definitions(tgx PRIVATE GLFW_INCLUDE_NONE)
 target_compile_options(tgx PRIVATE ${TGX_WARNINGS})
 
 if (TGX_BUILD_EXAMPLES)
-    add_subdirectory(example)
+    add_subdirectory(examples)
 endif ()
