@@ -41,8 +41,11 @@ namespace tgx::gl {
     class Buffer {
     public:
         // Uninitialised storage of the given size; only useful as dynamic.
-        [[nodiscard]] static auto create(Device &device, std::size_t size,
-                                         BufferAccess access) noexcept -> Result<Buffer>;
+        [[nodiscard]] static auto create(
+            Device &device,
+            std::size_t size,
+            BufferAccess access
+        ) noexcept -> Result<Buffer>;
 
         // Storage sized and filled from the data. The data is copied at once,
         // so a temporary is fine.

@@ -55,7 +55,11 @@ namespace tgx::gl {
         glDeleteBuffers(1, &id);
     }
 
-    auto Buffer::create(Device &, std::size_t size, BufferAccess access) noexcept -> Result<Buffer> {
+    auto Buffer::create(
+        Device &,
+        std::size_t size,
+        BufferAccess access
+    ) noexcept -> Result<Buffer> {
         TGX_ASSERT_MSG(access == BufferAccess::dynamic, "an immutable buffer without data can never be filled");
 
         return make(size, nullptr, access).transform([&](GLuint id) {
@@ -63,7 +67,11 @@ namespace tgx::gl {
         });
     }
 
-    auto Buffer::create_bytes(Device &, std::span<const std::byte> data, BufferAccess access) noexcept -> Result<Buffer> {
+    auto Buffer::create_bytes(
+        Device &,
+        std::span<const std::byte> data,
+        BufferAccess access
+    ) noexcept -> Result<Buffer> {
         return make(data.size(), data.data(), access).transform([&](GLuint id) {
             return Buffer{id, data.size(), access};
         });

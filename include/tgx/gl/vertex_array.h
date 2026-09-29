@@ -67,8 +67,10 @@ namespace tgx::gl {
         // offsetof() values in the attributes mean what the GPU will read.
         template<typename Vertex>
             requires std::is_standard_layout_v<Vertex> && std::is_trivially_copyable_v<Vertex>
-        [[nodiscard]] static auto create(Device &device, std::span<const VertexAttribute> attributes) noexcept
-            -> VertexArray {
+        [[nodiscard]] static auto create(
+            Device &device,
+            std::span<const VertexAttribute> attributes
+        ) noexcept -> VertexArray {
             return create(device, sizeof(Vertex), attributes);
         }
 
@@ -79,16 +81,22 @@ namespace tgx::gl {
         auto operator=(VertexArray &&) noexcept -> VertexArray & = default;
 
         auto set_vertex_buffer(const Buffer &buffer, std::size_t byte_offset = 0) noexcept -> void;
+
         auto set_index_buffer(const Buffer &buffer, IndexType type) noexcept -> void;
 
         [[nodiscard]] auto id() const noexcept -> GlId;
+
         [[nodiscard]] auto stride() const noexcept -> std::size_t;
+
         // Whole vertices the attached vertex buffer holds past its offset; 0
         // until one is attached.
         [[nodiscard]] auto vertex_count() const noexcept -> std::size_t;
+
         // Whole indices the attached index buffer holds.
         [[nodiscard]] auto index_count() const noexcept -> std::size_t;
+
         [[nodiscard]] auto has_index_buffer() const noexcept -> bool;
+
         [[nodiscard]] auto index_type() const noexcept -> IndexType;
 
     private:
