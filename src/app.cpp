@@ -27,9 +27,7 @@ namespace tgx {
           m_window{std::move(window)},
           m_device{std::move(device)},
           m_framebuffer_size{m_window.framebuffer_size()} {
-        // Device::create has already fitted the viewport to this size. Starting
-        // the clock here makes the first delta() the time to the first present.
-        m_clock.tick();
+        // Device::create has already fitted the viewport to this size.
     }
 
     auto App::should_close() const noexcept -> bool {
@@ -37,10 +35,17 @@ namespace tgx {
     }
 
     auto App::poll_events() noexcept -> void {
+        // Started here rather than on creation: resources are loaded between
+        // the two, and that time is not a frame.
+        if (!m_clock.started()) {
+            m_clock.restart();
+        }
+
         m_platform.poll_events();
 
         const auto size = m_window.framebuffer_size();
-        if (size != m_framebuffer_size) {
+        m_resized = size != m_framebuffer_size;
+        if (m_resized) {
             m_framebuffer_size = size;
             m_device.set_viewport(0, 0, size.width, size.height);
         }

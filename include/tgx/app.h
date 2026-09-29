@@ -37,8 +37,14 @@ namespace tgx {
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
         // Polls events, then fits the viewport to the window if its size
-        // changed. A viewport set by hand stays until the next resize.
+        // changed. A viewport set by hand stays until the next resize. The
+        // first call starts the clock, so loading done before the loop is not
+        // counted in the first delta().
         auto poll_events() noexcept -> void;
+
+        // Whether the last poll_events() saw the window's framebuffer change
+        // size; the new size is window().framebuffer_size().
+        [[nodiscard]] auto resized() const noexcept -> bool { return m_resized; }
 
         // Presents the frame, then ticks the clock: delta() is the time from
         // one present to the next.
@@ -48,6 +54,10 @@ namespace tgx {
         [[nodiscard]] auto window() noexcept -> Window & { return m_window; }
         [[nodiscard]] auto device() noexcept -> Device & { return m_device; }
         [[nodiscard]] auto clock() const noexcept -> const Clock & { return m_clock; }
+
+        // See Clock::restart: call it after a long pause inside the loop, such
+        // as loading a level, so the next delta() does not jump.
+        auto restart_clock() noexcept -> void { m_clock.restart(); }
 
     private:
         App(Platform platform, Window window, Device device) noexcept;
@@ -59,5 +69,6 @@ namespace tgx {
         Clock m_clock;
         // What the viewport was last fitted to, to notice a resize.
         Size m_framebuffer_size{};
+        bool m_resized{false};
     };
 }

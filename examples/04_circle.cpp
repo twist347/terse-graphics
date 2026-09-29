@@ -119,8 +119,11 @@ int main() {
     }
 
     // Dynamic: the vertices are rebuilt whenever the window changes shape.
-    tgx::Size size = app->window().framebuffer_size();
-    auto vbo = tgx::gl::Buffer::create(app->device(), make_vertices(size), tgx::gl::BufferAccess::dynamic);
+    auto vbo = tgx::gl::Buffer::create(
+        app->device(),
+        make_vertices(app->window().framebuffer_size()),
+        tgx::gl::BufferAccess::dynamic
+    );
     auto ibo = tgx::gl::Buffer::create(app->device(), indices);
     if (!vbo || !ibo) {
         std::fprintf(stderr, "buffer: %s\n", tgx::to_str(!vbo ? vbo.error() : ibo.error()));
@@ -140,9 +143,8 @@ int main() {
             app->window().set_title(std::format("{} - {:.0f} fps", title, app->clock().fps()).c_str());
         }
 
-        if (const tgx::Size now = app->window().framebuffer_size(); now != size) {
-            size = now;
-            vbo->update(0, make_vertices(size));
+        if (app->resized()) {
+            vbo->update(0, make_vertices(app->window().framebuffer_size()));
         }
 
         app->device().clear();

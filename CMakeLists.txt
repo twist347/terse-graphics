@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(terse-graphics LANGUAGES C CXX)
 
 option(TGX_BUILD_EXAMPLES "Build tgx examples" ON)
+set(TGX_ASSERTS "" CACHE STRING "tgx asserts: ON, OFF, or empty to follow the build type")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -38,6 +39,18 @@ target_include_directories(tgx
 
 target_link_libraries(tgx PRIVATE glad glfw)
 target_compile_definitions(tgx PRIVATE GLFW_INCLUDE_NONE)
+
+# Public headers hold inline code and defaults that depend on this, so the
+# library and everything linking it must see the same value. By default asserts
+# are off in the configurations where CMake defines NDEBUG.
+if (TGX_ASSERTS STREQUAL "")
+    set(tgx_enable_asserts "$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,0,1>")
+elseif (TGX_ASSERTS)
+    set(tgx_enable_asserts 1)
+else ()
+    set(tgx_enable_asserts 0)
+endif ()
+target_compile_definitions(tgx PUBLIC TGX_ENABLE_ASSERTS=${tgx_enable_asserts})
 target_compile_options(tgx PRIVATE ${TGX_WARNINGS})
 
 if (TGX_BUILD_EXAMPLES)

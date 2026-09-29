@@ -2,14 +2,11 @@
 
 namespace tgx {
     auto Clock::tick() noexcept -> void {
-        const auto now = SteadyClock::now();
-
         if (!m_started) {
-            m_started = true;
-            m_start = now;
-            m_last = now;
-            m_window_start = now;
+            restart();
         }
+
+        const auto now = SteadyClock::now();
 
         m_delta = std::chrono::duration<float>(now - m_last).count();
         m_elapsed = std::chrono::duration<double>(now - m_start).count();
@@ -24,5 +21,20 @@ namespace tgx {
             m_window_start = now;
             m_fps_updated = true;
         }
+    }
+
+    auto Clock::restart() noexcept -> void {
+        const auto now = SteadyClock::now();
+
+        if (!m_started) {
+            m_started = true;
+            m_start = now;
+        }
+
+        m_last = now;
+        m_window_start = now;
+        m_frames = 0;
+        m_delta = 0.f;
+        m_fps_updated = false;
     }
 }

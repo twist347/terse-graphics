@@ -75,4 +75,7 @@ CMake 3.25+ and a C++23 compiler. GLFW and glad are vendored in `thirdparty/`.
     cmake --build build
 
 Examples are built by default; turn them off with `-DTGX_BUILD_EXAMPLES=OFF`.
+Asserts follow the build type (off where CMake defines `NDEBUG`); force them
+with `-DTGX_ASSERTS=ON` or `OFF`. The setting reaches everything that links
+`tgx::tgx`, so the library and the app always agree.
 In another CMake project: `add_subdirectory(terse-graphics)` and link `tgx::tgx`.

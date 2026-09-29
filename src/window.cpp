@@ -7,6 +7,7 @@
 #include "tgx/assert.h"
 #include "tgx/platform.h"
 
+#include "tgx/gl/handle.h"
 #include "tgx/gl/version.h"
 
 #include "platform_internal.h"
@@ -117,6 +118,10 @@ namespace tgx {
         if (m_handle == nullptr) {
             return;
         }
+
+        // The GL context goes with the window, but a live Device would still
+        // report it usable and let resources call GL without it.
+        TGX_ASSERT_MSG(!gl::detail::context_alive(), "Window destroyed while a Device is alive");
 
         glfwDestroyWindow(m_handle);
         m_handle = nullptr;

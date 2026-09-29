@@ -4,6 +4,9 @@
 #include <source_location>
 #include <utility>
 
+// CMake defines this for the library and everything linking it, so all of them
+// agree. The fallback is for builds without it, which must then define it the
+// same way everywhere: inline code in the headers depends on it.
 #if !defined(TGX_ENABLE_ASSERTS)
     #if defined(NDEBUG)
         #define TGX_ENABLE_ASSERTS 0
