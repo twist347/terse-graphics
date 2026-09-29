@@ -8,8 +8,10 @@
 #include "tgx/gl/version.h"
 #include "tgx/gl/vertex_array.h"
 
+#include "log_internal.h"
+
 #include <cstdint>
-#include <cstdio>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -47,16 +49,39 @@ namespace {
 
     // Plain "void" on purpose: GLAD_API_PTR is a calling-convention macro on
     // some platforms, and it has to sit between the return type and the name.
+    [[nodiscard]] constexpr auto to_log_level(GLenum severity) noexcept -> tgx::LogLevel {
+        switch (severity) {
+            case GL_DEBUG_SEVERITY_HIGH: return tgx::LogLevel::error;
+            case GL_DEBUG_SEVERITY_MEDIUM: return tgx::LogLevel::warn;
+            default: return tgx::LogLevel::info;
+        }
+    }
+
     void GLAD_API_PTR on_gl_debug(
         GLenum,
         GLenum,
         GLuint id,
-        GLenum,
+        GLenum severity,
         GLsizei,
         const GLchar *message,
         const void *
     ) noexcept {
-        std::fprintf(stderr, "[tgx] gl %u: %s\n", id, message);
+        // The message is null-terminated; the reported length is not trusted,
+        // as drivers disagree on whether it counts the terminator.
+        tgx::detail::log(to_log_level(severity), "gl {}: {}", id, message);
+    }
+
+    // glGetString hands out unsigned chars; a lost context gives nullptr.
+    [[nodiscard]] auto gl_string(GLenum name) noexcept -> std::string_view {
+        const auto *str = reinterpret_cast<const char *>(glGetString(name));
+        return str != nullptr ? str : "?";
+    }
+
+    auto log_context_info() noexcept -> void {
+        tgx::detail::log_info("OpenGL {}", gl_string(GL_VERSION));
+        tgx::detail::log_info("  renderer: {}", gl_string(GL_RENDERER));
+        tgx::detail::log_info("  vendor:   {}", gl_string(GL_VENDOR));
+        tgx::detail::log_info("  glsl:     {}", gl_string(GL_SHADING_LANGUAGE_VERSION));
     }
 
     auto install_debug_callback() noexcept -> void {
@@ -91,6 +116,9 @@ namespace tgx {
         if (version == 0) {
             return std::unexpected{Error::platform};
         }
+        // Before the version check, so a rejected context still shows what the
+        // driver actually gave.
+        log_context_info();
         if (version < GLAD_MAKE_VERSION(gl::version_major, gl::version_minor)) {
             return std::unexpected{Error::unsupported};
         }

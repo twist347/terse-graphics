@@ -10,17 +10,23 @@ set(TGX_WARNINGS -Wall -Wextra -Wpedantic)
 
 add_subdirectory(thirdparty)
 
-add_library(tgx STATIC
+set(TGX_SOURCES
         src/app.cpp
         src/assert.cpp
         src/clock.cpp
         src/device.cpp
+        src/log.cpp
         src/platform.cpp
         src/window.cpp
+)
+
+set(TGX_GL_SOURCES
         src/gl/buffer.cpp
         src/gl/shader.cpp
         src/gl/vertex_array.cpp
 )
+
+add_library(tgx STATIC ${TGX_SOURCES} ${TGX_GL_SOURCES})
 add_library(tgx::tgx ALIAS tgx)
 
 target_compile_features(tgx PUBLIC cxx_std_23)

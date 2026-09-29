@@ -3,7 +3,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdio>
+#include <format>
 #include <string>
+#include <span>
 
 namespace {
     struct Vertex {

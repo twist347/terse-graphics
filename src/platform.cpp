@@ -1,12 +1,12 @@
 #include "tgx/platform.h"
 
-#include <cstdio>
 #include <utility>
 
 #include <GLFW/glfw3.h>
 
 #include "tgx/assert.h"
 
+#include "log_internal.h"
 #include "platform_internal.h"
 
 namespace {
@@ -20,7 +20,7 @@ namespace {
     int s_window_count = 0;
 
     auto on_glfw_error(int code, const char *desc) noexcept -> void {
-        std::fprintf(stderr, "[tgx] glfw error %d: %s\n", code, desc);
+        tgx::detail::log_error("glfw {}: {}", code, desc);
     }
 }
 
