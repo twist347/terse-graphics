@@ -57,6 +57,8 @@ namespace tgx::gl {
     }
 
     auto Buffer::create(Device &, std::size_t size, BufferAccess access) noexcept -> Result<Buffer> {
+        TGX_ASSERT_MSG(access == BufferAccess::dynamic, "an immutable buffer without data can never be filled");
+
         return make(size, nullptr, access).transform([&](GLuint id) {
             return Buffer{id, size, access};
         });

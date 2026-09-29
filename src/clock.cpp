@@ -12,7 +12,7 @@ namespace tgx {
         }
 
         m_delta = std::chrono::duration<float>(now - m_last).count();
-        m_elapsed = std::chrono::duration<float>(now - m_start).count();
+        m_elapsed = std::chrono::duration<double>(now - m_start).count();
         m_last = now;
 
         ++m_frames;

@@ -27,6 +27,10 @@ static_assert(
 );
 
 namespace {
+    // Whether a Device exists, i.e. GL may be called. Main thread only, like
+    // the rest of the Device.
+    bool s_device_alive = false;
+
     [[nodiscard]] constexpr auto to_unit(std::uint8_t channel) noexcept -> float {
         return static_cast<float>(channel) / 255.0F;
     }
@@ -115,7 +119,13 @@ namespace {
 }
 
 namespace tgx {
+    auto gl::detail::context_alive() noexcept -> bool {
+        return s_device_alive;
+    }
+
     auto Device::create(Window &window) noexcept -> Result<Device> {
+        TGX_ASSERT_MSG(!s_device_alive, "only one Device may exist at a time");
+
         // glad 2 returns the version it loaded, so loading and checking that we
         // got the requested one is the same call.
         const int version = gladLoadGL(window.gl_loader());
@@ -136,6 +146,37 @@ namespace tgx {
         device.set_viewport(0, 0, width, height);
         apply_clear_color(device.m_clear_color);
         return device;
+    }
+
+    Device::Device() noexcept : m_owned{true} {
+        s_device_alive = true;
+    }
+
+    Device::Device(Device &&other) noexcept
+        : m_clear_color{other.m_clear_color},
+          m_viewport{other.m_viewport},
+          m_owned{std::exchange(other.m_owned, false)} {
+    }
+
+    auto Device::operator=(Device &&other) noexcept -> Device & {
+        if (this != &other) {
+            release();
+            m_clear_color = other.m_clear_color;
+            m_viewport = other.m_viewport;
+            m_owned = std::exchange(other.m_owned, false);
+        }
+        return *this;
+    }
+
+    Device::~Device() {
+        release();
+    }
+
+    auto Device::release() noexcept -> void {
+        if (m_owned) {
+            s_device_alive = false;
+            m_owned = false;
+        }
     }
 
     auto Device::set_clear_color(Color color) noexcept -> void {
@@ -191,9 +232,10 @@ namespace tgx {
 
         // GL does not check ranges: reading past a buffer is undefined, and the
         // debug output usually stays silent. Index values themselves are not
-        // checked, that would mean reading the buffer back. Both are 32-bit,
-        // so the sum cannot overflow in 64 bits.
-        const std::uint64_t end = std::uint64_t{params.first} + params.count;
+        // checked, that would mean reading the buffer back. Both fit a GLint
+        // (asserted above), so the sum cannot overflow.
+        TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
+        const std::size_t end = params.first + params.count;
         if (vertices.has_index_buffer()) {
             TGX_ASSERT_MSG(
                 end <= vertices.index_count(),

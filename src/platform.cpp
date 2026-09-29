@@ -26,6 +26,10 @@ namespace {
 
 namespace tgx {
     auto detail::window_opened() noexcept -> void {
+        // A new window makes its context current and would silently take every
+        // later GL call away from the first one.
+        TGX_ASSERT_MSG(s_window_count == 0, "only one Window may exist at a time");
+
         ++s_window_count;
     }
 

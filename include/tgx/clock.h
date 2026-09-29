@@ -8,7 +8,9 @@ namespace tgx {
         auto tick() noexcept -> void;
 
         [[nodiscard]] auto delta() const noexcept -> float { return m_delta; }
-        [[nodiscard]] auto elapsed() const noexcept -> float { return m_elapsed; }
+        // Seconds since the first tick. A double: a float drops to millisecond
+        // steps after a few hours.
+        [[nodiscard]] auto elapsed() const noexcept -> double { return m_elapsed; }
         [[nodiscard]] auto fps() const noexcept -> float { return m_fps; }
 
         [[nodiscard]] auto fps_updated() const noexcept -> bool { return m_fps_updated; }
@@ -21,7 +23,7 @@ namespace tgx {
         SteadyClock::time_point m_window_start{};
         int m_frames{0};
         float m_delta{0.f};
-        float m_elapsed{0.f};
+        double m_elapsed{0.0};
         float m_fps{0.f};
         bool m_fps_updated{false};
         bool m_started{false};

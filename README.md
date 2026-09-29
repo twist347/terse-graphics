@@ -39,6 +39,9 @@ See `example/` for complete programs.
   which is the deliberate escape hatch.
 - **`Result` for failures from outside** (driver, OS, files); **asserts for caller
   mistakes** (`TGX_ASSERT`, controlled by `TGX_ENABLE_ASSERTS`, not `NDEBUG`).
+- **One `Window`, one `Device`** at a time (asserted).
+- **`gl::*` resources must be destroyed before the `Device`**: after it the GL
+  context is gone (asserted). Declare them after the `App`.
 - **tgx does not log what it returns.** A failure goes out as a `Result` only;
   the log is for what a `Result` cannot carry. Messages from the GL driver and
   GLFW always go to the log, even when the same failure also comes back as a

@@ -1,10 +1,17 @@
 #pragma once
 
+#include "tgx/assert.h"
+
 #include <cstdint>
 #include <utility>
 
 namespace tgx::gl {
     using GlId = std::uint32_t;
+
+    namespace detail {
+        // False once the Device is gone: GL can no longer be called.
+        [[nodiscard]] auto context_alive() noexcept -> bool;
+    }
 
     template<void (*Delete)(GlId) noexcept>
     class Handle {
@@ -42,6 +49,7 @@ namespace tgx::gl {
     private:
         auto reset() noexcept -> void {
             if (m_id != 0) {
+                TGX_ASSERT_MSG(detail::context_alive(), "GL object {} destroyed after the Device", m_id);
                 Delete(m_id);
                 m_id = 0;
             }

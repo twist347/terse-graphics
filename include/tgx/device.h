@@ -4,6 +4,7 @@
 #include "tgx/error.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace tgx {
@@ -42,12 +43,14 @@ namespace tgx {
 
     struct DrawParams {
         // Vertices, or indices when the vertex array has an index buffer.
-        std::uint32_t count{0};
+        std::size_t count{0};
         // First vertex, or first index, to draw from.
-        std::uint32_t first{0};
+        std::size_t first{0};
         Primitive primitive{Primitive::triangles};
     };
 
+    // Owns nothing on the GPU, but marks the GL context as usable: every gl::
+    // resource must be destroyed before its Device. At most one may exist.
     class Device {
     public:
         // Loads GL functions for the window's context and, on a debug context,
@@ -57,8 +60,10 @@ namespace tgx {
         Device(const Device &) = delete;
         auto operator=(const Device &) -> Device & = delete;
 
-        Device(Device &&) noexcept = default;
-        auto operator=(Device &&) noexcept -> Device & = default;
+        Device(Device &&other) noexcept;
+        auto operator=(Device &&other) noexcept -> Device &;
+
+        ~Device();
 
         auto set_clear_color(Color color) noexcept -> void;
 
@@ -75,9 +80,12 @@ namespace tgx {
         ) noexcept -> void;
 
     private:
-        Device() noexcept = default;
+        Device() noexcept;
+
+        auto release() noexcept -> void;
 
         Color m_clear_color{};
         std::array<int, 4> m_viewport{};
+        bool m_owned{false};
     };
 }

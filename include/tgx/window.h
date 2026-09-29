@@ -14,13 +14,21 @@ namespace tgx {
     using GlLoader = GlProc (*)(const char *name);
 
     struct WindowParams {
-        int width{1920};
-        int height{1080};
+        int width{1280};
+        int height{720};
         const char *title{"tgx"};
         bool vsync{true};
+        // Debug contexts report driver messages but slow the driver down, so by
+        // default only debug builds of the app get one.
+#if defined(NDEBUG)
+        bool debug_context{false};
+#else
         bool debug_context{true};
+#endif
     };
 
+    // At most one may exist for now: creating a window makes its GL context
+    // current.
     class Window {
     public:
         [[nodiscard]] static auto create(Platform &platform, const WindowParams &params) noexcept -> Result<Window>;
