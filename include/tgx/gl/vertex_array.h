@@ -68,6 +68,11 @@ namespace tgx::gl {
 
         [[nodiscard]] auto id() const noexcept -> GlId;
         [[nodiscard]] auto stride() const noexcept -> std::uint32_t;
+        // Whole vertices the attached vertex buffer holds past its offset; 0
+        // until one is attached.
+        [[nodiscard]] auto vertex_count() const noexcept -> std::size_t;
+        // Whole indices the attached index buffer holds.
+        [[nodiscard]] auto index_count() const noexcept -> std::size_t;
         [[nodiscard]] auto has_index_buffer() const noexcept -> bool;
         [[nodiscard]] auto index_type() const noexcept -> IndexType;
 
@@ -77,6 +82,9 @@ namespace tgx::gl {
 
         Handle<detail::delete_vertex_array> m_handle;
         std::uint32_t m_stride{0};
+        // Cached at attach time: buffer sizes are fixed at creation.
+        std::size_t m_vertex_count{0};
+        std::size_t m_index_count{0};
         IndexType m_index_type{IndexType::uint16};
         bool m_has_index_buffer{false};
     };

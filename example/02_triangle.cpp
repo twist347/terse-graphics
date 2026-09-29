@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <format>
 #include <string>
-#include <span>
 
 namespace {
     struct Vertex {
@@ -74,7 +73,7 @@ int main() {
         return 1;
     }
 
-    auto vbo = tgx::gl::Buffer::create(app->device(), std::span{vertices});
+    auto vbo = tgx::gl::Buffer::create(app->device(), vertices);
     if (!vbo) {
         std::fprintf(stderr, "buffer: %s\n", tgx::to_str(vbo.error()));
         return 1;

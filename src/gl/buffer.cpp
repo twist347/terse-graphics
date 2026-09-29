@@ -25,19 +25,20 @@ namespace {
         TGX_ASSERT(size > 0);
         TGX_ASSERT(std::in_range<GLsizeiptr>(size));
 
-        GLuint id = 0;
-        glCreateBuffers(1, &id);
-
         // Drain errors left over from earlier calls, so the check below is
         // about this allocation only.
         while (glGetError() != GL_NO_ERROR) {
         }
 
+        GLuint id = 0;
+        glCreateBuffers(1, &id);
         glNamedBufferStorage(id, static_cast<GLsizeiptr>(size), data, to_gl_flags(access));
 
-        if (glGetError() == GL_OUT_OF_MEMORY) {
+        // Any error leaves the buffer without storage, so none is survivable.
+        // Caller mistakes are asserted above; what is left is the driver.
+        if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
             glDeleteBuffers(1, &id);
-            return std::unexpected{tgx::Error::out_of_mem};
+            return std::unexpected{err == GL_OUT_OF_MEMORY ? tgx::Error::out_of_mem : tgx::Error::platform};
         }
         return id;
     }
@@ -54,13 +55,13 @@ namespace tgx::gl {
         });
     }
 
-    auto Buffer::create(Device &, std::span<const std::byte> data, BufferAccess access) noexcept -> Result<Buffer> {
+    auto Buffer::create_bytes(Device &, std::span<const std::byte> data, BufferAccess access) noexcept -> Result<Buffer> {
         return make(data.size(), data.data(), access).transform([&](GLuint id) {
             return Buffer{id, data.size(), access};
         });
     }
 
-    auto Buffer::update(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void {
+    auto Buffer::update_bytes(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void {
         TGX_ASSERT(m_handle);
         TGX_ASSERT_MSG(m_access == BufferAccess::dynamic, "updating an immutable buffer");
         TGX_ASSERT_MSG(

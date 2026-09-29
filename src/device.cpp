@@ -183,6 +183,29 @@ namespace tgx {
         glUseProgram(shader.id());
         glBindVertexArray(vertices.id());
 
+        // GL does not check ranges: reading past a buffer is undefined, and the
+        // debug output usually stays silent. Index values themselves are not
+        // checked, that would mean reading the buffer back. Both are 32-bit,
+        // so the sum cannot overflow in 64 bits.
+        const std::uint64_t end = std::uint64_t{params.first} + params.count;
+        if (vertices.has_index_buffer()) {
+            TGX_ASSERT_MSG(
+                end <= vertices.index_count(),
+                "drawing indices [{}, {}) from a buffer of {}",
+                params.first,
+                end,
+                vertices.index_count()
+            );
+        } else {
+            TGX_ASSERT_MSG(
+                end <= vertices.vertex_count(),
+                "drawing vertices [{}, {}) from a buffer of {}",
+                params.first,
+                end,
+                vertices.vertex_count()
+            );
+        }
+
         const GLenum mode = to_gl(params.primitive);
         const auto count = static_cast<GLsizei>(params.count);
 

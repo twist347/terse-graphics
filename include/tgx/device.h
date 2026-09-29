@@ -51,7 +51,7 @@ namespace tgx {
     class Device {
     public:
         // Loads GL functions for the window's context and, on a debug context,
-        // routes driver messages to stderr.
+        // routes driver messages to the log.
         [[nodiscard]] static auto create(Window &window) noexcept -> Result<Device>;
 
         Device(const Device &) = delete;

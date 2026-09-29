@@ -4,6 +4,7 @@
 #include "tgx/gl/handle.h"
 
 #include <cstddef>
+#include <ranges>
 #include <span>
 #include <type_traits>
 
@@ -15,6 +16,14 @@ namespace tgx::gl {
     namespace detail {
         auto delete_buffer(GlId id) noexcept -> void;
     }
+
+    // Anything laid out in one piece of memory whose elements can be copied
+    // byte for byte: arrays, vectors, spans, strings. Other ranges have to be
+    // materialised first, e.g. with std::ranges::to<std::vector>().
+    template<typename R>
+    concept BufferData = std::ranges::contiguous_range<R>
+                         && std::ranges::sized_range<R>
+                         && std::is_trivially_copyable_v<std::ranges::range_value_t<R> >;
 
     enum class BufferAccess {
         // Contents are fixed at creation.
@@ -31,25 +40,18 @@ namespace tgx::gl {
     class Buffer {
     public:
         // Uninitialised storage of the given size; only useful as dynamic.
-        [[nodiscard]] static auto create(Device &device, std::size_t size, BufferAccess access) noexcept -> Result<Buffer>;
+        [[nodiscard]] static auto create(Device &device, std::size_t size,
+                                         BufferAccess access) noexcept -> Result<Buffer>;
 
-        // Storage sized and filled from the data.
+        // Storage sized and filled from the data. The data is copied at once,
+        // so a temporary is fine.
+        template<BufferData R>
         [[nodiscard]] static auto create(
             Device &device,
-            std::span<const std::byte> data,
-            BufferAccess access = BufferAccess::immutable
-        ) noexcept -> Result<Buffer>;
-
-        template<typename T, std::size_t Extent>
-            requires std::is_trivially_copyable_v<T>
-        [[nodiscard]] static auto create(
-            Device &device,
-            std::span<T, Extent> data,
+            R &&data,
             BufferAccess access = BufferAccess::immutable
         ) noexcept -> Result<Buffer> {
-            // Explicitly dynamic: a fixed-extent byte span would pick this
-            // template again and recurse forever.
-            return create(device, std::span<const std::byte>{std::as_bytes(data)}, access);
+            return create_bytes(device, std::as_bytes(std::span{data}), access);
         }
 
         Buffer(const Buffer &) = delete;
@@ -58,19 +60,27 @@ namespace tgx::gl {
         Buffer(Buffer &&) noexcept = default;
         auto operator=(Buffer &&) noexcept -> Buffer & = default;
 
-        auto update(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void;
-
-        template<typename T, std::size_t Extent>
-            requires std::is_trivially_copyable_v<T>
-        auto update(std::size_t byte_offset, std::span<T, Extent> data) noexcept -> void {
-            update(byte_offset, std::span<const std::byte>{std::as_bytes(data)});
+        // Overwrites the bytes starting at byte_offset; only for dynamic buffers.
+        template<BufferData R>
+        auto update(std::size_t byte_offset, R &&data) noexcept -> void {
+            update_bytes(byte_offset, std::as_bytes(std::span{data}));
         }
 
         [[nodiscard]] auto id() const noexcept -> GlId;
+
         [[nodiscard]] auto size() const noexcept -> std::size_t;
+
         [[nodiscard]] auto access() const noexcept -> BufferAccess;
 
     private:
+        [[nodiscard]] static auto create_bytes(
+            Device &device,
+            std::span<const std::byte> data,
+            BufferAccess access
+        ) noexcept -> Result<Buffer>;
+
+        auto update_bytes(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void;
+
         Buffer(GlId id, std::size_t size, BufferAccess access) noexcept
             : m_handle{id}, m_size{size}, m_access{access} {
         }

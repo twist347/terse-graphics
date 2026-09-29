@@ -67,7 +67,9 @@ namespace tgx::gl {
                 max_attributes
             );
             TGX_ASSERT_MSG(
-                attribute.offset <= max_relative_offset && format.size <= stride - attribute.offset,
+                attribute.offset <= max_relative_offset
+                && attribute.offset <= stride
+                && format.size <= stride - attribute.offset,
                 "attribute at location {} (offset {}, {} bytes) does not fit a {}-byte vertex",
                 attribute.location,
                 attribute.offset,
@@ -105,6 +107,7 @@ namespace tgx::gl {
         TGX_ASSERT(m_handle);
         TGX_ASSERT(byte_offset <= buffer.size());
 
+        m_vertex_count = (buffer.size() - byte_offset) / m_stride;
         glVertexArrayVertexBuffer(
             m_handle.get(),
             binding,
@@ -120,6 +123,8 @@ namespace tgx::gl {
         glVertexArrayElementBuffer(m_handle.get(), buffer.id());
         m_index_type = type;
         m_has_index_buffer = true;
+        // Rounded down: trailing bytes that do not make a whole index are unused.
+        m_index_count = buffer.size() / (type == IndexType::uint32 ? 4 : 2);
     }
 
     auto VertexArray::id() const noexcept -> GlId {
@@ -132,6 +137,19 @@ namespace tgx::gl {
         TGX_ASSERT(m_handle);
 
         return m_stride;
+    }
+
+    auto VertexArray::vertex_count() const noexcept -> std::size_t {
+        TGX_ASSERT(m_handle);
+
+        return m_vertex_count;
+    }
+
+    auto VertexArray::index_count() const noexcept -> std::size_t {
+        TGX_ASSERT(m_handle);
+        TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
+
+        return m_index_count;
     }
 
     auto VertexArray::has_index_buffer() const noexcept -> bool {
