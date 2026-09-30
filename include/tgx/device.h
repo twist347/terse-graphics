@@ -53,6 +53,59 @@ namespace tgx {
         points
     };
 
+    // How a draw's colors combine with what the framebuffer already holds.
+    // Colors are straight (not premultiplied) unless the mode says otherwise.
+    enum class Blend : std::int32_t {
+        // Overwrites; alpha has no effect.
+        none,
+        // src * a + dst * (1 - a): ordinary transparency.
+        alpha,
+        // src + dst * (1 - a), for colors already multiplied by their alpha.
+        premultiplied,
+        // src * a + dst: light adding up, as in glows and particles.
+        additive,
+        // src * dst, faded towards dst as alpha drops: darkening and tinting.
+        multiply,
+    };
+
+    // Which fragments survive against the depth already stored.
+    enum class Depth : std::int32_t {
+        // No test: later draws cover earlier ones.
+        none,
+        less,
+        less_equal,
+    };
+
+    // Which triangles are dropped by the way they face. Counter-clockwise on
+    // screen is the front.
+    enum class Cull : std::int32_t {
+        none,
+        back,
+        front,
+    };
+
+    enum class Fill : std::int32_t {
+        solid,
+        // Triangle edges only, for looking at the geometry.
+        wireframe,
+    };
+
+    // The fixed-function settings of one draw. Every draw states them all, so
+    // nothing one draw sets leaks into the next; the Device changes only what
+    // differs from the previous draw.
+    struct RenderState {
+        Blend blend{Blend::none};
+        Depth depth{Depth::none};
+        // Whether passing fragments store their depth; off for see-through
+        // geometry drawn after the opaque. Has no effect without a depth test,
+        // as GL then stores no depth at all.
+        bool depth_write{true};
+        Cull cull{Cull::none};
+        Fill fill{Fill::solid};
+
+        [[nodiscard]] constexpr auto operator==(const RenderState &) const noexcept -> bool = default;
+    };
+
     struct DrawParams {
         // For count: everything from first to the end of the buffer.
         static constexpr std::size_t all = std::numeric_limits<std::size_t>::max();
@@ -63,6 +116,7 @@ namespace tgx {
         // First vertex, or first index, to draw from.
         std::size_t first{0};
         Primitive primitive{Primitive::triangles};
+        RenderState state{};
     };
 
     // Owns nothing on the GPU, but marks the GL context as usable: every gl::
@@ -104,6 +158,8 @@ namespace tgx {
 
         Color m_clear_color{};
         std::array<int, 4> m_viewport{};
+        // What GL is set to now; a fresh context starts at the defaults.
+        RenderState m_state{};
         bool m_owned{false};
     };
 }

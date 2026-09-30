@@ -65,6 +65,117 @@ namespace {
         return GL_UNSIGNED_SHORT;
     }
 
+    struct GlBlend {
+        GLenum src_rgb;
+        GLenum dst_rgb;
+        GLenum src_alpha;
+        GLenum dst_alpha;
+    };
+
+    // The alpha channel is kept as coverage: it builds up the way paint would,
+    // which is what a later draw of this framebuffer as a texture expects.
+    [[nodiscard]] constexpr auto to_gl(tgx::Blend blend) noexcept -> GlBlend {
+        using enum tgx::Blend;
+        switch (blend) {
+            case none: return {GL_ONE, GL_ZERO, GL_ONE, GL_ZERO};
+            case alpha: return {GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA};
+            case premultiplied: return {GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA};
+            case additive: return {GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE};
+            case multiply: return {GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE};
+        }
+        return {GL_ONE, GL_ZERO, GL_ONE, GL_ZERO};
+    }
+
+    [[nodiscard]] constexpr auto to_gl(tgx::Depth depth) noexcept -> GLenum {
+        using enum tgx::Depth;
+        switch (depth) {
+            case none: return GL_ALWAYS;
+            case less: return GL_LESS;
+            case less_equal: return GL_LEQUAL;
+        }
+        return GL_ALWAYS;
+    }
+
+    [[nodiscard]] constexpr auto to_gl(tgx::Cull cull) noexcept -> GLenum {
+        using enum tgx::Cull;
+        switch (cull) {
+            // Never reaches GL: culling is switched off instead.
+            case none:
+            case back: return GL_BACK;
+            case front: return GL_FRONT;
+        }
+        return GL_BACK;
+    }
+
+    [[nodiscard]] constexpr auto to_gl(tgx::Fill fill) noexcept -> GLenum {
+        using enum tgx::Fill;
+        switch (fill) {
+            case solid: return GL_FILL;
+            case wireframe: return GL_LINE;
+        }
+        return GL_FILL;
+    }
+
+    auto set_enabled(GLenum capability, bool enabled) noexcept -> void {
+        if (enabled) {
+            glEnable(capability);
+        } else {
+            glDisable(capability);
+        }
+    }
+
+    // Puts GL where a default RenderState says it is. A context can outlive a
+    // Device and keep what the last one set.
+    auto reset_state() noexcept -> void {
+        glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_CULL_FACE);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    // Brings GL from the state current describes to next, touching only what
+    // differs.
+    auto apply_state(tgx::RenderState &current, const tgx::RenderState &next) noexcept -> void {
+        if (next.blend != current.blend) {
+            if ((next.blend == tgx::Blend::none) != (current.blend == tgx::Blend::none)) {
+                set_enabled(GL_BLEND, next.blend != tgx::Blend::none);
+            }
+            if (next.blend != tgx::Blend::none) {
+                const GlBlend factors = to_gl(next.blend);
+                glBlendFuncSeparate(factors.src_rgb, factors.dst_rgb, factors.src_alpha, factors.dst_alpha);
+            }
+        }
+
+        if (next.depth != current.depth) {
+            if ((next.depth == tgx::Depth::none) != (current.depth == tgx::Depth::none)) {
+                set_enabled(GL_DEPTH_TEST, next.depth != tgx::Depth::none);
+            }
+            if (next.depth != tgx::Depth::none) {
+                glDepthFunc(to_gl(next.depth));
+            }
+        }
+
+        if (next.depth_write != current.depth_write) {
+            glDepthMask(next.depth_write ? GL_TRUE : GL_FALSE);
+        }
+
+        if (next.cull != current.cull) {
+            if ((next.cull == tgx::Cull::none) != (current.cull == tgx::Cull::none)) {
+                set_enabled(GL_CULL_FACE, next.cull != tgx::Cull::none);
+            }
+            if (next.cull != tgx::Cull::none) {
+                glCullFace(to_gl(next.cull));
+            }
+        }
+
+        if (next.fill != current.fill) {
+            glPolygonMode(GL_FRONT_AND_BACK, to_gl(next.fill));
+        }
+
+        current = next;
+    }
+
     [[nodiscard]] constexpr auto to_component_kind(tgx::gl::VertexFormat format) noexcept -> ComponentKind {
         using enum tgx::gl::VertexFormat;
         switch (format) {
@@ -230,6 +341,7 @@ namespace tgx {
         install_debug_callback();
 
         Device device;
+        reset_state();
         device.set_viewport(window.framebuffer_size());
         apply_clear_color(device.m_clear_color);
         return device;
@@ -243,6 +355,7 @@ namespace tgx {
     Device::Device(Device &&other) noexcept
         : m_clear_color{other.m_clear_color},
           m_viewport{other.m_viewport},
+          m_state{other.m_state},
           m_owned{std::exchange(other.m_owned, false)} {
     }
 
@@ -253,6 +366,7 @@ namespace tgx {
         release();
         m_clear_color = other.m_clear_color;
         m_viewport = other.m_viewport;
+        m_state = other.m_state;
         m_owned = std::exchange(other.m_owned, false);
         return *this;
     }
@@ -291,9 +405,17 @@ namespace tgx {
             bits |= GL_STENCIL_BUFFER_BIT;
         }
 
-        if (bits != 0) {
-            glClear(bits);
+        if (bits == 0) {
+            return;
         }
+
+        // Clearing depth obeys the depth write mask like any draw, so a draw
+        // that turned writes off would leave the old depth in place.
+        if ((bits & GL_DEPTH_BUFFER_BIT) != 0 && !m_state.depth_write) {
+            glDepthMask(GL_TRUE);
+            m_state.depth_write = true;
+        }
+        glClear(bits);
     }
 
     auto Device::set_viewport(int x, int y, int width, int height) noexcept -> void {
@@ -338,6 +460,7 @@ namespace tgx {
             return;
         }
 
+        apply_state(m_state, params.state);
         detail::use_program(shader.id());
         glBindVertexArray(vertices.id());
 

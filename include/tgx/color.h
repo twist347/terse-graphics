@@ -31,6 +31,15 @@ namespace tgx {
             return {r, g, b, alpha};
         }
 
+        // Each channel scaled by alpha, rounded: the form Blend::premultiplied
+        // expects. Alpha itself stays.
+        [[nodiscard]] constexpr auto premultiplied() const noexcept -> Color {
+            const auto scale = [this](std::uint8_t channel) {
+                return static_cast<std::uint8_t>((channel * a + 127) / 255);
+            };
+            return {scale(r), scale(g), scale(b), a};
+        }
+
         [[nodiscard]] constexpr auto operator==(const Color &) const noexcept -> bool = default;
     };
 
