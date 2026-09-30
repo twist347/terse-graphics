@@ -7,7 +7,6 @@
 #include <glad/gl.h>
 
 #include <algorithm>
-#include <cstdint>
 
 namespace {
     using tgx::gl::VertexArray;

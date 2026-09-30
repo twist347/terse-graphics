@@ -14,16 +14,16 @@ namespace tgx {
         // 0xRRGGBBAA, the order colors are written in editors and palettes.
         [[nodiscard]] static constexpr auto hex(std::uint32_t rgba) noexcept -> Color {
             return {
-                static_cast<std::uint8_t>((rgba >> 24U) & 0xFFU),
-                static_cast<std::uint8_t>((rgba >> 16U) & 0xFFU),
-                static_cast<std::uint8_t>((rgba >> 8U) & 0xFFU),
-                static_cast<std::uint8_t>(rgba & 0xFFU),
+                static_cast<std::uint8_t>((rgba >> 24u) & 0xFFu),
+                static_cast<std::uint8_t>((rgba >> 16u) & 0xFFu),
+                static_cast<std::uint8_t>((rgba >> 8u) & 0xFFu),
+                static_cast<std::uint8_t>(rgba & 0xFFu),
             };
         }
 
         // 0xRRGGBB, fully opaque.
         [[nodiscard]] static constexpr auto rgb(std::uint32_t rgb) noexcept -> Color {
-            return hex((rgb << 8U) | 0xFFU);
+            return hex((rgb << 8u) | 0xFFu);
         }
 
         // The same color with another alpha, e.g. colors::red.with_alpha(128).

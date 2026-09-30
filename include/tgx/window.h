@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tgx/assert.h"
 #include "tgx/error.h"
 #include "tgx/size.h"
 
