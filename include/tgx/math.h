@@ -46,6 +46,29 @@ namespace tgx {
         [[nodiscard]] constexpr auto operator==(const Mat4 &) const noexcept -> bool = default;
     };
 
+    // Maps the box [left, right] x [bottom, top] x [-z_near, -z_far] onto clip
+    // space, with no perspective: what 2D drawing wants. The same matrix as
+    // glm::ortho, so z = 0 stays at 0 with the default depth range. The bounds
+    // of each pair must differ. Not near/far: <windows.h> defines those as
+    // macros.
+    [[nodiscard]] constexpr auto ortho(
+        float left, float right,
+        float bottom, float top,
+        float z_near = -1.f, float z_far = 1.f
+    ) noexcept -> Mat4 {
+        return {{{
+            {2.f / (right - left), 0.f, 0.f, 0.f},
+            {0.f, 2.f / (top - bottom), 0.f, 0.f},
+            {0.f, 0.f, -2.f / (z_far - z_near), 0.f},
+            {
+                -(right + left) / (right - left),
+                -(top + bottom) / (top - bottom),
+                -(z_far + z_near) / (z_far - z_near),
+                1.f,
+            },
+        }}};
+    }
+
     static_assert(sizeof(Vec2) == 2 * sizeof(float));
     static_assert(sizeof(Vec3) == 3 * sizeof(float));
     static_assert(sizeof(Vec4) == 4 * sizeof(float));

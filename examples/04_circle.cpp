@@ -21,10 +21,12 @@ namespace {
         layout(location = 0) in vec2 in_position;
         layout(location = 1) in vec4 in_color;
 
+        uniform mat4 u_projection;
+
         out vec4 color;
 
         void main() {
-            gl_Position = vec4(in_position, 0.0, 1.0);
+            gl_Position = u_projection * vec4(in_position, 0.0, 1.0);
             color = in_color;
         }
     )";
@@ -61,18 +63,15 @@ namespace {
         return {channel(5.f), channel(3.f), channel(1.f), 255};
     }
 
-    // Vertex 0 is the center, then the rim. Positions are in clip space, which
-    // stretches with the window, so x is squeezed by the aspect ratio to keep
-    // the circle round.
-    [[nodiscard]] auto make_vertices(tgx::Size size) noexcept -> std::array<Vertex, segments + 1> {
-        const float x_scale = 1.f / size.aspect();
-
+    // Vertex 0 is the center, then the rim. Built once: the window's shape is
+    // taken care of by the projection, not by the vertices.
+    [[nodiscard]] auto make_vertices() noexcept -> std::array<Vertex, segments + 1> {
         std::array<Vertex, segments + 1> vertices{};
         vertices[0] = {{0.f, 0.f}, tgx::colors::white};
         for (std::size_t i = 0; i < segments; ++i) {
             const float t = static_cast<float>(i) / static_cast<float>(segments);
             const float angle = t * 2.f * std::numbers::pi_v<float>;
-            vertices[i + 1] = {{radius * x_scale * std::cos(angle), radius * std::sin(angle)}, hue(t)};
+            vertices[i + 1] = {{radius * std::cos(angle), radius * std::sin(angle)}, hue(t)};
         }
         return vertices;
     }
@@ -90,6 +89,14 @@ namespace {
     }
 
     constexpr auto indices = make_indices();
+
+    // Clip space spans -1..1 across the window whatever its shape, which would
+    // stretch the circle. This view is 2 units tall and as wide as the window's
+    // aspect ratio, so a unit is equally long both ways.
+    [[nodiscard]] constexpr auto projection_for(tgx::Size size) noexcept -> tgx::Mat4 {
+        const float aspect = size.aspect();
+        return tgx::ortho(-aspect, aspect, -1.f, 1.f);
+    }
 }
 
 int main() {
@@ -108,12 +115,10 @@ int main() {
         return 1;
     }
 
-    // Dynamic: the vertices are rebuilt whenever the window changes shape.
-    auto vbo = tgx::gl::Buffer::create(
-        app->device(),
-        make_vertices(app->window().framebuffer_size()),
-        tgx::gl::BufferAccess::dynamic
-    );
+    const auto u_projection = shader->uniform<tgx::Mat4>("u_projection");
+    shader->set(u_projection, projection_for(app->window().framebuffer_size()));
+
+    auto vbo = tgx::gl::Buffer::create(app->device(), make_vertices());
     auto ibo = tgx::gl::Buffer::create(app->device(), indices);
     if (!vbo || !ibo) {
         std::println(stderr, "buffer: {}", !vbo ? vbo.error() : ibo.error());
@@ -134,7 +139,7 @@ int main() {
         }
 
         if (app->resized()) {
-            vbo->update(0, make_vertices(app->window().framebuffer_size()));
+            shader->set(u_projection, projection_for(app->window().framebuffer_size()));
         }
 
         app->device().clear();
