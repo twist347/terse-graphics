@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tgx/math.h"
+
 #include <cstdint>
 
 namespace tgx {
@@ -31,6 +33,16 @@ namespace tgx {
 
         [[nodiscard]] constexpr auto operator==(const Color &) const noexcept -> bool = default;
     };
+
+    // Channels scaled to [0, 1], the way shaders see a Color.
+    [[nodiscard]] constexpr auto to_vec4(Color color) noexcept -> Vec4 {
+        return {
+            static_cast<float>(color.r) / 255.f,
+            static_cast<float>(color.g) / 255.f,
+            static_cast<float>(color.b) / 255.f,
+            static_cast<float>(color.a) / 255.f,
+        };
+    }
 
     static_assert(sizeof(Color) == 4);
     static_assert(alignof(Color) == 1);

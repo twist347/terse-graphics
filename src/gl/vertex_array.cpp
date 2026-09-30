@@ -184,4 +184,10 @@ namespace tgx::gl {
 
         return m_index_type;
     }
+
+    auto VertexArray::attributes() const noexcept -> std::span<const VertexAttribute> {
+        TGX_ASSERT(m_handle);
+
+        return std::span{m_attributes}.first(m_attribute_count);
+    }
 }

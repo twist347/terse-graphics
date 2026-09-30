@@ -36,6 +36,7 @@ set_target_properties(tgx PROPERTIES CXX_EXTENSIONS OFF)
 
 target_include_directories(tgx
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(tgx PRIVATE glad glfw)

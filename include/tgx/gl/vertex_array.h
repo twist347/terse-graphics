@@ -147,6 +147,9 @@ namespace tgx::gl {
 
         [[nodiscard]] auto index_type() const noexcept -> IndexType;
 
+        // The layout given at creation.
+        [[nodiscard]] auto attributes() const noexcept -> std::span<const VertexAttribute>;
+
     private:
         VertexArray(GlId id, std::size_t stride, std::span<const VertexAttribute> attributes) noexcept;
 

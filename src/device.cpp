@@ -8,11 +8,13 @@
 #include "tgx/gl/version.h"
 #include "tgx/gl/vertex_array.h"
 
+#include "device_internal.h"
 #include "log_internal.h"
 #include "window_internal.h"
 
 #include <glad/gl.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <string_view>
 #include <type_traits>
@@ -28,16 +30,18 @@ static_assert(
 );
 
 namespace {
+    using tgx::gl::detail::ComponentKind;
+
     // Whether a Device exists, i.e. GL may be called. Main thread only, like
     // the rest of the Device.
     bool s_device_alive = false;
 
-    [[nodiscard]] constexpr auto to_unit(std::uint8_t channel) noexcept -> float {
-        return static_cast<float>(channel) / 255.f;
-    }
+    // The program glUseProgram last made current; 0 for none.
+    GLuint s_current_program = 0;
 
     auto apply_clear_color(tgx::Color color) noexcept -> void {
-        glClearColor(to_unit(color.r), to_unit(color.g), to_unit(color.b), to_unit(color.a));
+        const tgx::Vec4 unit = tgx::to_vec4(color);
+        glClearColor(unit.x, unit.y, unit.z, unit.w);
     }
 
     [[nodiscard]] constexpr auto to_gl(tgx::Primitive primitive) noexcept -> GLenum {
@@ -61,7 +65,63 @@ namespace {
         return GL_UNSIGNED_SHORT;
     }
 
-    [[nodiscard]] constexpr auto to_log_level(GLenum severity) noexcept -> tgx::LogLevel {
+    [[nodiscard]] constexpr auto to_component_kind(tgx::gl::VertexFormat format) noexcept -> ComponentKind {
+        using enum tgx::gl::VertexFormat;
+        switch (format) {
+            case uint32: return ComponentKind::uint;
+            case sint32: return ComponentKind::sint;
+            case float32:
+            case float32x2:
+            case float32x3:
+            case float32x4:
+            case unorm8x4: return ComponentKind::floating;
+        }
+        return ComponentKind::floating;
+    }
+
+    [[nodiscard]] constexpr auto to_str(ComponentKind kind) noexcept -> const char * {
+        switch (kind) {
+            case ComponentKind::floating: return "float";
+            case ComponentKind::sint: return "int";
+            case ComponentKind::uint: return "uint";
+        }
+        return "unknown";
+    }
+
+    // GL feeds an input with no attribute a constant (usually 0, 0, 0, 1), and
+    // reads integers into a float input or the other way round as garbage;
+    // neither is reported. A different component count is fine: GL pads the
+    // missing ones with 0, 0, 1.
+    auto check_vertex_inputs(
+        const tgx::gl::Shader &shader,
+        const tgx::gl::VertexArray &vertices
+    ) noexcept -> void {
+        const auto attributes = vertices.attributes();
+        for (const auto &input : tgx::gl::detail::vertex_inputs(shader)) {
+            for (std::uint32_t slot = 0; slot < input.slots; ++slot) {
+                const std::uint32_t location = input.location + slot;
+                const auto attribute = std::ranges::find(attributes, location, &tgx::gl::VertexAttribute::location);
+                TGX_ASSERT_MSG(
+                    attribute != attributes.end(),
+                    "vertex input '{}' reads location {}, which the vertex array has no attribute for",
+                    input.name, location
+                );
+                TGX_ASSERT_MSG(
+                    to_component_kind(attribute->format) == input.kind,
+                    "vertex input '{}' at location {} is {}, but its attribute is {}",
+                    input.name, location, to_str(input.kind), to_str(to_component_kind(attribute->format))
+                );
+            }
+        }
+    }
+
+    [[nodiscard]] constexpr auto to_log_level(GLenum type, GLenum severity) noexcept -> tgx::LogLevel {
+        // Performance hints are advice, not faults, whatever severity the
+        // driver gives them: NVIDIA rates its routine recompile of a shader on
+        // first draw as medium.
+        if (type == GL_DEBUG_TYPE_PERFORMANCE) {
+            return tgx::LogLevel::info;
+        }
         switch (severity) {
             case GL_DEBUG_SEVERITY_HIGH: return tgx::LogLevel::error;
             case GL_DEBUG_SEVERITY_MEDIUM: return tgx::LogLevel::warn;
@@ -73,7 +133,7 @@ namespace {
     // some platforms, and it has to sit between the return type and the name.
     void GLAD_API_PTR on_gl_debug(
         GLenum,
-        GLenum,
+        GLenum type,
         GLuint id,
         GLenum severity,
         GLsizei,
@@ -82,7 +142,7 @@ namespace {
     ) noexcept {
         // The message is null-terminated; the reported length is not trusted,
         // as drivers disagree on whether it counts the terminator.
-        tgx::detail::log(to_log_level(severity), "gl {}: {}", id, message);
+        tgx::detail::log(to_log_level(type, severity), "gl {}: {}", id, message);
     }
 
     // glGetString hands out unsigned chars; a lost context gives nullptr.
@@ -138,6 +198,19 @@ namespace tgx {
         return s_device_alive;
     }
 
+    auto detail::use_program(gl::GlId program) noexcept -> void {
+        if (program != s_current_program) {
+            glUseProgram(program);
+            s_current_program = program;
+        }
+    }
+
+    auto detail::forget_program(gl::GlId program) noexcept -> void {
+        if (program == s_current_program) {
+            s_current_program = 0;
+        }
+    }
+
     auto Device::create(Window &window) noexcept -> Result<Device> {
         TGX_ASSERT_MSG(!s_device_alive, "only one Device may exist at a time");
 
@@ -164,6 +237,7 @@ namespace tgx {
 
     Device::Device() noexcept : m_owned{true} {
         s_device_alive = true;
+        s_current_program = 0;
     }
 
     Device::Device(Device &&other) noexcept
@@ -190,6 +264,7 @@ namespace tgx {
     auto Device::release() noexcept -> void {
         if (m_owned) {
             s_device_alive = false;
+            s_current_program = 0;
             m_owned = false;
         }
     }
@@ -237,6 +312,9 @@ namespace tgx {
         const DrawParams &params
     ) noexcept -> void {
         TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
+        if constexpr (TGX_ENABLE_ASSERTS != 0) {
+            check_vertex_inputs(shader, vertices);
+        }
 
         const bool indexed = vertices.has_index_buffer();
         const std::size_t available = indexed ? vertices.index_count() : vertices.vertex_count();
@@ -260,7 +338,7 @@ namespace tgx {
             return;
         }
 
-        glUseProgram(shader.id());
+        detail::use_program(shader.id());
         glBindVertexArray(vertices.id());
 
         const GLenum mode = to_gl(params.primitive);
