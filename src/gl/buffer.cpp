@@ -13,7 +13,7 @@ namespace {
     constexpr GLenum edit_target = GL_COPY_WRITE_BUFFER;
 
     // Only a hint in 3.3: nothing stops a rewrite, the assert in update() does.
-    [[nodiscard]] auto to_gl_usage(tgx::gl::BufferAccess access) noexcept -> GLenum {
+    [[nodiscard]] constexpr auto to_gl(tgx::gl::BufferAccess access) noexcept -> GLenum {
         switch (access) {
             case tgx::gl::BufferAccess::immutable: return GL_STATIC_DRAW;
             case tgx::gl::BufferAccess::dynamic: return GL_DYNAMIC_DRAW;
@@ -38,7 +38,7 @@ namespace {
         GLuint id = 0;
         glGenBuffers(1, &id);
         glBindBuffer(edit_target, id);
-        glBufferData(edit_target, static_cast<GLsizeiptr>(size), data, to_gl_usage(access));
+        glBufferData(edit_target, static_cast<GLsizeiptr>(size), data, to_gl(access));
 
         // Any error leaves the buffer without storage, so none is survivable.
         // Caller mistakes are asserted above; what is left is the driver.
@@ -83,9 +83,7 @@ namespace tgx::gl {
         TGX_ASSERT_MSG(
             byte_offset <= m_size && data.size() <= m_size - byte_offset,
             "update of {} bytes at {} overruns a {}-byte buffer",
-            data.size(),
-            byte_offset,
-            m_size
+            data.size(), byte_offset, m_size
         );
 
         if (data.empty()) {

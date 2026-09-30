@@ -9,6 +9,7 @@
 #include "tgx/gl/vertex_array.h"
 
 #include "log_internal.h"
+#include "window_internal.h"
 
 #include <glad/gl.h>
 
@@ -32,7 +33,7 @@ namespace {
     bool s_device_alive = false;
 
     [[nodiscard]] constexpr auto to_unit(std::uint8_t channel) noexcept -> float {
-        return static_cast<float>(channel) / 255.0F;
+        return static_cast<float>(channel) / 255.f;
     }
 
     auto apply_clear_color(tgx::Color color) noexcept -> void {
@@ -49,6 +50,15 @@ namespace {
             case points: return GL_POINTS;
         }
         return GL_TRIANGLES;
+    }
+
+    [[nodiscard]] constexpr auto to_gl(tgx::gl::IndexType type) noexcept -> GLenum {
+        using enum tgx::gl::IndexType;
+        switch (type) {
+            case uint16: return GL_UNSIGNED_SHORT;
+            case uint32: return GL_UNSIGNED_INT;
+        }
+        return GL_UNSIGNED_SHORT;
     }
 
     [[nodiscard]] constexpr auto to_log_level(GLenum severity) noexcept -> tgx::LogLevel {
@@ -133,7 +143,7 @@ namespace tgx {
 
         // glad 2 returns the version it loaded, so loading and checking that we
         // got the requested one is the same call.
-        const int version = gladLoadGL(window.gl_loader());
+        const int version = gladLoadGL(detail::gl_loader(window));
         if (version == 0) {
             return std::unexpected{Error::platform};
         }
@@ -243,10 +253,7 @@ namespace tgx {
         TGX_ASSERT_MSG(
             params.first + count <= available,
             "drawing {} [{}, {}) from a buffer of {}",
-            indexed ? "indices" : "vertices",
-            params.first,
-            params.first + count,
-            available
+            indexed ? "indices" : "vertices", params.first, params.first + count, available
         );
 
         if (count == 0) {
@@ -264,13 +271,12 @@ namespace tgx {
             return;
         }
 
-        const bool wide = vertices.index_type() == gl::IndexType::uint32;
-        const GLenum type = wide ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
-        const std::size_t index_size = wide ? 4 : 2;
+        const gl::IndexType index_type = vertices.index_type();
+        const std::size_t index_size = index_type == gl::IndexType::uint32 ? 4 : 2;
 
         // GL takes the start of an indexed draw as a byte offset into the index
         // buffer, passed where a pointer used to go.
         const auto *start = reinterpret_cast<const void *>(params.first * index_size);
-        glDrawElements(mode, gl_count, type, start);
+        glDrawElements(mode, gl_count, to_gl(index_type), start);
     }
 }

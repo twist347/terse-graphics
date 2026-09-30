@@ -41,7 +41,7 @@ namespace tgx {
     }
 
     [[nodiscard]] constexpr auto any_of(ClearMask mask, ClearMask bit) noexcept -> bool {
-        return (static_cast<std::uint32_t>(mask) & static_cast<std::uint32_t>(bit)) != 0U;
+        return (static_cast<std::uint32_t>(mask) & static_cast<std::uint32_t>(bit)) != 0u;
     }
 
     // How consecutive vertices are assembled into primitives.

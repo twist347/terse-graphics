@@ -8,10 +8,6 @@ struct GLFWwindow;
 namespace tgx {
     class Platform;
 
-    // Signature-compatible with glfwGetProcAddress and glad's GLADloadfunc.
-    using GlProc = void (*)();
-    using GlLoader = GlProc (*)(const char *name);
-
     struct WindowParams {
         int width{1280};
         int height{720};
@@ -49,9 +45,6 @@ namespace tgx {
         auto set_vsync(bool enabled) noexcept -> void;
 
         [[nodiscard]] auto framebuffer_size() const noexcept -> Size;
-
-        // Resolves GL functions for this window's context; it must be current.
-        [[nodiscard]] auto gl_loader() const noexcept -> GlLoader;
 
         [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow * { return m_handle; }
 

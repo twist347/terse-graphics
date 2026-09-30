@@ -7,6 +7,7 @@
 #include "tgx/gl/version.h"
 
 #include "platform_internal.h"
+#include "window_internal.h"
 
 #include <GLFW/glfw3.h>
 
@@ -48,8 +49,8 @@ namespace tgx {
         return window;
     }
 
-    auto Window::gl_loader() const noexcept -> GlLoader {
-        TGX_ASSERT(m_handle);
+    auto detail::gl_loader(const Window &window) noexcept -> GlLoader {
+        TGX_ASSERT(window.native_handle() != nullptr);
 
         return glfwGetProcAddress;
     }
@@ -114,7 +115,7 @@ namespace tgx {
     }
 
     auto Window::destroy() noexcept -> void {
-        if (m_handle == nullptr) {
+        if (!m_handle) {
             return;
         }
 

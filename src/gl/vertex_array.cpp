@@ -60,16 +60,12 @@ namespace tgx::gl {
             TGX_ASSERT_MSG(
                 attribute.location < VertexArray::max_attributes,
                 "attribute location {} is past the portable limit of {}",
-                attribute.location,
-                VertexArray::max_attributes
+                attribute.location, VertexArray::max_attributes
             );
             TGX_ASSERT_MSG(
                 attribute.offset <= stride && format.size <= stride - attribute.offset,
                 "attribute at location {} (offset {}, {} bytes) does not fit a {}-byte vertex",
-                attribute.location,
-                attribute.offset,
-                format.size,
-                stride
+                attribute.location, attribute.offset, format.size, stride
             );
             for (std::size_t j = 0; j < i; ++j) {
                 TGX_ASSERT_MSG(

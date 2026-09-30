@@ -24,7 +24,7 @@ namespace tgx::gl {
     template<typename R>
     concept BufferData = std::ranges::contiguous_range<R>
                          && std::ranges::sized_range<R>
-                         && std::is_trivially_copyable_v<std::ranges::range_value_t<R> >;
+                         && std::is_trivially_copyable_v<std::ranges::range_value_t<R>>;
 
     enum class BufferAccess {
         // Contents are fixed at creation.
