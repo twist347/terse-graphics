@@ -1,12 +1,15 @@
 #pragma once
 
 #include <array>
+#include <cmath>
+#include <numbers>
 #include <type_traits>
 
 namespace tgx {
     // Plain float vectors and a matrix, laid out as GLSL and glm lay them out:
     // they go to the GPU byte for byte, and glm values convert with std::bit_cast.
-    // No arithmetic yet; it comes as the library needs it.
+    // The operations follow glm's conventions too: right-handed, depth -1..1,
+    // angles in radians. Only what the library and its examples need so far.
 
     struct Vec2 {
         float x{0.f};
@@ -36,15 +39,144 @@ namespace tgx {
     // sits in columns[3]. Starts as the identity, so a matrix left unset draws
     // untransformed rather than collapsing everything to a point.
     struct Mat4 {
-        std::array<Vec4, 4> columns{{
-            {1.f, 0.f, 0.f, 0.f},
-            {0.f, 1.f, 0.f, 0.f},
-            {0.f, 0.f, 1.f, 0.f},
-            {0.f, 0.f, 0.f, 1.f},
-        }};
+        std::array<Vec4, 4> columns{
+            {
+                {1.f, 0.f, 0.f, 0.f},
+                {0.f, 1.f, 0.f, 0.f},
+                {0.f, 0.f, 1.f, 0.f},
+                {0.f, 0.f, 0.f, 1.f},
+            }
+        };
 
         [[nodiscard]] constexpr auto operator==(const Mat4 &) const noexcept -> bool = default;
     };
+
+    static_assert(sizeof(Vec2) == 2 * sizeof(float));
+    static_assert(sizeof(Vec3) == 3 * sizeof(float));
+    static_assert(sizeof(Vec4) == 4 * sizeof(float));
+    static_assert(sizeof(Mat4) == 16 * sizeof(float));
+
+    static_assert(std::is_standard_layout_v<Vec2> && std::is_trivially_copyable_v<Vec2>);
+    static_assert(std::is_standard_layout_v<Vec3> && std::is_trivially_copyable_v<Vec3>);
+    static_assert(std::is_standard_layout_v<Vec4> && std::is_trivially_copyable_v<Vec4>);
+    static_assert(std::is_standard_layout_v<Mat4> && std::is_trivially_copyable_v<Mat4>);
+
+    [[nodiscard]] constexpr auto radians(float degrees) noexcept -> float {
+        return degrees * (std::numbers::pi_v<float> / 180.f);
+    }
+
+    // Vec2
+
+    [[nodiscard]] constexpr auto operator+(Vec2 a, Vec2 b) noexcept -> Vec2 { return {a.x + b.x, a.y + b.y}; }
+    [[nodiscard]] constexpr auto operator-(Vec2 a, Vec2 b) noexcept -> Vec2 { return {a.x - b.x, a.y - b.y}; }
+    [[nodiscard]] constexpr auto operator-(Vec2 v) noexcept -> Vec2 { return {-v.x, -v.y}; }
+    [[nodiscard]] constexpr auto operator*(Vec2 v, float s) noexcept -> Vec2 { return {v.x * s, v.y * s}; }
+    [[nodiscard]] constexpr auto operator*(float s, Vec2 v) noexcept -> Vec2 { return v * s; }
+    [[nodiscard]] constexpr auto operator/(Vec2 v, float s) noexcept -> Vec2 { return {v.x / s, v.y / s}; }
+
+    constexpr auto operator+=(Vec2 &a, Vec2 b) noexcept -> Vec2 & { return a = a + b; }
+    constexpr auto operator-=(Vec2 &a, Vec2 b) noexcept -> Vec2 & { return a = a - b; }
+    constexpr auto operator*=(Vec2 &v, float s) noexcept -> Vec2 & { return v = v * s; }
+
+    [[nodiscard]] constexpr auto dot(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.x + a.y * b.y; }
+    [[nodiscard]] inline auto length(Vec2 v) noexcept -> float { return std::sqrt(dot(v, v)); }
+    // A zero vector has no direction; normalizing one gives NaNs.
+    [[nodiscard]] inline auto normalize(Vec2 v) noexcept -> Vec2 { return v / length(v); }
+
+    // Vec3
+
+    [[nodiscard]] constexpr auto operator+(Vec3 a, Vec3 b) noexcept -> Vec3 {
+        return {a.x + b.x, a.y + b.y, a.z + b.z};
+    }
+
+    [[nodiscard]] constexpr auto operator-(Vec3 a, Vec3 b) noexcept -> Vec3 {
+        return {a.x - b.x, a.y - b.y, a.z - b.z};
+    }
+
+    [[nodiscard]] constexpr auto operator-(Vec3 v) noexcept -> Vec3 { return {-v.x, -v.y, -v.z}; }
+    [[nodiscard]] constexpr auto operator*(Vec3 v, float s) noexcept -> Vec3 { return {v.x * s, v.y * s, v.z * s}; }
+    [[nodiscard]] constexpr auto operator*(float s, Vec3 v) noexcept -> Vec3 { return v * s; }
+    [[nodiscard]] constexpr auto operator/(Vec3 v, float s) noexcept -> Vec3 { return {v.x / s, v.y / s, v.z / s}; }
+
+    constexpr auto operator+=(Vec3 &a, Vec3 b) noexcept -> Vec3 & { return a = a + b; }
+    constexpr auto operator-=(Vec3 &a, Vec3 b) noexcept -> Vec3 & { return a = a - b; }
+    constexpr auto operator*=(Vec3 &v, float s) noexcept -> Vec3 & { return v = v * s; }
+
+    [[nodiscard]] constexpr auto dot(Vec3 a, Vec3 b) noexcept -> float { return a.x * b.x + a.y * b.y + a.z * b.z; }
+
+    // Perpendicular to both, by the right-hand rule: cross(x, y) is z.
+    [[nodiscard]] constexpr auto cross(Vec3 a, Vec3 b) noexcept -> Vec3 {
+        return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+    }
+
+    [[nodiscard]] inline auto length(Vec3 v) noexcept -> float { return std::sqrt(dot(v, v)); }
+    // A zero vector has no direction; normalizing one gives NaNs.
+    [[nodiscard]] inline auto normalize(Vec3 v) noexcept -> Vec3 { return v / length(v); }
+
+    // Vec4
+
+    [[nodiscard]] constexpr auto operator+(Vec4 a, Vec4 b) noexcept -> Vec4 {
+        return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
+    }
+
+    [[nodiscard]] constexpr auto operator*(Vec4 v, float s) noexcept -> Vec4 {
+        return {v.x * s, v.y * s, v.z * s, v.w * s};
+    }
+
+    // Mat4
+
+    [[nodiscard]] constexpr auto operator*(const Mat4 &m, Vec4 v) noexcept -> Vec4 {
+        const auto &c = m.columns;
+        return c[0] * v.x + c[1] * v.y + c[2] * v.z + c[3] * v.w;
+    }
+
+    // Applies b first, then a, as in GLSL: projection * view * model.
+    [[nodiscard]] constexpr auto operator*(const Mat4 &a, const Mat4 &b) noexcept -> Mat4 {
+        return {
+            {
+                {
+                    a * b.columns[0],
+                    a * b.columns[1],
+                    a * b.columns[2],
+                    a * b.columns[3],
+                }
+            }
+        };
+    }
+
+    [[nodiscard]] constexpr auto translate(Vec3 offset) noexcept -> Mat4 {
+        Mat4 m;
+        m.columns[3] = {offset.x, offset.y, offset.z, 1.f};
+        return m;
+    }
+
+    [[nodiscard]] constexpr auto scale(Vec3 factors) noexcept -> Mat4 {
+        Mat4 m;
+        m.columns[0].x = factors.x;
+        m.columns[1].y = factors.y;
+        m.columns[2].z = factors.z;
+        return m;
+    }
+
+    // Turns by angle radians around the axis, counter-clockwise when the axis
+    // points at the viewer. The axis need not be unit length, only non-zero.
+    [[nodiscard]] inline auto rotate(float angle, Vec3 axis) noexcept -> Mat4 {
+        const Vec3 a = normalize(axis);
+        const float c = std::cos(angle);
+        const float s = std::sin(angle);
+        const Vec3 t = a * (1.f - c);
+
+        return {
+            {
+                {
+                    {c + t.x * a.x, t.x * a.y + s * a.z, t.x * a.z - s * a.y, 0.f},
+                    {t.y * a.x - s * a.z, c + t.y * a.y, t.y * a.z + s * a.x, 0.f},
+                    {t.z * a.x + s * a.y, t.z * a.y - s * a.x, c + t.z * a.z, 0.f},
+                    {0.f, 0.f, 0.f, 1.f},
+                }
+            }
+        };
+    }
 
     // Maps the box [left, right] x [bottom, top] x [-z_near, -z_far] onto clip
     // space, with no perspective: what 2D drawing wants. The same matrix as
@@ -56,26 +188,63 @@ namespace tgx {
         float bottom, float top,
         float z_near = -1.f, float z_far = 1.f
     ) noexcept -> Mat4 {
-        return {{{
-            {2.f / (right - left), 0.f, 0.f, 0.f},
-            {0.f, 2.f / (top - bottom), 0.f, 0.f},
-            {0.f, 0.f, -2.f / (z_far - z_near), 0.f},
+        return {
             {
-                -(right + left) / (right - left),
-                -(top + bottom) / (top - bottom),
-                -(z_far + z_near) / (z_far - z_near),
-                1.f,
-            },
-        }}};
+                {
+                    {2.f / (right - left), 0.f, 0.f, 0.f},
+                    {0.f, 2.f / (top - bottom), 0.f, 0.f},
+                    {0.f, 0.f, -2.f / (z_far - z_near), 0.f},
+                    {
+                        -(right + left) / (right - left),
+                        -(top + bottom) / (top - bottom),
+                        -(z_far + z_near) / (z_far - z_near),
+                        1.f,
+                    },
+                }
+            }
+        };
     }
 
-    static_assert(sizeof(Vec2) == 2 * sizeof(float));
-    static_assert(sizeof(Vec3) == 3 * sizeof(float));
-    static_assert(sizeof(Vec4) == 4 * sizeof(float));
-    static_assert(sizeof(Mat4) == 16 * sizeof(float));
+    // A camera looking down -z with a vertical field of view of fov_y radians;
+    // aspect is width over height. Both distances are positive, z_near the
+    // smaller: depth precision is spent mostly near it, so keep it as large as
+    // the scene allows. The same matrix as glm::perspective.
+    [[nodiscard]] inline auto perspective(
+        float fov_y, float aspect,
+        float z_near, float z_far
+    ) noexcept -> Mat4 {
+        const float f = 1.f / std::tan(fov_y / 2.f);
+        const float depth = z_far - z_near;
 
-    static_assert(std::is_standard_layout_v<Vec2> && std::is_trivially_copyable_v<Vec2>);
-    static_assert(std::is_standard_layout_v<Vec3> && std::is_trivially_copyable_v<Vec3>);
-    static_assert(std::is_standard_layout_v<Vec4> && std::is_trivially_copyable_v<Vec4>);
-    static_assert(std::is_standard_layout_v<Mat4> && std::is_trivially_copyable_v<Mat4>);
+        return {
+            {
+                {
+                    {f / aspect, 0.f, 0.f, 0.f},
+                    {0.f, f, 0.f, 0.f},
+                    {0.f, 0.f, -(z_far + z_near) / depth, -1.f},
+                    {0.f, 0.f, -2.f * z_far * z_near / depth, 0.f},
+                }
+            }
+        };
+    }
+
+    // Moves the world so that a camera at eye looks at target, up being
+    // roughly its up. up must not point along the view. The same matrix as
+    // glm::lookAt.
+    [[nodiscard]] inline auto look_at(Vec3 eye, Vec3 target, Vec3 up) noexcept -> Mat4 {
+        const Vec3 f = normalize(target - eye);
+        const Vec3 s = normalize(cross(f, up));
+        const Vec3 u = cross(s, f);
+
+        return {
+            {
+                {
+                    {s.x, u.x, -f.x, 0.f},
+                    {s.y, u.y, -f.y, 0.f},
+                    {s.z, u.z, -f.z, 0.f},
+                    {-dot(s, eye), -dot(u, eye), dot(f, eye), 1.f},
+                }
+            }
+        };
+    }
 }
