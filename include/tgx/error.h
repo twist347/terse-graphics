@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <expected>
+#include <format>
+#include <string_view>
 
 namespace tgx {
     enum class Error : std::int32_t {
@@ -32,3 +34,11 @@ namespace tgx {
     template<typename T>
     using Result = std::expected<T, Error>;
 }
+
+// std::format("{}", err) prints to_str(err); string specs such as width apply.
+template<>
+struct std::formatter<tgx::Error> : std::formatter<std::string_view> {
+    auto format(tgx::Error err, std::format_context &ctx) const {
+        return std::formatter<std::string_view>::format(tgx::to_str(err), ctx);
+    }
+};

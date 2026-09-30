@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <format>
+#include <print>
 #include <string>
 
 namespace {
@@ -62,20 +63,20 @@ int main() {
 
     auto app = tgx::App::create({.title = title});
     if (!app) {
-        std::fprintf(stderr, "app: %s\n", tgx::to_str(app.error()));
+        std::println(stderr, "app: {}", app.error());
         return 1;
     }
 
     std::string log;
     auto shader = tgx::gl::Shader::from_source(app->device(), vertex_source, fragment_source, &log);
     if (!shader) {
-        std::fprintf(stderr, "shader: %s\n%s", tgx::to_str(shader.error()), log.c_str());
+        std::print(stderr, "shader: {}\n{}", shader.error(), log);
         return 1;
     }
 
     auto vbo = tgx::gl::Buffer::create(app->device(), vertices);
     if (!vbo) {
-        std::fprintf(stderr, "buffer: %s\n", tgx::to_str(vbo.error()));
+        std::println(stderr, "buffer: {}", vbo.error());
         return 1;
     }
 
@@ -92,7 +93,7 @@ int main() {
         }
 
         app->device().clear();
-        app->device().draw(*shader, vao, {.count = vertices.size()});
+        app->device().draw(*shader, vao);
 
         app->swap_buffers();
     }

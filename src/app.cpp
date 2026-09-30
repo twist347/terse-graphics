@@ -47,7 +47,7 @@ namespace tgx {
         m_resized = size != m_framebuffer_size;
         if (m_resized) {
             m_framebuffer_size = size;
-            m_device.set_viewport(0, 0, size.width, size.height);
+            m_device.set_viewport(size);
         }
     }
 

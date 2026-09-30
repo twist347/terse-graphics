@@ -52,15 +52,15 @@ namespace tgx {
         return Platform{};
     }
 
-    Platform::Platform(Platform &&other) noexcept
-        : m_owned{std::exchange(other.m_owned, false)} {
+    Platform::Platform(Platform &&other) noexcept : m_owned{std::exchange(other.m_owned, false)} {
     }
 
     auto Platform::operator=(Platform &&other) noexcept -> Platform & {
-        if (this != &other) {
-            shutdown();
-            m_owned = std::exchange(other.m_owned, false);
+        if (this == &other) {
+            return *this;
         }
+        shutdown();
+        m_owned = std::exchange(other.m_owned, false);
         return *this;
     }
 

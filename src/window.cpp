@@ -58,15 +58,15 @@ namespace tgx {
         detail::window_opened();
     }
 
-    Window::Window(Window &&other) noexcept
-        : m_handle{std::exchange(other.m_handle, nullptr)} {
+    Window::Window(Window &&other) noexcept : m_handle{std::exchange(other.m_handle, nullptr)} {
     }
 
     auto Window::operator=(Window &&other) noexcept -> Window & {
-        if (this != &other) {
-            destroy();
-            m_handle = std::exchange(other.m_handle, nullptr);
+        if (this == &other) {
+            return *this;
         }
+        destroy();
+        m_handle = std::exchange(other.m_handle, nullptr);
         return *this;
     }
 
@@ -94,7 +94,7 @@ namespace tgx {
 
     auto Window::set_title(const char *title) noexcept -> void {
         TGX_ASSERT(m_handle);
-        TGX_ASSERT(title != nullptr);
+        TGX_ASSERT(title);
 
         glfwSetWindowTitle(m_handle, title);
     }
@@ -108,8 +108,7 @@ namespace tgx {
     auto Window::framebuffer_size() const noexcept -> Size {
         TGX_ASSERT(m_handle);
 
-        int width = 0;
-        int height = 0;
+        int width = 0, height = 0;
         glfwGetFramebufferSize(m_handle, &width, &height);
         return {width, height};
     }

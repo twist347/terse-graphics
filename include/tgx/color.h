@@ -19,6 +19,16 @@ namespace tgx {
             };
         }
 
+        // 0xRRGGBB, fully opaque.
+        [[nodiscard]] static constexpr auto rgb(std::uint32_t rgb) noexcept -> Color {
+            return hex((rgb << 8U) | 0xFFU);
+        }
+
+        // The same color with another alpha, e.g. colors::red.with_alpha(128).
+        [[nodiscard]] constexpr auto with_alpha(std::uint8_t alpha) const noexcept -> Color {
+            return {r, g, b, alpha};
+        }
+
         [[nodiscard]] constexpr auto operator==(const Color &) const noexcept -> bool = default;
     };
 

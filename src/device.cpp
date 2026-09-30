@@ -88,16 +88,20 @@ namespace {
         tgx::detail::log_info("  glsl:     {}", gl_string(GL_SHADING_LANGUAGE_VERSION));
     }
 
+    // Logs its outcome as the last line of the context info block: with the
+    // callback off, silence from the driver means nothing.
     auto install_debug_callback() noexcept -> void {
         // Core only since 4.3. Without KHR_debug (macOS has none) there are
         // simply no driver messages.
         if (GLAD_GL_KHR_debug == 0) {
+            tgx::detail::log_info("  debug:    off (no KHR_debug)");
             return;
         }
 
         GLint flags = 0;
         glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
         if ((flags & GL_CONTEXT_FLAG_DEBUG_BIT) == 0) {
+            tgx::detail::log_info("  debug:    off (not a debug context)");
             return;
         }
 
@@ -115,6 +119,7 @@ namespace {
             nullptr,
             GL_FALSE
         );
+        tgx::detail::log_info("  debug:    on");
     }
 }
 
@@ -142,8 +147,7 @@ namespace tgx {
         install_debug_callback();
 
         Device device;
-        const auto [width, height] = window.framebuffer_size();
-        device.set_viewport(0, 0, width, height);
+        device.set_viewport(window.framebuffer_size());
         apply_clear_color(device.m_clear_color);
         return device;
     }
@@ -159,12 +163,13 @@ namespace tgx {
     }
 
     auto Device::operator=(Device &&other) noexcept -> Device & {
-        if (this != &other) {
-            release();
-            m_clear_color = other.m_clear_color;
-            m_viewport = other.m_viewport;
-            m_owned = std::exchange(other.m_owned, false);
+        if (this == &other) {
+            return *this;
         }
+        release();
+        m_clear_color = other.m_clear_color;
+        m_viewport = other.m_viewport;
+        m_owned = std::exchange(other.m_owned, false);
         return *this;
     }
 
@@ -221,44 +226,41 @@ namespace tgx {
         const gl::VertexArray &vertices,
         const DrawParams &params
     ) noexcept -> void {
-        TGX_ASSERT(std::in_range<GLsizei>(params.count) && std::in_range<GLint>(params.first));
+        TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
 
-        if (params.count == 0) {
+        const bool indexed = vertices.has_index_buffer();
+        const std::size_t available = indexed ? vertices.index_count() : vertices.vertex_count();
+        const std::size_t count = params.count != DrawParams::all ? params.count
+            : params.first < available ? available - params.first
+            : 0;
+
+        TGX_ASSERT(std::in_range<GLsizei>(count) && std::in_range<GLint>(params.first));
+
+        // GL does not check ranges: reading past a buffer is undefined, and the
+        // debug output usually stays silent. Index values themselves are not
+        // checked, that would mean reading the buffer back. Both fit a GLint
+        // (asserted above), so the sum cannot overflow.
+        TGX_ASSERT_MSG(
+            params.first + count <= available,
+            "drawing {} [{}, {}) from a buffer of {}",
+            indexed ? "indices" : "vertices",
+            params.first,
+            params.first + count,
+            available
+        );
+
+        if (count == 0) {
             return;
         }
 
         glUseProgram(shader.id());
         glBindVertexArray(vertices.id());
 
-        // GL does not check ranges: reading past a buffer is undefined, and the
-        // debug output usually stays silent. Index values themselves are not
-        // checked, that would mean reading the buffer back. Both fit a GLint
-        // (asserted above), so the sum cannot overflow.
-        TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
-        const std::size_t end = params.first + params.count;
-        if (vertices.has_index_buffer()) {
-            TGX_ASSERT_MSG(
-                end <= vertices.index_count(),
-                "drawing indices [{}, {}) from a buffer of {}",
-                params.first,
-                end,
-                vertices.index_count()
-            );
-        } else {
-            TGX_ASSERT_MSG(
-                end <= vertices.vertex_count(),
-                "drawing vertices [{}, {}) from a buffer of {}",
-                params.first,
-                end,
-                vertices.vertex_count()
-            );
-        }
-
         const GLenum mode = to_gl(params.primitive);
-        const auto count = static_cast<GLsizei>(params.count);
+        const auto gl_count = static_cast<GLsizei>(count);
 
-        if (!vertices.has_index_buffer()) {
-            glDrawArrays(mode, static_cast<GLint>(params.first), count);
+        if (!indexed) {
+            glDrawArrays(mode, static_cast<GLint>(params.first), gl_count);
             return;
         }
 
@@ -269,6 +271,6 @@ namespace tgx {
         // GL takes the start of an indexed draw as a byte offset into the index
         // buffer, passed where a pointer used to go.
         const auto *start = reinterpret_cast<const void *>(params.first * index_size);
-        glDrawElements(mode, count, type, start);
+        glDrawElements(mode, gl_count, type, start);
     }
 }

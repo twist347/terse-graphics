@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <format>
+#include <print>
 
 #include "tgx/tgx.h"
 
@@ -12,7 +13,7 @@ int main() {
 
     auto app = tgx::App::create({.title = title});
     if (!app) {
-        std::fprintf(stderr, "app: %s\n", tgx::to_str(app.error()));
+        std::println(stderr, "app: {}", app.error());
         return 1;
     }
 

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <format>
+#include <print>
 #include <numbers>
 #include <string>
 
@@ -62,27 +63,25 @@ namespace {
     // rainbow.
     [[nodiscard]] auto hue(float h) noexcept -> tgx::Color {
         const auto channel = [h](float offset) {
-            const float k = std::fmod(h * 6.0f + offset, 6.0f);
-            const float v = 1.0f - std::max(0.0f, std::min({k, 4.0f - k, 1.0f}));
-            return static_cast<std::uint8_t>(std::lround(v * 255.0f));
+            const float k = std::fmod(h * 6.f + offset, 6.f);
+            const float v = 1.f - std::max(0.f, std::min({k, 4.f - k, 1.f}));
+            return static_cast<std::uint8_t>(std::lround(v * 255.f));
         };
-        return {channel(5.0f), channel(3.0f), channel(1.0f), 255};
+        return {channel(5.f), channel(3.f), channel(1.f), 255};
     }
 
     // Vertex 0 is the center, then the rim. Positions are in clip space, which
     // stretches with the window, so x is squeezed by the aspect ratio to keep
     // the circle round.
     [[nodiscard]] auto make_vertices(tgx::Size size) noexcept -> std::array<Vertex, segments + 1> {
-        const float aspect = size.width > 0 && size.height > 0
-            ? static_cast<float>(size.height) / static_cast<float>(size.width)
-            : 1.0f;
+        const float x_scale = 1.f / size.aspect();
 
         std::array<Vertex, segments + 1> vertices{};
-        vertices[0] = {0.0f, 0.0f, tgx::colors::white};
+        vertices[0] = {0.f, 0.f, tgx::colors::white};
         for (std::size_t i = 0; i < segments; ++i) {
             const float t = static_cast<float>(i) / static_cast<float>(segments);
-            const float angle = t * 2.0f * std::numbers::pi_v<float>;
-            vertices[i + 1] = {radius * aspect * std::cos(angle), radius * std::sin(angle), hue(t)};
+            const float angle = t * 2.f * std::numbers::pi_v<float>;
+            vertices[i + 1] = {radius * x_scale * std::cos(angle), radius * std::sin(angle), hue(t)};
         }
         return vertices;
     }
@@ -107,14 +106,14 @@ int main() {
 
     auto app = tgx::App::create({.title = title});
     if (!app) {
-        std::fprintf(stderr, "app: %s\n", tgx::to_str(app.error()));
+        std::println(stderr, "app: {}", app.error());
         return 1;
     }
 
     std::string log;
     auto shader = tgx::gl::Shader::from_source(app->device(), vertex_source, fragment_source, &log);
     if (!shader) {
-        std::fprintf(stderr, "shader: %s\n%s", tgx::to_str(shader.error()), log.c_str());
+        std::print(stderr, "shader: {}\n{}", shader.error(), log);
         return 1;
     }
 
@@ -126,7 +125,7 @@ int main() {
     );
     auto ibo = tgx::gl::Buffer::create(app->device(), indices);
     if (!vbo || !ibo) {
-        std::fprintf(stderr, "buffer: %s\n", tgx::to_str(!vbo ? vbo.error() : ibo.error()));
+        std::println(stderr, "buffer: {}", !vbo ? vbo.error() : ibo.error());
         return 1;
     }
 
@@ -148,7 +147,7 @@ int main() {
         }
 
         app->device().clear();
-        app->device().draw(*shader, vao, {.count = indices.size()});
+        app->device().draw(*shader, vao);
 
         app->swap_buffers();
     }

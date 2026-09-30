@@ -1,6 +1,5 @@
 #pragma once
 
-#include "tgx/assert.h"
 #include "tgx/error.h"
 #include "tgx/size.h"
 
@@ -31,11 +30,9 @@ namespace tgx {
         [[nodiscard]] static auto create(Platform &platform, const WindowParams &params) noexcept -> Result<Window>;
 
         Window(const Window &) = delete;
-
         auto operator=(const Window &) -> Window & = delete;
 
         Window(Window &&other) noexcept;
-
         auto operator=(Window &&other) noexcept -> Window &;
 
         ~Window();
