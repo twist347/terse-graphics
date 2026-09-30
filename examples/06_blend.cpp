@@ -126,7 +126,8 @@ int main() {
         for (std::size_t i = 0; i < modes.size(); ++i) {
             const tgx::Blend mode = modes[i];
             const float x = static_cast<float>(i) * column_width;
-            const bool premultiplied = mode == tgx::Blend::premultiplied;
+            // These two modes take colors already multiplied by their alpha.
+            const bool premultiplied = mode == tgx::Blend::premultiplied || mode == tgx::Blend::multiply;
 
             // Two see-through squares that overlap each other and the band.
             rect({x + 0.4f, 2.2f}, {1.8f, 3.2f}, premultiplied ? red.premultiplied() : red, mode);

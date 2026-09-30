@@ -31,8 +31,10 @@ namespace {
         TGX_ASSERT(std::in_range<GLsizeiptr>(size));
 
         // Drain errors left over from earlier calls, so the check below is
-        // about this allocation only.
-        while (glGetError() != GL_NO_ERROR) {
+        // about this allocation only. GL keeps one flag per kind of error, so a
+        // few calls empty it; the bound is for a lost context, on which some
+        // drivers report an error on every call.
+        for (int i = 0; i < 16 && glGetError() != GL_NO_ERROR; ++i) {
         }
 
         GLuint id = 0;

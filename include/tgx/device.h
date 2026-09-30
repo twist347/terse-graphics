@@ -65,6 +65,9 @@ namespace tgx {
         // src * a + dst: light adding up, as in glows and particles.
         additive,
         // src * dst, faded towards dst as alpha drops: darkening and tinting.
+        // Like premultiplied, it wants colors already multiplied by their alpha
+        // (Color::premultiplied()); a straight see-through color would come out
+        // lighter than dst. Opaque colors are the same either way.
         multiply,
     };
 

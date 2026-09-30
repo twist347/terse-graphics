@@ -103,7 +103,8 @@ differs from the previous draw:
     device.draw(*shader, sprites, {.state = {.blend = tgx::Blend::alpha}});
     device.draw(*shader, cube, {.state = {.depth = tgx::Depth::less, .cull = tgx::Cull::back}});
 
-`Blend` has `none`, `alpha`, `premultiplied`, `additive` and `multiply`; `Depth`
+`Blend` has `none`, `alpha`, `premultiplied`, `additive` and `multiply` (the last
+takes premultiplied colors, as `premultiplied` does: `Color::premultiplied()`); `Depth`
 has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
 `back` and `front`; `Fill` has `solid` and `wireframe`.
 
@@ -155,7 +156,8 @@ destination are configurable, before creating the `App`:
         // forward to your own logger
     });
 
-A sink may be called from a driver thread. Passing `nullptr` restores the default.
+A sink is called on the thread that made the tgx call, GL driver messages
+included: they are delivered synchronously. Passing `nullptr` restores the default.
 
 Driver messages are logged by their severity, except performance hints, which
 are advice rather than faults and go to `info`. A debug context, and with it the

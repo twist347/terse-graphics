@@ -1,0 +1,8 @@
+# Build trees
+build*/
+cmake-build-*/
+
+# IDEs and OS
+.idea/
+.vscode/
+.DS_Store

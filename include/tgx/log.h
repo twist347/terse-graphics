@@ -24,8 +24,9 @@ namespace tgx {
         return "unknown";
     }
 
-    // Receives one whole message, without a trailing newline. It may be called
-    // from a driver thread, so it must be thread-safe if the app has several.
+    // Receives one whole message, without a trailing newline. It is called on
+    // the thread that made the tgx call, GL driver messages included: they are
+    // delivered synchronously. tgx itself runs on the main thread only.
     using LogSink = void (*)(LogLevel level, std::string_view message, void *user) noexcept;
 
     // nullptr restores the default sink, which writes warnings and errors to
