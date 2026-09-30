@@ -1,5 +1,8 @@
 #pragma once
 
+#include "tgx/color.h"
+#include "tgx/math.h"
+
 #include "tgx/gl/handle.h"
 
 #include <array>
@@ -32,12 +35,57 @@ namespace tgx::gl {
         sint32
     };
 
+    // The format a vertex field of type T is read with. Fails to compile for a
+    // type with no natural format; describe such a field by hand.
+    template<typename T>
+    [[nodiscard]] consteval auto vertex_format_of() noexcept -> VertexFormat {
+        using enum VertexFormat;
+        if constexpr (std::is_same_v<T, float>) {
+            return float32;
+        } else if constexpr (std::is_same_v<T, Vec2>) {
+            return float32x2;
+        } else if constexpr (std::is_same_v<T, Vec3>) {
+            return float32x3;
+        } else if constexpr (std::is_same_v<T, Vec4>) {
+            return float32x4;
+        } else if constexpr (std::is_same_v<T, Color>) {
+            return unorm8x4;
+        } else if constexpr (std::is_same_v<T, std::uint32_t>) {
+            return uint32;
+        } else if constexpr (std::is_same_v<T, std::int32_t>) {
+            return sint32;
+        } else {
+            static_assert(false, "no VertexFormat for this field type; fill in VertexAttribute by hand");
+        }
+    }
+
     struct VertexAttribute {
         // Matches layout(location = N) in the vertex shader.
         std::uint32_t location{0};
         VertexFormat format{VertexFormat::float32};
         // Byte offset inside one vertex, usually offsetof(Vertex, field).
         std::size_t offset{0};
+
+        // Format and offset taken from the field itself:
+        //
+        //     VertexAttribute::of(0, &Vertex::position)
+        //
+        // Not constexpr: offsetof needs the field's name, and a member pointer
+        // only gives up its offset measured on a real object.
+        template<typename Vertex, typename Field>
+            requires std::is_standard_layout_v<Vertex>
+                     && std::is_trivially_copyable_v<Vertex>
+                     && std::is_default_constructible_v<Vertex>
+        [[nodiscard]] static auto of(std::uint32_t location, Field Vertex::*field) noexcept -> VertexAttribute {
+            const Vertex vertex{};
+            const auto *base = reinterpret_cast<const std::byte *>(&vertex);
+            const auto *member = reinterpret_cast<const std::byte *>(&(vertex.*field));
+            return {
+                .location = location,
+                .format = vertex_format_of<Field>(),
+                .offset = static_cast<std::size_t>(member - base),
+            };
+        }
     };
 
     enum class IndexType : std::int32_t {

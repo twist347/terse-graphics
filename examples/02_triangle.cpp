@@ -1,7 +1,6 @@
 #include "tgx/tgx.h"
 
 #include <array>
-#include <cstddef>
 #include <cstdio>
 #include <format>
 #include <print>
@@ -9,8 +8,7 @@
 
 namespace {
     struct Vertex {
-        float x;
-        float y;
+        tgx::Vec2 position;
         tgx::Color color;
     };
 
@@ -37,22 +35,14 @@ namespace {
     )";
 
     constexpr std::array vertices{
-        Vertex{-0.6f, -0.5f, tgx::colors::red},
-        Vertex{0.6f, -0.5f, tgx::colors::green},
-        Vertex{0.0f, 0.6f, tgx::colors::blue},
+        Vertex{{-0.6f, -0.5f}, tgx::colors::red},
+        Vertex{{0.6f, -0.5f}, tgx::colors::green},
+        Vertex{{0.0f, 0.6f}, tgx::colors::blue},
     };
 
-    constexpr std::array layout{
-        tgx::gl::VertexAttribute{
-            .location = 0,
-            .format = tgx::gl::VertexFormat::float32x2,
-            .offset = offsetof(Vertex, x),
-        },
-        tgx::gl::VertexAttribute{
-            .location = 1,
-            .format = tgx::gl::VertexFormat::unorm8x4,
-            .offset = offsetof(Vertex, color),
-        },
+    const std::array layout{
+        tgx::gl::VertexAttribute::of(0, &Vertex::position),
+        tgx::gl::VertexAttribute::of(1, &Vertex::color),
     };
 
     constexpr const char *title = "tgx - 02 triangle";

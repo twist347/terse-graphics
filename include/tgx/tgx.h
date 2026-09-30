@@ -7,6 +7,7 @@
 #include "tgx/device.h"
 #include "tgx/error.h"
 #include "tgx/log.h"
+#include "tgx/math.h"
 #include "tgx/platform.h"
 #include "tgx/size.h"
 #include "tgx/window.h"

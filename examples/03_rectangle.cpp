@@ -1,7 +1,6 @@
 #include "tgx/tgx.h"
 
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <format>
@@ -10,8 +9,7 @@
 
 namespace {
     struct Vertex {
-        float x;
-        float y;
+        tgx::Vec2 position;
         tgx::Color color;
     };
 
@@ -39,10 +37,10 @@ namespace {
 
     // Four corners, each vertex stored once.
     constexpr std::array vertices{
-        Vertex{-0.6f, -0.5f, tgx::colors::red},
-        Vertex{0.6f, -0.5f, tgx::colors::green},
-        Vertex{0.6f, 0.5f, tgx::colors::blue},
-        Vertex{-0.6f, 0.5f, tgx::colors::yellow},
+        Vertex{{-0.6f, -0.5f}, tgx::colors::red},
+        Vertex{{0.6f, -0.5f}, tgx::colors::green},
+        Vertex{{0.6f, 0.5f}, tgx::colors::blue},
+        Vertex{{-0.6f, 0.5f}, tgx::colors::yellow},
     };
 
     // Two triangles sharing the 0-2 diagonal: six indices instead of six
@@ -52,17 +50,9 @@ namespace {
         0, 2, 3,
     };
 
-    constexpr std::array layout{
-        tgx::gl::VertexAttribute{
-            .location = 0,
-            .format = tgx::gl::VertexFormat::float32x2,
-            .offset = offsetof(Vertex, x),
-        },
-        tgx::gl::VertexAttribute{
-            .location = 1,
-            .format = tgx::gl::VertexFormat::unorm8x4,
-            .offset = offsetof(Vertex, color),
-        },
+    const std::array layout{
+        tgx::gl::VertexAttribute::of(0, &Vertex::position),
+        tgx::gl::VertexAttribute::of(1, &Vertex::color),
     };
 
     constexpr const char *title = "tgx - 03 rectangle";

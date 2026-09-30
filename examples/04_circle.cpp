@@ -13,8 +13,7 @@
 
 namespace {
     struct Vertex {
-        float x;
-        float y;
+        tgx::Vec2 position;
         tgx::Color color;
     };
 
@@ -44,17 +43,9 @@ namespace {
     constexpr std::size_t segments = 64;
     constexpr float radius = 0.7f;
 
-    constexpr std::array layout{
-        tgx::gl::VertexAttribute{
-            .location = 0,
-            .format = tgx::gl::VertexFormat::float32x2,
-            .offset = offsetof(Vertex, x),
-        },
-        tgx::gl::VertexAttribute{
-            .location = 1,
-            .format = tgx::gl::VertexFormat::unorm8x4,
-            .offset = offsetof(Vertex, color),
-        },
+    const std::array layout{
+        tgx::gl::VertexAttribute::of(0, &Vertex::position),
+        tgx::gl::VertexAttribute::of(1, &Vertex::color),
     };
 
     constexpr const char *title = "tgx - 04 circle";
@@ -77,11 +68,11 @@ namespace {
         const float x_scale = 1.f / size.aspect();
 
         std::array<Vertex, segments + 1> vertices{};
-        vertices[0] = {0.f, 0.f, tgx::colors::white};
+        vertices[0] = {{0.f, 0.f}, tgx::colors::white};
         for (std::size_t i = 0; i < segments; ++i) {
             const float t = static_cast<float>(i) / static_cast<float>(segments);
             const float angle = t * 2.f * std::numbers::pi_v<float>;
-            vertices[i + 1] = {radius * x_scale * std::cos(angle), radius * std::sin(angle), hue(t)};
+            vertices[i + 1] = {{radius * x_scale * std::cos(angle), radius * std::sin(angle)}, hue(t)};
         }
         return vertices;
     }
