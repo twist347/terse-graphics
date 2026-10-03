@@ -5,6 +5,7 @@
 
 #include "tgx/gl/handle.h"
 #include "tgx/gl/shader.h"
+#include "tgx/gl/texture.h"
 #include "tgx/gl/version.h"
 #include "tgx/gl/vertex_array.h"
 
@@ -15,6 +16,7 @@
 #include <glad/gl.h>
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <string_view>
 #include <type_traits>
@@ -38,6 +40,18 @@ namespace {
 
     // The program glUseProgram last made current; 0 for none.
     GLuint s_current_program = 0;
+
+    // The texture bound in each slot, 0 for none, and the slot glActiveTexture
+    // last selected.
+    std::array<GLuint, tgx::gl::max_texture_slots> s_bound_textures{};
+    std::uint32_t s_active_slot = 0;
+
+    // Forgets every binding, for a Device starting on or leaving a context.
+    auto reset_bindings() noexcept -> void {
+        s_current_program = 0;
+        s_bound_textures = {};
+        s_active_slot = 0;
+    }
 
     auto apply_clear_color(tgx::Color color) noexcept -> void {
         const tgx::Vec4 unit = tgx::to_vec4(color);
@@ -132,6 +146,7 @@ namespace {
         glDepthMask(GL_TRUE);
         glDisable(GL_CULL_FACE);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glActiveTexture(GL_TEXTURE0);
     }
 
     // Brings GL from the state current describes to next, touching only what
@@ -223,6 +238,21 @@ namespace {
                     input.name, location, to_str(input.kind), to_str(to_component_kind(attribute->format))
                 );
             }
+        }
+    }
+
+    // A sampler reads its slot whether or not the draw put a texture there, and
+    // gets whatever an earlier draw left, or black. Neither is reported.
+    auto check_textures(
+        const tgx::gl::Shader &shader,
+        const tgx::DrawParams &params
+    ) noexcept -> void {
+        for (const auto &sampler : tgx::gl::detail::samplers(shader)) {
+            TGX_ASSERT_MSG(
+                params.textures[sampler.slot] != nullptr,
+                "sampler '{}' reads texture slot {}, which the draw has no texture for",
+                sampler.name, sampler.slot
+            );
         }
     }
 
@@ -322,6 +352,23 @@ namespace tgx {
         }
     }
 
+    auto detail::bind_texture(std::uint32_t slot, gl::GlId texture) noexcept -> void {
+        TGX_ASSERT(slot < gl::max_texture_slots);
+
+        if (slot != s_active_slot) {
+            glActiveTexture(GL_TEXTURE0 + slot);
+            s_active_slot = slot;
+        }
+        if (texture != s_bound_textures[slot]) {
+            glBindTexture(GL_TEXTURE_2D, texture);
+            s_bound_textures[slot] = texture;
+        }
+    }
+
+    auto detail::forget_texture(gl::GlId texture) noexcept -> void {
+        std::ranges::replace(s_bound_textures, texture, GLuint{0});
+    }
+
     auto Device::create(Window &window) noexcept -> Result<Device> {
         TGX_ASSERT_MSG(!s_device_alive, "only one Device may exist at a time");
 
@@ -349,7 +396,7 @@ namespace tgx {
 
     Device::Device() noexcept : m_owned{true} {
         s_device_alive = true;
-        s_current_program = 0;
+        reset_bindings();
     }
 
     Device::Device(Device &&other) noexcept
@@ -378,7 +425,7 @@ namespace tgx {
     auto Device::release() noexcept -> void {
         if (m_owned) {
             s_device_alive = false;
-            s_current_program = 0;
+            reset_bindings();
             m_owned = false;
         }
     }
@@ -436,6 +483,7 @@ namespace tgx {
         TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
             check_vertex_inputs(shader, vertices);
+            check_textures(shader, params);
         }
 
         const bool indexed = vertices.has_index_buffer();
@@ -462,6 +510,11 @@ namespace tgx {
 
         apply_state(m_state, params.state);
         detail::use_program(shader.id());
+        for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
+            if (const gl::Texture *texture = params.textures[slot]; texture != nullptr) {
+                detail::bind_texture(slot, texture->id());
+            }
+        }
         glBindVertexArray(vertices.id());
 
         const GLenum mode = to_gl(params.primitive);

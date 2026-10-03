@@ -4,6 +4,8 @@
 #include "tgx/error.h"
 #include "tgx/size.h"
 
+#include "tgx/gl/texture.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -120,6 +122,11 @@ namespace tgx {
         std::size_t first{0};
         Primitive primitive{Primitive::triangles};
         RenderState state{};
+        // By slot, for the shader's samplers to read (gl::TextureSlot); every
+        // slot a sampler reads must have one. Empty slots are left as they are.
+        //
+        //     device.draw(shader, quad, {.textures = {&texture}});
+        std::array<const gl::Texture *, gl::max_texture_slots> textures{};
     };
 
     // Owns nothing on the GPU, but marks the GL context as usable: every gl::

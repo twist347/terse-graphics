@@ -5,6 +5,7 @@
 #include "tgx/math.h"
 
 #include "tgx/gl/handle.h"
+#include "tgx/gl/texture.h"
 #include "tgx/gl/version.h"
 
 #include <concepts>
@@ -55,13 +56,25 @@ namespace tgx::gl {
             ComponentKind kind{ComponentKind::floating};
         };
 
+        // An active sampler2D uniform and the texture slot it reads.
+        struct ShaderSampler {
+            std::string name;
+            std::int32_t location{-1};
+            // As last set through a TextureSlot; GL starts every sampler at 0.
+            std::uint32_t slot{0};
+        };
+
         // For Device::draw, which checks them against the vertex array. Empty in
         // builds without asserts: nothing else reads them.
         [[nodiscard]] auto vertex_inputs(const Shader &shader) noexcept -> std::span<const VertexInput>;
+
+        // For Device::draw, which checks that every slot read has a texture.
+        [[nodiscard]] auto samplers(const Shader &shader) noexcept -> std::span<const ShaderSampler>;
     }
 
     // What a uniform can be set with. Color goes as a vec4 with channels in
-    // [0, 1]; a bool uniform takes an int or a uint.
+    // [0, 1]; a bool uniform takes an int or a uint; a sampler2D takes only a
+    // TextureSlot.
     template<typename T>
     concept UniformValue = std::same_as<T, float>
                            || std::same_as<T, std::int32_t>
@@ -70,7 +83,8 @@ namespace tgx::gl {
                            || std::same_as<T, Vec3>
                            || std::same_as<T, Vec4>
                            || std::same_as<T, Mat4>
-                           || std::same_as<T, Color>;
+                           || std::same_as<T, Color>
+                           || std::same_as<T, TextureSlot>;
 
     // A uniform of one Shader, looked up by name once and then set with values
     // of T. A default-constructed one refers to nothing.
@@ -133,19 +147,23 @@ namespace tgx::gl {
 
     private:
         friend auto detail::vertex_inputs(const Shader &shader) noexcept -> std::span<const detail::VertexInput>;
+        friend auto detail::samplers(const Shader &shader) noexcept -> std::span<const detail::ShaderSampler>;
 
         Shader(
             Handle<detail::delete_program> handle,
             std::vector<detail::ShaderUniform> uniforms,
-            std::vector<detail::VertexInput> inputs
+            std::vector<detail::VertexInput> inputs,
+            std::vector<detail::ShaderSampler> samplers
         ) noexcept
             : m_handle{std::move(handle)},
               m_uniforms{std::move(uniforms)},
-              m_inputs{std::move(inputs)} {
+              m_inputs{std::move(inputs)},
+              m_samplers{std::move(samplers)} {
         }
 
         Handle<detail::delete_program> m_handle;
         std::vector<detail::ShaderUniform> m_uniforms;
         std::vector<detail::VertexInput> m_inputs;
+        std::vector<detail::ShaderSampler> m_samplers;
     };
 }

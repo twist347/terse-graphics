@@ -1,0 +1,16 @@
+# stb_image v2.30, https://github.com/nothings/stb
+add_library(stb_image STATIC src/stb_image.c)
+target_include_directories(stb_image SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# Public, so the implementation and whoever includes the header agree. Files
+# are read by the caller, which handles paths stdio cannot (non-ASCII ones on
+# Windows); only the formats 2D drawing needs are compiled in. Failure reasons
+# are not read, so their strings are left out.
+target_compile_definitions(stb_image PUBLIC
+        STBI_NO_STDIO
+        STBI_NO_FAILURE_STRINGS
+        STBI_ONLY_PNG
+        STBI_ONLY_JPEG
+        STBI_ONLY_BMP
+        STBI_ONLY_TGA
+        STBI_ONLY_GIF
+)

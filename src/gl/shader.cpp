@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -20,6 +21,7 @@
 
 namespace {
     using tgx::gl::detail::ComponentKind;
+    using tgx::gl::detail::ShaderSampler;
     using tgx::gl::detail::ShaderUniform;
     using tgx::gl::detail::VertexInput;
 
@@ -163,6 +165,16 @@ namespace {
             uniforms.push_back({std::string{base}, location, type, size});
         }
         return uniforms;
+    }
+
+    [[nodiscard]] auto collect_samplers(std::span<const ShaderUniform> uniforms) -> std::vector<ShaderSampler> {
+        std::vector<ShaderSampler> samplers;
+        for (const auto &uniform : uniforms) {
+            if (uniform.gl_type == GL_SAMPLER_2D) {
+                samplers.push_back({uniform.name, uniform.location});
+            }
+        }
+        return samplers;
     }
 
     [[nodiscard]] auto collect_vertex_inputs(GLuint program) -> std::vector<VertexInput> {
@@ -330,6 +342,15 @@ namespace {
     };
 
     template<>
+    struct UniformTraits<tgx::gl::TextureSlot> {
+        static constexpr std::array<GLenum, 1> types{GL_SAMPLER_2D};
+
+        static auto upload(GLint location, tgx::gl::TextureSlot value) noexcept -> void {
+            glUniform1i(location, static_cast<GLint>(value.index));
+        }
+    };
+
+    template<>
     struct UniformTraits<tgx::Mat4> {
         static constexpr std::array<GLenum, 1> types{GL_FLOAT_MAT4};
 
@@ -349,6 +370,10 @@ namespace tgx::gl {
 
     auto detail::vertex_inputs(const Shader &shader) noexcept -> std::span<const VertexInput> {
         return shader.m_inputs;
+    }
+
+    auto detail::samplers(const Shader &shader) noexcept -> std::span<const ShaderSampler> {
+        return shader.m_samplers;
     }
 
     auto Shader::from_source(
@@ -389,11 +414,12 @@ namespace tgx::gl {
         // Read before the handle moves into the Shader. The vertex inputs only
         // feed an assert in Device::draw, so builds without asserts skip them.
         auto uniforms = collect_uniforms(program.get());
+        auto samplers = collect_samplers(uniforms);
         std::vector<VertexInput> inputs;
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
             inputs = collect_vertex_inputs(program.get());
         }
-        return Shader{std::move(program), std::move(uniforms), std::move(inputs)};
+        return Shader{std::move(program), std::move(uniforms), std::move(inputs), std::move(samplers)};
     }
 
     template<UniformValue T>
@@ -408,6 +434,18 @@ namespace tgx::gl {
         if (uniform.m_location < 0) {
             return;
         }
+        if constexpr (std::same_as<T, TextureSlot>) {
+            TGX_ASSERT_MSG(
+                value.index < max_texture_slots,
+                "texture slot {} is out of range, there are {}",
+                value.index, max_texture_slots
+            );
+            const auto sampler = std::ranges::find(m_samplers, uniform.m_location, &detail::ShaderSampler::location);
+            if (sampler != m_samplers.end()) {
+                sampler->slot = value.index;
+            }
+        }
+
         tgx::detail::use_program(id());
         UniformTraits<T>::upload(uniform.m_location, value);
     }
@@ -422,6 +460,7 @@ namespace tgx::gl {
     template auto Shader::uniform<Vec4>(std::string_view) const noexcept -> Uniform<Vec4>;
     template auto Shader::uniform<Mat4>(std::string_view) const noexcept -> Uniform<Mat4>;
     template auto Shader::uniform<Color>(std::string_view) const noexcept -> Uniform<Color>;
+    template auto Shader::uniform<TextureSlot>(std::string_view) const noexcept -> Uniform<TextureSlot>;
 
     template auto Shader::set<float>(Uniform<float>, const float &) noexcept -> void;
     template auto Shader::set<std::int32_t>(Uniform<std::int32_t>, const std::int32_t &) noexcept -> void;
@@ -431,6 +470,7 @@ namespace tgx::gl {
     template auto Shader::set<Vec4>(Uniform<Vec4>, const Vec4 &) noexcept -> void;
     template auto Shader::set<Mat4>(Uniform<Mat4>, const Mat4 &) noexcept -> void;
     template auto Shader::set<Color>(Uniform<Color>, const Color &) noexcept -> void;
+    template auto Shader::set<TextureSlot>(Uniform<TextureSlot>, const TextureSlot &) noexcept -> void;
 
     auto Shader::id() const noexcept -> GlId {
         TGX_ASSERT(m_handle);

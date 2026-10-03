@@ -17,6 +17,7 @@ set(TGX_SOURCES
         src/assert.cpp
         src/clock.cpp
         src/device.cpp
+        src/image.cpp
         src/log.cpp
         src/platform.cpp
         src/window.cpp
@@ -25,6 +26,7 @@ set(TGX_SOURCES
 set(TGX_GL_SOURCES
         src/gl/buffer.cpp
         src/gl/shader.cpp
+        src/gl/texture.cpp
         src/gl/vertex_array.cpp
 )
 
@@ -39,7 +41,7 @@ target_include_directories(tgx
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(tgx PRIVATE glad glfw)
+target_link_libraries(tgx PRIVATE glad glfw stb_image)
 target_compile_definitions(tgx PRIVATE GLFW_INCLUDE_NONE)
 
 # Public headers hold inline code and defaults that depend on this, so the

@@ -14,6 +14,9 @@ Early and moving: the API changes from commit to commit.
   from the vertex struct.
 - **Shaders and uniforms**: `gl::Shader` from source, uniforms set through typed
   handles looked up once by name.
+- **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
+  JPEG, BMP, TGA or GIF, or made in code) and `gl::Texture` made from it, with nearest or linear filtering, wrapping, optional mipmaps and
+  partial updates.
 - **Render state per draw**: blending, depth test, face culling, wireframe.
 - **Math**: `Vec2`/`Vec3`/`Vec4`/`Mat4` laid out for the GPU, with the usual
   operations and `ortho`, `perspective`, `look_at`, `translate`, `rotate`,
@@ -21,7 +24,7 @@ Early and moving: the API changes from commit to commit.
 - **Checks**: asserts for the mistakes GL keeps quiet about (see below), and GL
   driver messages routed to the log on debug contexts.
 
-Not yet: textures, the `Canvas` for simple 2D drawing, input, render targets,
+Not yet: the `Canvas` for simple 2D drawing, input, render targets,
 text.
 
 ## Who does what
@@ -32,7 +35,7 @@ text.
 | `Platform` | `glfwInit`/`glfwTerminate` and event polling. Knows nothing about GL.                  |
 | `Window`   | The OS window and its GL context: version hints, making it current, swap, vsync.     |
 | `Device`   | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, viewport, render state, draw calls. |
-| `gl::*`    | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA), but never where a draw would read it. |
+| `gl::*`    | Raw resources (`Buffer`, `VertexArray`, `Shader`, `Texture`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA); a texture is bound through the `Device`'s cache, so the next draw still finds what it asks for. |
 
 Creation order is the dependency chain, and each step fails on its own:
 
@@ -103,6 +106,16 @@ differs from the previous draw:
     device.draw(*shader, sprites, {.state = {.blend = tgx::Blend::alpha}});
     device.draw(*shader, cube, {.state = {.depth = tgx::Depth::less, .cull = tgx::Cull::back}});
 
+A texture is made from an `Image`, whose rows run top to bottom: texture
+coordinates (0, 0) are its top-left pixel. A `sampler2D` uniform is set once to
+a slot, and each draw puts textures into slots:
+
+    auto image = tgx::Image::load("player.png");   // Error::io or Error::decode on failure
+    auto texture = tgx::gl::Texture::create(device, *image, {.filter = tgx::gl::TextureFilter::nearest});
+
+    shader->set(shader->uniform<tgx::gl::TextureSlot>("u_texture"), {0});
+    device.draw(*shader, quad, {.textures = {&*texture}});
+
 `Blend` has `none`, `alpha`, `premultiplied`, `additive` and `multiply` (the last
 takes premultiplied colors, as `premultiplied` does: `Color::premultiplied()`); `Depth`
 has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
@@ -113,7 +126,7 @@ has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
 - **Only `Device` binds for drawing.** Resources have no `bind()`. They may bind
   themselves to be edited, so `Device` assumes nothing about what they leave
   bound; it only skips what it set itself and knows to be current (the program,
-  the render state).
+  the textures in their slots, the render state).
 - **A resource is an object; `Device` is how and with what we draw right now.**
 - **No GL enums or concepts leak into the public API**, except in the `gl::` layer,
   which is the deliberate escape hatch.
@@ -137,8 +150,11 @@ asserts on, tgx stops at the call instead:
   input fed floats (and the other way round);
 - a uniform that is misspelled or was optimized out, of another GLSL type than
   the handle, or set through a handle from another shader;
+- a sampler reading a texture slot the draw put no texture in, or a slot out of
+  range;
 - a vertex layout that does not fit its stride, or uses a location twice;
-- writing to an immutable buffer, or past the end of a dynamic one;
+- writing to an immutable buffer or texture, or past the end of a dynamic one;
+- a pixel outside an `Image`;
 - a second `Window` or `Device`, or GL resources outliving the `Device`.
 
 Asserts cost nothing when off: the checks that need extra bookkeeping (such as
@@ -175,10 +191,12 @@ driver messages, is on by default only in builds with asserts
 | `05_uniforms`  | Uniforms of several types, moving a triangle on the GPU.           |
 | `06_blend`     | The five blend modes side by side.                                 |
 | `07_cube`      | 3D: perspective, a camera, depth test and back-face culling.       |
+| `08_texture`   | A texture made from an `Image`, on a square.                       |
 
 ## Building
 
-CMake 3.25+ and a C++23 compiler. GLFW and glad are vendored in `thirdparty/`.
+CMake 3.25+ and a C++23 compiler. GLFW, glad and stb_image are vendored in
+`thirdparty/`.
 
     cmake -S . -B build
     cmake --build build
