@@ -64,8 +64,9 @@ namespace tgx::gl {
         [[nodiscard]] constexpr auto operator==(const RenderState &) const noexcept -> bool = default;
     };
 
-    // A rectangle of the framebuffer, in pixels from its bottom-left corner as
-    // GL counts them.
+    // A rectangle of the framebuffer in pixels, from its top-left corner like
+    // everything else in tgx (images, texture coordinates, the Canvas), not
+    // from the bottom-left as glViewport counts.
     struct Viewport {
         int x{0};
         int y{0};

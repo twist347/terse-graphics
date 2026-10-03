@@ -8,6 +8,7 @@
 #include "tgx/texture.h"
 
 #include "tgx/gl/buffer.h"
+#include "tgx/gl/draw.h"
 #include "tgx/gl/shader.h"
 #include "tgx/gl/vertex_array.h"
 
@@ -42,6 +43,8 @@ namespace tgx::detail {
         std::int32_t u_projection{-1};
         // From the vertices' coordinates to clip space: u_projection.
         Mat4 transform{};
+        // The part of the framebuffer the canvas covers, in pixels.
+        gl::Viewport viewport{};
 
         [[nodiscard]] auto operator==(const BatchState &) const noexcept -> bool = default;
     };

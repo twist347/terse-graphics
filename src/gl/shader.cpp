@@ -30,7 +30,7 @@ namespace {
     }
 
     // Stage objects are only needed until the program is linked.
-    using Stage = tgx::Handle<delete_shader>;
+    using Stage = tgx::detail::Handle<delete_shader>;
 
     // Shaders and programs keep their logs behind different, same-shaped calls.
     enum class LogOf {
@@ -395,7 +395,7 @@ namespace tgx::gl {
             return std::unexpected{Error::compile};
         }
 
-        Handle<detail::delete_program> program{glCreateProgram()};
+        tgx::detail::Handle<detail::delete_program> program{glCreateProgram()};
         glAttachShader(program.get(), vs.get());
         glAttachShader(program.get(), fs.get());
         glLinkProgram(program.get());

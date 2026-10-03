@@ -28,6 +28,7 @@ namespace tgx::detail {
         std::size_t count{0};
         gl::Primitive primitive{gl::Primitive::triangles};
         gl::RenderState state{};
+        // From the top-left, as gl::Viewport always is.
         gl::Viewport viewport{};
         // By slot; 0 leaves the slot as it is.
         std::array<GlId, gl::max_texture_slots> textures{};
@@ -42,6 +43,7 @@ namespace tgx::detail {
         Color clear_color{0, 0, 0, 0};
         float clear_depth{1.f};
         std::int32_t clear_stencil{0};
+        // As glViewport took it: from the bottom-left.
         gl::Viewport viewport{};
         // What glUseProgram last made current; 0 for none.
         GlId program{0};

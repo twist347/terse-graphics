@@ -4,6 +4,7 @@
 #include "tgx/handle.h"
 #include "tgx/texture.h"
 
+#include "tgx/gl/draw.h"
 #include "tgx/gl/shader.h"
 
 #include "batch.h"
@@ -45,6 +46,30 @@ namespace {
             return {};
         }
         return tgx::ortho(0.f, static_cast<float>(size.width), static_cast<float>(size.height), 0.f);
+    }
+
+    [[nodiscard]] auto has_area(tgx::Rect rect) noexcept -> bool {
+        return rect.width > 0.f && rect.height > 0.f;
+    }
+
+    // The part of the framebuffer a canvas covers, in pixels: its viewport,
+    // from screen coordinates, or all of it.
+    [[nodiscard]] auto pixel_viewport(tgx::Rect rect) noexcept -> tgx::gl::Viewport {
+        const tgx::Size window = tgx::detail::window_size();
+        const tgx::Size framebuffer = tgx::detail::framebuffer_size();
+        if (!has_area(rect) || window.empty()) {
+            return {0, 0, framebuffer.width, framebuffer.height};
+        }
+
+        // Edges rounded rather than sizes, so canvases side by side meet
+        // without a gap or an overlap.
+        const float sx = static_cast<float>(framebuffer.width) / static_cast<float>(window.width);
+        const float sy = static_cast<float>(framebuffer.height) / static_cast<float>(window.height);
+        const auto left = static_cast<int>(std::lround(rect.x * sx));
+        const auto top = static_cast<int>(std::lround(rect.y * sy));
+        const auto right = static_cast<int>(std::lround((rect.x + rect.width) * sx));
+        const auto bottom = static_cast<int>(std::lround((rect.y + rect.height) * sy));
+        return {left, top, right - left, bottom - top};
     }
 
     // Rotated a quarter turn counter-clockwise on screen (y down).
@@ -98,24 +123,38 @@ namespace tgx {
     }
 
     Canvas::Canvas(Size size) noexcept : m_size{size} {
-        m_transform_size = this->size();
-        m_transform = projection_for(m_transform_size);
+        refit();
     }
 
     auto Canvas::set_size(Size size) noexcept -> void {
         m_size = size;
-        m_transform_size = this->size();
-        m_transform = projection_for(m_transform_size) * m_camera.matrix();
+        refit();
     }
 
     auto Canvas::size() const noexcept -> Size {
-        return m_size.empty() ? detail::window_size() : m_size;
+        if (!m_size.empty()) {
+            return m_size;
+        }
+        if (has_area(m_viewport)) {
+            return {static_cast<int>(std::lround(m_viewport.width)), static_cast<int>(std::lround(m_viewport.height))};
+        }
+        return detail::window_size();
+    }
+
+    auto Canvas::set_viewport(Rect rect) noexcept -> void {
+        m_viewport = rect;
+        refit();
     }
 
     auto Canvas::set_camera(const Camera2D &camera) noexcept -> void {
         TGX_ASSERT_MSG(camera.zoom != 0.f, "a camera with zoom 0 shows nothing and cannot map back");
 
         m_camera = camera;
+        refit();
+    }
+
+    auto Canvas::refit() noexcept -> void {
+        m_transform_size = size();
         m_transform = projection_for(m_transform_size) * m_camera.matrix();
     }
 
@@ -154,9 +193,8 @@ namespace tgx {
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
         // A canvas that follows the window notices a resize here, at its first
         // shape after it.
-        if (const Size now = size(); now != m_transform_size) {
-            m_transform_size = now;
-            m_transform = projection_for(now) * m_camera.matrix();
+        if (size() != m_transform_size) {
+            refit();
         }
         return {
             .texture = texture,
@@ -164,6 +202,7 @@ namespace tgx {
             .program = m_shader != nullptr ? m_shader->id() : 0,
             .u_projection = m_u_projection,
             .transform = m_transform,
+            .viewport = pixel_viewport(m_viewport),
         };
     }
 

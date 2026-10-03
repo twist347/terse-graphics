@@ -163,8 +163,7 @@ namespace tgx::detail {
             .index_type = gl::IndexType::uint16,
             .count = m_indices.size(),
             .state = {.blend = m_state.blend},
-            // The canvas covers the whole framebuffer.
-            .viewport = full_viewport(),
+            .viewport = m_state.viewport,
             .textures = {m_state.texture != 0 ? m_state.texture : m_white.id()},
         });
 

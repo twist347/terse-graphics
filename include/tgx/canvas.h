@@ -48,10 +48,11 @@ namespace tgx {
     // together, in as few draws as the GPU allows.
     //
     // Coordinates are screen coordinates (Window::size()), (0, 0) at the
-    // top-left, y down; the canvas is stretched over the whole framebuffer,
-    // so on a scaling display one unit covers several pixels and things keep
-    // their size. It follows the window as it is resized. A camera
-    // (set_camera) moves, turns and zooms the world under them.
+    // top-left, y down; the canvas is stretched over the whole window, or the
+    // part of it set_viewport() gives, so on a scaling display one unit covers
+    // several pixels and things keep their size. It follows the window as it
+    // is resized. A camera (set_camera) moves, turns and zooms the world under
+    // them.
     //
     // Shapes are collected by the Device, which draws them before anything
     // else of its own (a draw, a clear) and when the frame is presented, so
@@ -74,13 +75,24 @@ namespace tgx {
         // Empty follows the window, as App's canvas does; see set_size().
         [[nodiscard]] static auto create(Size size = {}) noexcept -> Canvas;
 
-        // The area the coordinates span. Empty (the default) is the window's
-        // size, whatever it is at the time; a size of its own is a fixed
-        // logical resolution, stretched over the window: 320x180 for pixel art.
+        // The area the coordinates span. Empty (the default) is the size of
+        // what the canvas covers, the window or its viewport, whatever it is at
+        // the time; a size of its own is a fixed logical resolution, stretched
+        // over it: 320x180 for pixel art.
         auto set_size(Size size) noexcept -> void;
 
         // The area the coordinates span now.
         [[nodiscard]] auto size() const noexcept -> Size;
+
+        // The part of the window the canvas covers, in the window's screen
+        // coordinates (Window::size()), for a minimap or a split screen. Empty
+        // (the default) is the whole window.
+        //
+        //     tgx::Canvas minimap = app->canvas();
+        //     minimap.set_viewport({16, 16, 200, 150});   // its coordinates span 200x150
+        auto set_viewport(Rect rect) noexcept -> void;
+
+        [[nodiscard]] auto viewport() const noexcept -> Rect { return m_viewport; }
 
         // For what comes after; the default shows the world as it is.
         auto set_camera(const Camera2D &camera) noexcept -> void;
@@ -116,7 +128,7 @@ namespace tgx {
         [[nodiscard]] auto shader() const noexcept -> gl::Shader * { return m_shader; }
 
         // Fills the whole framebuffer with the color, as the first thing of a
-        // frame usually.
+        // frame usually; the whole of it even for a canvas with a viewport.
         auto clear(Color color) noexcept -> void;
 
         auto rect(Rect rect, Color color) noexcept -> void;
@@ -152,7 +164,11 @@ namespace tgx {
 
         auto quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void;
 
+        // Remakes the transform for the size the canvas has now.
+        auto refit() noexcept -> void;
+
         Size m_size{};
+        Rect m_viewport{};
         Camera2D m_camera{};
         Blend m_blend{Blend::alpha};
         // nullptr for the built-in one.

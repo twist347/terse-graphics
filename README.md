@@ -102,6 +102,12 @@ size of its own, a fixed logical resolution stretched over the window:
 
     pixels.set_size({320, 180});   // set_size({}) follows the window again
 
+A canvas can also cover only a part of the window, for a minimap or a split
+screen; its coordinates then span that part:
+
+    tgx::Canvas minimap = app->canvas();
+    minimap.set_viewport({16, 16, 200, 150});   // screen coordinates of the window
+
     auto &canvas = app->canvas();
     while (!app->should_close()) {
         app->poll_events();
@@ -217,7 +223,7 @@ includes the viewport: the whole framebuffer unless a draw says otherwise.
     device.draw(*shader, vao, {.count = 6, .first = 12});
     device.draw(*shader, sprites, {.state = {.blend = tgx::Blend::alpha}});
     device.draw(*shader, cube, {.state = {.depth = tgx::gl::Depth::less, .cull = tgx::gl::Cull::back}});
-    device.draw(*shader, minimap, {.viewport = tgx::gl::Viewport{0, 0, 256, 256}});   // pixels, GL's bottom-left
+    device.draw(*shader, minimap, {.viewport = tgx::gl::Viewport{0, 0, 256, 256}});   // pixels, from the top-left
 
 Textures are the same `tgx::Texture` the `Canvas` takes; texture coordinates
 (0, 0) are the image's top-left pixel. A `sampler2D` uniform is set once to a
@@ -245,6 +251,9 @@ has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
   bound; it only skips what it set itself and knows to be current (the program,
   the textures in their slots, the render state).
 - **A resource is an object; `Device` is how and with what we draw right now.**
+- **Everything counts from the top-left, y down**: image rows, texture
+  coordinates, the `Canvas`, `gl::Viewport`. Where GL counts from the
+  bottom-left (the viewport), tgx turns it around inside.
 - **`tgx` needs no `gl` for normal use.** GL types, enums and concepts live in
   `tgx::gl`. The few ways out to GL from `tgx` (`Texture::id()`,
   `Canvas::set_shader`) are marked as such.

@@ -402,9 +402,17 @@ namespace tgx {
             return;
         }
 
-        if (call.viewport != viewport) {
-            glViewport(call.viewport.x, call.viewport.y, call.viewport.width, call.viewport.height);
-            viewport = call.viewport;
+        // GL counts from the bottom-left, so the same rectangle moves with the
+        // framebuffer's height.
+        const gl::Viewport flipped{
+            call.viewport.x,
+            framebuffer_size().height - call.viewport.y - call.viewport.height,
+            call.viewport.width,
+            call.viewport.height,
+        };
+        if (flipped != viewport) {
+            glViewport(flipped.x, flipped.y, flipped.width, flipped.height);
+            viewport = flipped;
         }
         apply_state(state, call.state);
         use_program(call.program);
@@ -480,7 +488,8 @@ namespace tgx {
         s_context = {};
         reset_state(s_context);
         // Set rather than assumed, like the rest: draws only change the
-        // viewport when theirs differs from this.
+        // viewport when theirs differs from this. The whole framebuffer is the
+        // same from either corner.
         s_context.viewport = detail::full_viewport();
         glViewport(0, 0, s_context.viewport.width, s_context.viewport.height);
 

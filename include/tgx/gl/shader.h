@@ -140,7 +140,7 @@ namespace tgx::gl {
         friend auto detail::samplers(const Shader &shader) noexcept -> std::span<const detail::ShaderSampler>;
 
         Shader(
-            Handle<detail::delete_program> handle,
+            tgx::detail::Handle<detail::delete_program> handle,
             std::vector<detail::ShaderUniform> uniforms,
             std::vector<detail::VertexInput> inputs,
             std::vector<detail::ShaderSampler> samplers
@@ -151,7 +151,7 @@ namespace tgx::gl {
               m_samplers{std::move(samplers)} {
         }
 
-        Handle<detail::delete_program> m_handle;
+        tgx::detail::Handle<detail::delete_program> m_handle;
         std::vector<detail::ShaderUniform> m_uniforms;
         std::vector<detail::VertexInput> m_inputs;
         std::vector<detail::ShaderSampler> m_samplers;

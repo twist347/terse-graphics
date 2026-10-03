@@ -146,7 +146,7 @@ namespace tgx::gl {
     private:
         VertexArray(GlId id, std::size_t stride, std::span<const VertexAttribute> attributes) noexcept;
 
-        Handle<detail::delete_vertex_array> m_handle;
+        tgx::detail::Handle<detail::delete_vertex_array> m_handle;
         std::size_t m_stride{0};
         // GL 3.3 ties an attribute's format to the buffer it reads from, so the
         // layout is kept here and handed to GL again whenever the buffer changes.

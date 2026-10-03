@@ -4,8 +4,14 @@
 #include <utility>
 
 namespace tgx {
+    // The name GL gives an object: what Texture::id() and the gl:: resources
+    // hand out, the way out to raw GL. 0 is no object.
     using GlId = std::uint32_t;
+}
 
+namespace tgx::detail {
+    // Owns one GL object: deletes it on destruction, moves, never copies. What
+    // the resources are made of, not part of the API.
     template<void (*Delete)(GlId) noexcept>
     class Handle {
     public:

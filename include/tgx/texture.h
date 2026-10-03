@@ -87,7 +87,7 @@ namespace tgx {
             : m_handle{id}, m_size{size}, m_params{params} {
         }
 
-        Handle<detail::delete_texture> m_handle;
+        detail::Handle<detail::delete_texture> m_handle;
         Size m_size{};
         TextureParams m_params{};
     };

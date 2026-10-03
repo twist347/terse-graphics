@@ -13,7 +13,6 @@
 #include "tgx/color.h"
 #include "tgx/device.h"
 #include "tgx/error.h"
-#include "tgx/handle.h"
 #include "tgx/image.h"
 #include "tgx/log.h"
 #include "tgx/math.h"
