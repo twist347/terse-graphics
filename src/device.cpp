@@ -520,6 +520,10 @@ namespace tgx {
         tgx::detail::swap_buffers(m_window);
     }
 
+    auto gl::Device::set_vsync(bool enabled) noexcept -> void {
+        tgx::detail::set_vsync(enabled);
+    }
+
     auto gl::Device::clear(const ClearParams &params) noexcept -> void {
         flush();
 

@@ -13,6 +13,8 @@ namespace tgx {
         int width{1280};
         int height{720};
         const char *title{"tgx"};
+        // Whether presenting a frame waits for the display; device().set_vsync()
+        // changes it later.
         bool vsync{true};
         // Debug contexts report driver messages but slow the driver down, so by
         // default only builds with asserts get one. TGX_ENABLE_ASSERTS rather
@@ -41,7 +43,6 @@ namespace tgx {
         // Must be nul-terminated UTF-8, as the windowing backend requires.
         auto set_title(const char *title) noexcept -> void;
 
-        auto set_vsync(bool enabled) noexcept -> void;
 
         // In screen coordinates, the units the OS lays windows out in and the
         // Canvas draws in. The same as framebuffer_size() unless the display

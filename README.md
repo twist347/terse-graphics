@@ -51,10 +51,10 @@ Not yet: input, text, render targets.
 |---------------|----------------------------------------------------------------------------------------|
 | `App`         | The simple way in: one `Platform`, `Window`, `gl::Device` and `Canvas` plus a frame `Clock`, created together and torn down in the right order. |
 | `Platform`    | `glfwInit`/`glfwTerminate` and event polling. Knows nothing about GL.                  |
-| `Window`      | The OS window and its GL context: version hints, making it current, vsync, size, title, closing. |
+| `Window`      | The OS window and its GL context: version hints, making it current, size, title, closing. |
 | `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `gl::Device` to draw in as few draws as it can. Holds no GPU resources, only how to draw (size, camera, blend, shader). |
 | `Texture`     | An image on the GPU, for the `Canvas` and `gl::Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
-| `gl::Device`  | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, viewport, render state, draw calls, presenting frames, and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
+| `gl::Device`  | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, viewport, render state, draw calls, presenting frames (and vsync), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
 | `gl::*`       | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA), but never where a draw would read it. |
 
 GPU resources (`Texture`, `gl::*`) are created without naming the `Device`, but

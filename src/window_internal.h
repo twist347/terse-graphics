@@ -18,4 +18,7 @@ namespace tgx::detail {
     // Shows what was drawn into the window's context: the Device presents,
     // the window only lends it the surface.
     auto swap_buffers(GLFWwindow *window) noexcept -> void;
+
+    // Whether swap_buffers() waits for the display, for the current context.
+    auto set_vsync(bool enabled) noexcept -> void;
 }

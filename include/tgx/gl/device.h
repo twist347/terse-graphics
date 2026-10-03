@@ -142,6 +142,10 @@ namespace tgx::gl {
         // does this.
         auto present() noexcept -> void;
 
+        // Whether present() waits for the display: no tearing, and frames
+        // paced by it. Starts as WindowParams::vsync.
+        auto set_vsync(bool enabled) noexcept -> void;
+
         auto set_viewport(int x, int y, int width, int height) noexcept -> void;
         // The whole of a framebuffer of this size, usually framebuffer_size().
         auto set_viewport(Size size) noexcept -> void { set_viewport(0, 0, size.width, size.height); }

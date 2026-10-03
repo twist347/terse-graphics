@@ -45,7 +45,7 @@ namespace tgx {
         glfwMakeContextCurrent(handle);
 
         Window window{handle};
-        window.set_vsync(params.vsync);
+        detail::set_vsync(params.vsync);
         return window;
     }
 
@@ -100,9 +100,7 @@ namespace tgx {
         glfwSetWindowTitle(m_handle, title);
     }
 
-    auto Window::set_vsync(bool enabled) noexcept -> void {
-        TGX_ASSERT(m_handle);
-
+    auto detail::set_vsync(bool enabled) noexcept -> void {
         glfwSwapInterval(enabled ? 1 : 0);
     }
 

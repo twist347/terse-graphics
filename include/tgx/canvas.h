@@ -50,8 +50,8 @@ namespace tgx {
     // size. A camera (set_camera) moves, turns and zooms the world under them.
     //
     // Shapes are collected by the Device, which draws them before anything
-    // else of its own (a draw, a clear, a viewport change) and on swap, so the
-    // picture follows the order of the calls. Shapes in a row with the same
+    // else of its own (a draw, a clear, a viewport change) and when the frame
+    // is presented, so the picture follows the order of the calls. Shapes in a row with the same
     // texture, camera, blend and shader go out as one draw; a change of any of
     // them starts another.
     //
@@ -80,8 +80,10 @@ namespace tgx {
 
         // The way out to custom GL: draws what comes after with this shader
         // instead of the built-in one; nullptr goes back to it. The shader is
-        // borrowed, so it must outlive its use, and is changed: u_texture is
-        // set to slot 0.
+        // borrowed: it must outlive being set here, not only the shapes drawn
+        // with it. While set, its u_projection and u_texture are the canvas's
+        // (it writes them on every draw), so do not share it with draws of
+        // your own.
         //
         // It takes what the built-in one does:
         //
