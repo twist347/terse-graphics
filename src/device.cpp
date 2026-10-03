@@ -392,7 +392,17 @@ namespace tgx {
             return;
         }
         gl::detail::Batch *const batch = gl::detail::DeviceAccess::batch_if_any(*s_device);
-        if (batch != nullptr && batch->uses(texture)) {
+        if (batch != nullptr && batch->uses_texture(texture)) {
+            batch->flush(*s_device);
+        }
+    }
+
+    auto detail::flush_shader_use(gl::GlId program) noexcept -> void {
+        if (s_device == nullptr) {
+            return;
+        }
+        gl::detail::Batch *const batch = gl::detail::DeviceAccess::batch_if_any(*s_device);
+        if (batch != nullptr && batch->uses_shader(program)) {
             batch->flush(*s_device);
         }
     }
@@ -426,6 +436,7 @@ namespace tgx {
         install_debug_callback();
 
         Device device;
+        device.m_window = window.native_handle();
         reset_state();
         device.set_viewport(window.framebuffer_size());
         // Set rather than assumed: a context can outlive a Device and keep
@@ -455,6 +466,7 @@ namespace tgx {
           m_clear_stencil{other.m_clear_stencil},
           m_viewport{other.m_viewport},
           m_state{other.m_state},
+          m_window{other.m_window},
           m_batch{std::move(other.m_batch)},
           m_owned{std::exchange(other.m_owned, false)} {
         if (m_owned) {
@@ -472,6 +484,7 @@ namespace tgx {
         m_clear_stencil = other.m_clear_stencil;
         m_viewport = other.m_viewport;
         m_state = other.m_state;
+        m_window = other.m_window;
         m_batch = std::move(other.m_batch);
         m_owned = std::exchange(other.m_owned, false);
         if (m_owned) {
@@ -500,6 +513,11 @@ namespace tgx {
         if (m_batch != nullptr) {
             m_batch->flush(*this);
         }
+    }
+
+    auto gl::Device::present() noexcept -> void {
+        flush();
+        tgx::detail::swap_buffers(m_window);
     }
 
     auto gl::Device::clear(const ClearParams &params) noexcept -> void {

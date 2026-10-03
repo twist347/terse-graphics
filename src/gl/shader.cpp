@@ -435,6 +435,9 @@ namespace tgx::gl {
         if (uniform.m_location < 0) {
             return;
         }
+
+        // Shapes added before keep the values they were added with.
+        tgx::detail::flush_shader_use(id());
         if constexpr (std::same_as<T, TextureSlot>) {
             TGX_ASSERT_MSG(
                 value.index < max_texture_slots,
@@ -472,6 +475,42 @@ namespace tgx::gl {
     template auto Shader::set<Mat4>(Uniform<Mat4>, const Mat4 &) noexcept -> void;
     template auto Shader::set<Color>(Uniform<Color>, const Color &) noexcept -> void;
     template auto Shader::set<TextureSlot>(Uniform<TextureSlot>, const TextureSlot &) noexcept -> void;
+
+    Shader::Shader(Shader &&other) noexcept {
+        if (other.m_handle) {
+            tgx::detail::flush_shader_use(other.m_handle.get());
+        }
+        m_handle = std::move(other.m_handle);
+        m_uniforms = std::move(other.m_uniforms);
+        m_inputs = std::move(other.m_inputs);
+        m_samplers = std::move(other.m_samplers);
+    }
+
+    auto Shader::operator=(Shader &&other) noexcept -> Shader & {
+        if (this == &other) {
+            return *this;
+        }
+
+        // Both change: this one's program goes, the other's moves away.
+        if (m_handle) {
+            tgx::detail::flush_shader_use(m_handle.get());
+        }
+        if (other.m_handle) {
+            tgx::detail::flush_shader_use(other.m_handle.get());
+        }
+        m_handle = std::move(other.m_handle);
+        m_uniforms = std::move(other.m_uniforms);
+        m_inputs = std::move(other.m_inputs);
+        m_samplers = std::move(other.m_samplers);
+        return *this;
+    }
+
+    Shader::~Shader() {
+        // While this object is still whole: the draw reads it.
+        if (m_handle) {
+            tgx::detail::flush_shader_use(m_handle.get());
+        }
+    }
 
     auto Shader::id() const noexcept -> GlId {
         TGX_ASSERT(m_handle);

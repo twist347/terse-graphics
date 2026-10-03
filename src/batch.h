@@ -67,8 +67,10 @@ namespace tgx::gl::detail {
         // Draws what is collected, if anything.
         auto flush(Device &device) noexcept -> void;
 
-        // Whether what is collected is drawn with the texture.
-        [[nodiscard]] auto uses(GlId texture) const noexcept -> bool;
+        // Whether what is collected is drawn with the texture, or the program
+        // of a custom shader.
+        [[nodiscard]] auto uses_texture(GlId texture) const noexcept -> bool;
+        [[nodiscard]] auto uses_shader(GlId program) const noexcept -> bool;
 
     private:
         Batch(
@@ -92,8 +94,10 @@ namespace tgx::gl::detail {
         std::vector<BatchVertex> m_vertices;
         std::vector<std::uint16_t> m_indices;
         BatchState m_state{};
-        // Of m_state.texture when the state was taken, for uses().
+        // Of m_state.texture and m_state.shader when the state was taken, for
+        // uses_texture() and uses_shader(); 0 for the built-in ones.
         GlId m_texture_id{0};
+        GlId m_shader_id{0};
     };
 
     // Per draw. Indices are 16-bit, so vertices stay below 65536. A circle

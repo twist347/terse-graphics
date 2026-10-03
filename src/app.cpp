@@ -59,8 +59,7 @@ namespace tgx {
     }
 
     auto App::swap_buffers() noexcept -> void {
-        m_device.flush();
-        m_window.swap_buffers();
+        m_device.present();
         m_clock.tick();
     }
 }

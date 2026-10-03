@@ -119,8 +119,13 @@ namespace tgx::gl {
         Shader(const Shader &) = delete;
         auto operator=(const Shader &) -> Shader & = delete;
 
-        Shader(Shader &&) noexcept = default;
-        auto operator=(Shader &&) noexcept -> Shader & = default;
+        // Shapes the Canvas drew with this shader and that still wait in the
+        // Device's batch are drawn first whenever it is moved or goes, or a
+        // uniform of it is set.
+        Shader(Shader &&other) noexcept;
+        auto operator=(Shader &&other) noexcept -> Shader &;
+
+        ~Shader();
 
         // Looks a uniform up by name, for setting it later without the name.
         // Asserts that it is active, of a GLSL type T fits and not an array

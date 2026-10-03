@@ -40,8 +40,8 @@ namespace tgx {
         //         app->swap_buffers();
         //     }
         //
-        // Unlike window().swap_buffers() and platform().poll_events(), these
-        // also do the per-frame bookkeeping noted on each.
+        // Unlike device().present() and platform().poll_events(), these also
+        // do the per-frame bookkeeping noted on each.
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
         // Polls events, then fits the viewport and the canvas to the window if
@@ -55,8 +55,8 @@ namespace tgx {
         // window().framebuffer_size().
         [[nodiscard]] auto resized() const noexcept -> bool { return m_resized; }
 
-        // Draws what the canvas still holds, presents the frame, then ticks the
-        // clock: delta() is the time from one present to the next.
+        // Presents the frame (device().present()), then ticks the clock:
+        // delta() is the time from one present to the next.
         auto swap_buffers() noexcept -> void;
 
         [[nodiscard]] auto platform() noexcept -> Platform & { return m_platform; }

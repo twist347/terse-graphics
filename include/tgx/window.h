@@ -38,8 +38,6 @@ namespace tgx {
 
         auto request_close() noexcept -> void;
 
-        auto swap_buffers() noexcept -> void;
-
         // Must be nul-terminated UTF-8, as the windowing backend requires.
         auto set_title(const char *title) noexcept -> void;
 

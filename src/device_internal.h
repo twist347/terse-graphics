@@ -42,7 +42,10 @@ namespace tgx::detail {
     // leave the Canvas pointing at the old place.
     [[nodiscard]] auto device() noexcept -> gl::Device &;
 
-    // For a texture about to move or go: if the batch is to be drawn with it,
-    // that happens now, while the Texture is still there to draw from.
+    // For a texture or a shader about to change, move or go: if the batch is
+    // to be drawn with it, that happens now, while it is still as it was when
+    // the shapes were added. So the batch never reads anything later than the
+    // calls that filled it.
     auto flush_texture_use(gl::GlId texture) noexcept -> void;
+    auto flush_shader_use(gl::GlId program) noexcept -> void;
 }

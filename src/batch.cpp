@@ -130,6 +130,7 @@ namespace tgx::gl::detail {
             flush(device);
             m_state = state;
             m_texture_id = state.texture != nullptr ? state.texture->id() : 0;
+            m_shader_id = state.shader != nullptr ? state.shader->id() : 0;
         }
         return static_cast<std::uint16_t>(m_vertices.size());
     }
@@ -164,7 +165,11 @@ namespace tgx::gl::detail {
         });
     }
 
-    auto Batch::uses(GlId texture) const noexcept -> bool {
+    auto Batch::uses_texture(GlId texture) const noexcept -> bool {
         return !m_indices.empty() && m_texture_id == texture;
+    }
+
+    auto Batch::uses_shader(GlId program) const noexcept -> bool {
+        return !m_indices.empty() && m_shader_id == program;
     }
 }

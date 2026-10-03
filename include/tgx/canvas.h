@@ -91,9 +91,9 @@ namespace tgx {
         //     uniform mat4 u_projection;                  // canvas coordinates to clip space
         //     uniform sampler2D u_texture;                // optional; white for shapes
         //
-        // Its other uniforms are the caller's to set. They are read when the
-        // collected shapes are drawn, not when they are added: set them before
-        // the shapes they are for, and flush() before changing them for the next.
+        // Its other uniforms are the caller's to set. Shapes keep the values
+        // set when they were added: setting a uniform later, or moving or
+        // destroying the shader, draws them first.
         auto set_shader(gl::Shader *shader) noexcept -> void;
 
         [[nodiscard]] auto shader() const noexcept -> gl::Shader * { return m_shader; }

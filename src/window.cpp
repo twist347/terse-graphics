@@ -87,10 +87,10 @@ namespace tgx {
         glfwSetWindowShouldClose(m_handle, GLFW_TRUE);
     }
 
-    auto Window::swap_buffers() noexcept -> void {
-        TGX_ASSERT(m_handle);
+    auto detail::swap_buffers(GLFWwindow *window) noexcept -> void {
+        TGX_ASSERT(window != nullptr);
 
-        glfwSwapBuffers(m_handle);
+        glfwSwapBuffers(window);
     }
 
     auto Window::set_title(const char *title) noexcept -> void {

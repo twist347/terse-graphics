@@ -165,6 +165,8 @@ namespace tgx {
             return;
         }
 
+        // Sprites added before keep the pixels they were added with.
+        detail::flush_texture_use(m_handle.get());
         detail::bind_texture(edit_slot, m_handle.get());
         glTexSubImage2D(
             GL_TEXTURE_2D, 0,

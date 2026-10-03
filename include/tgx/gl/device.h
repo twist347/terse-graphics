@@ -14,6 +14,8 @@
 #include <memory>
 #include <optional>
 
+struct GLFWwindow;
+
 namespace tgx {
     class Texture;
     class Window;
@@ -111,13 +113,15 @@ namespace tgx::gl {
     //
     // It also holds what the Canvas has collected and not drawn yet, and draws
     // that before anything else of its own: a draw, a clear, a viewport
-    // change. So the picture follows the order of the calls. flush() draws it
-    // on demand: before swapping buffers (App::swap_buffers does it) and before
-    // raw GL calls.
+    // change, presenting the frame. So the picture follows the order of the
+    // calls. flush() draws it on demand, before raw GL calls.
+    //
+    // It presents the frames of the window it was created for; the window
+    // must outlive it (asserted).
     class Device {
     public:
         // Loads GL functions for the window's context and, on a debug context,
-        // routes driver messages to the log.
+        // routes driver messages to the log. Frames go to this window.
         [[nodiscard]] static auto create(Window &window) noexcept -> Result<Device>;
 
         Device(const Device &) = delete;
@@ -132,6 +136,11 @@ namespace tgx::gl {
 
         // Draws what the Canvas has collected.
         auto flush() noexcept -> void;
+
+        // Draws what the Canvas has collected and shows the frame in the
+        // window, waiting for the display with vsync on. App::swap_buffers
+        // does this.
+        auto present() noexcept -> void;
 
         auto set_viewport(int x, int y, int width, int height) noexcept -> void;
         // The whole of a framebuffer of this size, usually framebuffer_size().
@@ -160,6 +169,9 @@ namespace tgx::gl {
         std::array<int, 4> m_viewport{};
         // What GL is set to now; a fresh context starts at the defaults.
         RenderState m_state{};
+        // The window frames go to. Its handle stays put when the Window object
+        // moves.
+        GLFWwindow *m_window{nullptr};
         // Created with the Device; behind a pointer to keep its internals out
         // of this header.
         std::unique_ptr<detail::Batch> m_batch;
