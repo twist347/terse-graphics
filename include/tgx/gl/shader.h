@@ -5,7 +5,7 @@
 #include "tgx/math.h"
 
 #include "tgx/gl/handle.h"
-#include "tgx/gl/texture.h"
+#include "tgx/gl/texture_slot.h"
 #include "tgx/gl/version.h"
 
 #include <concepts>
@@ -16,10 +16,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-namespace tgx {
-    class Device;
-}
 
 namespace tgx::gl {
     class Shader;
@@ -109,14 +105,12 @@ namespace tgx::gl {
     // own #version line; TGX_GLSL_VERSION (tgx/gl/version.h) is the one that
     // matches the context.
     //
-    // The Device in from_source() is proof that GL functions are loaded; it is
-    // not stored.
+    // Created only while the Device exists (asserted).
     class Shader {
     public:
         // Fails with Error::compile or Error::link. The driver's log is written to
         // out_log either way: on success it may still hold warnings.
         [[nodiscard]] static auto from_source(
-            Device &device,
             std::string_view vertex,
             std::string_view fragment,
             std::string *out_log = nullptr

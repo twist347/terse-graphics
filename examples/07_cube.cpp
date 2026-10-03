@@ -1,4 +1,4 @@
-#include "tgx/tgx.h"
+#include "tgx/gl.h"
 
 #include <array>
 #include <cstddef>
@@ -99,9 +99,9 @@ namespace {
 
     // Opaque and closed: the nearest face wins, and the faces turned away are
     // never seen, so they are not drawn at all.
-    constexpr tgx::RenderState solid{
-        .depth = tgx::Depth::less,
-        .cull = tgx::Cull::back,
+    constexpr tgx::gl::RenderState solid{
+        .depth = tgx::gl::Depth::less,
+        .cull = tgx::gl::Cull::back,
     };
 
     [[nodiscard]] auto projection_for(tgx::Size size) noexcept -> tgx::Mat4 {
@@ -121,7 +121,7 @@ int main() {
     }
 
     std::string log;
-    auto shader = tgx::gl::Shader::from_source(app->device(), vertex_source, fragment_source, &log);
+    auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
     if (!shader) {
         std::print(stderr, "shader: {}\n{}", shader.error(), log);
         return 1;
@@ -129,18 +129,16 @@ int main() {
 
     const auto u_mvp = shader->uniform<tgx::Mat4>("u_mvp");
 
-    auto vbo = tgx::gl::Buffer::create(app->device(), vertices);
-    auto ibo = tgx::gl::Buffer::create(app->device(), indices);
+    auto vbo = tgx::gl::Buffer::create(vertices);
+    auto ibo = tgx::gl::Buffer::create(indices);
     if (!vbo || !ibo) {
         std::println(stderr, "buffer: {}", !vbo ? vbo.error() : ibo.error());
         return 1;
     }
 
-    auto vao = tgx::gl::VertexArray::create<Vertex>(app->device(), layout);
+    auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
     vao.set_index_buffer(*ibo, tgx::gl::IndexType::uint16);
-
-    app->device().set_clear_color(tgx::colors::dark_gray);
 
     const tgx::Mat4 view = tgx::look_at({0.f, 1.5f, 3.f}, {0.f, 0.f, 0.f}, {0.f, 1.f, 0.f});
     tgx::Mat4 projection = projection_for(app->window().framebuffer_size());
@@ -160,7 +158,7 @@ int main() {
         const tgx::Mat4 model = tgx::rotate(t, {0.f, 1.f, 0.f}) * tgx::rotate(t * 0.6f, {1.f, 0.f, 0.f});
         shader->set(u_mvp, projection * view * model);
 
-        app->device().clear(tgx::ClearMask::color | tgx::ClearMask::depth);
+        app->device().clear({.color = tgx::colors::dark_gray, .depth = 1.f});
         app->device().draw(*shader, vao, {.state = solid});
 
         app->swap_buffers();

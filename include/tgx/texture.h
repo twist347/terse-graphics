@@ -5,30 +5,12 @@
 
 #include "tgx/gl/handle.h"
 
-#include <cstddef>
-#include <cstdint>
-
 namespace tgx {
-    class Device;
     class Image;
-}
 
-namespace tgx::gl {
     namespace detail {
-        auto delete_texture(GlId id) noexcept -> void;
+        auto delete_texture(gl::GlId id) noexcept -> void;
     }
-
-    // Texture slots a draw can fill (DrawParams::textures). GL 3.3 guarantees
-    // 16 for the fragment stage; 2D drawing needs a few.
-    inline constexpr std::size_t max_texture_slots = 8;
-
-    // The value of a sampler2D uniform: which slot of the draw it reads. Set
-    // once after creating the shader; GL starts every sampler at slot 0.
-    //
-    //     shader.set(shader.uniform<gl::TextureSlot>("u_texture"), {0});
-    struct TextureSlot {
-        std::uint32_t index{0};
-    };
 
     enum class TextureAccess {
         // Contents are fixed at creation.
@@ -70,21 +52,21 @@ namespace tgx::gl {
     // coordinates (0, 0) are the top-left pixel of the image it was made from,
     // (1, 1) the bottom-right.
     //
-    // The Device in create() is proof that GL functions are loaded; it is not
-    // stored.
+    // Unlike the gl:: resources it has nothing GL-specific to configure, so it
+    // serves both the Canvas and gl::Device::draw; id() is the way out to raw GL.
+    //
+    // Created only while the Device exists (asserted).
     class Texture {
     public:
         // Filled from the image, which must not be empty. Fails with
         // Error::unsupported when a side exceeds what the driver allows.
         [[nodiscard]] static auto create(
-            Device &device,
             const Image &image,
             const TextureParams &params = {}
         ) noexcept -> Result<Texture>;
 
         // Uninitialised, to be filled with update(); only useful as dynamic.
         [[nodiscard]] static auto create(
-            Device &device,
             Size size,
             const TextureParams &params
         ) noexcept -> Result<Texture>;
@@ -92,25 +74,29 @@ namespace tgx::gl {
         Texture(const Texture &) = delete;
         auto operator=(const Texture &) -> Texture & = delete;
 
-        Texture(Texture &&) noexcept = default;
-        auto operator=(Texture &&) noexcept -> Texture & = default;
+        // Sprites of this Texture still waiting in the Device's batch are
+        // drawn first whenever it is moved or goes.
+        Texture(Texture &&other) noexcept;
+        auto operator=(Texture &&other) noexcept -> Texture &;
+
+        ~Texture();
 
         // Overwrites the pixels the image covers when its top-left pixel is put
         // at (x, y); only for dynamic textures, and the image must fit.
         auto update(int x, int y, const Image &image) noexcept -> void;
 
-        [[nodiscard]] auto id() const noexcept -> GlId;
+        [[nodiscard]] auto id() const noexcept -> gl::GlId;
 
         [[nodiscard]] auto size() const noexcept -> Size;
 
         [[nodiscard]] auto params() const noexcept -> const TextureParams &;
 
     private:
-        Texture(GlId id, Size size, const TextureParams &params) noexcept
+        Texture(gl::GlId id, Size size, const TextureParams &params) noexcept
             : m_handle{id}, m_size{size}, m_params{params} {
         }
 
-        Handle<detail::delete_texture> m_handle;
+        gl::Handle<detail::delete_texture> m_handle;
         Size m_size{};
         TextureParams m_params{};
     };

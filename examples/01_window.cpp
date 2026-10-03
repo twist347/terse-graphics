@@ -17,8 +17,6 @@ int main() {
         return 1;
     }
 
-    app->device().set_clear_color(tgx::colors::dark_gray);
-
     while (!app->should_close()) {
         app->poll_events();
 
@@ -26,7 +24,7 @@ int main() {
             app->window().set_title(std::format("{} - {:.0f} fps", title, app->clock().fps()).c_str());
         }
 
-        app->device().clear();
+        app->canvas().clear(tgx::colors::dark_gray);
 
         app->swap_buffers();
     }

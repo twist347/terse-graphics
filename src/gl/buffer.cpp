@@ -26,6 +26,7 @@ namespace {
         const void *data,
         tgx::gl::BufferAccess access
     ) noexcept -> tgx::Result<GLuint> {
+        TGX_ASSERT_MSG(tgx::gl::detail::context_alive(), "creating a Buffer before the Device");
         // GL rejects empty storage, and sizes travel as a signed GLsizeiptr.
         TGX_ASSERT(size > 0);
         TGX_ASSERT(std::in_range<GLsizeiptr>(size));
@@ -58,7 +59,6 @@ namespace tgx::gl {
     }
 
     auto Buffer::create(
-        Device &,
         std::size_t size,
         BufferAccess access
     ) noexcept -> Result<Buffer> {
@@ -70,7 +70,6 @@ namespace tgx::gl {
     }
 
     auto Buffer::create_bytes(
-        Device &,
         std::span<const std::byte> data,
         BufferAccess access
     ) noexcept -> Result<Buffer> {

@@ -9,10 +9,6 @@
 #include <span>
 #include <type_traits>
 
-namespace tgx {
-    class Device;
-}
-
 namespace tgx::gl {
     namespace detail {
         auto delete_buffer(GlId id) noexcept -> void;
@@ -36,13 +32,11 @@ namespace tgx::gl {
     // A GPU buffer whose size is fixed at creation and whose contents may
     // change only when created as dynamic.
     //
-    // The Device in create() is proof that GL functions are loaded; it is not
-    // stored.
+    // Created only while the Device exists (asserted).
     class Buffer {
     public:
         // Uninitialised storage of the given size; only useful as dynamic.
         [[nodiscard]] static auto create(
-            Device &device,
             std::size_t size,
             BufferAccess access
         ) noexcept -> Result<Buffer>;
@@ -51,11 +45,10 @@ namespace tgx::gl {
         // so a temporary is fine.
         template<BufferData R>
         [[nodiscard]] static auto create(
-            Device &device,
             R &&data,
             BufferAccess access = BufferAccess::immutable
         ) noexcept -> Result<Buffer> {
-            return create_bytes(device, std::as_bytes(std::span{data}), access);
+            return create_bytes(std::as_bytes(std::span{data}), access);
         }
 
         Buffer(const Buffer &) = delete;
@@ -78,7 +71,6 @@ namespace tgx::gl {
 
     private:
         [[nodiscard]] static auto create_bytes(
-            Device &device,
             std::span<const std::byte> data,
             BufferAccess access
         ) noexcept -> Result<Buffer>;

@@ -1,4 +1,4 @@
-#include "tgx/tgx.h"
+#include "tgx/gl.h"
 
 #include <algorithm>
 #include <array>
@@ -109,7 +109,7 @@ int main() {
     }
 
     std::string log;
-    auto shader = tgx::gl::Shader::from_source(app->device(), vertex_source, fragment_source, &log);
+    auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
     if (!shader) {
         std::print(stderr, "shader: {}\n{}", shader.error(), log);
         return 1;
@@ -118,18 +118,16 @@ int main() {
     const auto u_projection = shader->uniform<tgx::Mat4>("u_projection");
     shader->set(u_projection, projection_for(app->window().framebuffer_size()));
 
-    auto vbo = tgx::gl::Buffer::create(app->device(), make_vertices());
-    auto ibo = tgx::gl::Buffer::create(app->device(), indices);
+    auto vbo = tgx::gl::Buffer::create(make_vertices());
+    auto ibo = tgx::gl::Buffer::create(indices);
     if (!vbo || !ibo) {
         std::println(stderr, "buffer: {}", !vbo ? vbo.error() : ibo.error());
         return 1;
     }
 
-    auto vao = tgx::gl::VertexArray::create<Vertex>(app->device(), layout);
+    auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
     vao.set_index_buffer(*ibo, tgx::gl::IndexType::uint16);
-
-    app->device().set_clear_color(tgx::colors::dark_gray);
 
     while (!app->should_close()) {
         app->poll_events();
@@ -142,7 +140,7 @@ int main() {
             shader->set(u_projection, projection_for(app->window().framebuffer_size()));
         }
 
-        app->device().clear();
+        app->device().clear({.color = tgx::colors::dark_gray});
         app->device().draw(*shader, vao);
 
         app->swap_buffers();

@@ -45,6 +45,12 @@ namespace tgx {
 
         auto set_vsync(bool enabled) noexcept -> void;
 
+        // In screen coordinates, the units the OS lays windows out in and the
+        // Canvas draws in. The same as framebuffer_size() unless the display
+        // scales, e.g. half of it on a Retina screen.
+        [[nodiscard]] auto size() const noexcept -> Size;
+
+        // In pixels: what the viewport covers.
         [[nodiscard]] auto framebuffer_size() const noexcept -> Size;
 
         [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow * { return m_handle; }

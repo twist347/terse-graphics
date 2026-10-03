@@ -1,4 +1,4 @@
-#include "tgx/tgx.h"
+#include "tgx/gl.h"
 
 #include <array>
 #include <cmath>
@@ -77,7 +77,7 @@ int main() {
     }
 
     std::string log;
-    auto shader = tgx::gl::Shader::from_source(app->device(), vertex_source, fragment_source, &log);
+    auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
     if (!shader) {
         std::print(stderr, "shader: {}\n{}", shader.error(), log);
         return 1;
@@ -88,16 +88,14 @@ int main() {
     const auto u_scale = shader->uniform<float>("u_scale");
     const auto u_tint = shader->uniform<tgx::Color>("u_tint");
 
-    auto vbo = tgx::gl::Buffer::create(app->device(), vertices);
+    auto vbo = tgx::gl::Buffer::create(vertices);
     if (!vbo) {
         std::println(stderr, "buffer: {}", vbo.error());
         return 1;
     }
 
-    auto vao = tgx::gl::VertexArray::create<Vertex>(app->device(), layout);
+    auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
-
-    app->device().set_clear_color(tgx::colors::dark_gray);
 
     while (!app->should_close()) {
         app->poll_events();
@@ -113,7 +111,7 @@ int main() {
         shader->set(u_scale, 1.f + 0.3f * std::sin(t * 3.f));
         shader->set(u_tint, tints[second % tints.size()]);
 
-        app->device().clear();
+        app->device().clear({.color = tgx::colors::dark_gray});
         app->device().draw(*shader, vao);
 
         app->swap_buffers();

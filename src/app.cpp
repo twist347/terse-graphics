@@ -14,20 +14,24 @@ namespace tgx {
             return std::unexpected{window.error()};
         }
 
-        auto device = Device::create(*window);
+        auto device = gl::Device::create(*window);
         if (!device) {
             return std::unexpected{device.error()};
         }
 
-        return App{std::move(*platform), std::move(*window), std::move(*device)};
+        auto canvas = Canvas::create(window->size());
+
+        return App{std::move(*platform), std::move(*window), std::move(*device), canvas};
     }
 
-    App::App(Platform platform, Window window, Device device) noexcept
+    App::App(Platform platform, Window window, gl::Device device, Canvas canvas) noexcept
         : m_platform{std::move(platform)},
           m_window{std::move(window)},
           m_device{std::move(device)},
-          m_framebuffer_size{m_window.framebuffer_size()} {
-        // Device::create has already fitted the viewport to this size.
+          m_canvas{std::move(canvas)},
+          m_framebuffer_size{m_window.framebuffer_size()},
+          m_window_size{m_window.size()} {
+        // Device::create and Canvas::create have already been fitted to these.
     }
 
     auto App::should_close() const noexcept -> bool {
@@ -43,15 +47,19 @@ namespace tgx {
 
         m_platform.poll_events();
 
-        const auto size = m_window.framebuffer_size();
-        m_resized = size != m_framebuffer_size;
+        const Size framebuffer_size = m_window.framebuffer_size();
+        const Size window_size = m_window.size();
+        m_resized = framebuffer_size != m_framebuffer_size || window_size != m_window_size;
         if (m_resized) {
-            m_framebuffer_size = size;
-            m_device.set_viewport(size);
+            m_framebuffer_size = framebuffer_size;
+            m_window_size = window_size;
+            m_device.set_viewport(framebuffer_size);
+            m_canvas.set_size(window_size);
         }
     }
 
     auto App::swap_buffers() noexcept -> void {
+        m_device.flush();
         m_window.swap_buffers();
         m_clock.tick();
     }

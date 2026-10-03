@@ -1,4 +1,4 @@
-#include "tgx/tgx.h"
+#include "tgx/gl.h"
 
 #include <array>
 #include <cstdio>
@@ -88,7 +88,7 @@ int main() {
     }
 
     std::string log;
-    auto shader = tgx::gl::Shader::from_source(app->device(), vertex_source, fragment_source, &log);
+    auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
     if (!shader) {
         std::print(stderr, "shader: {}\n{}", shader.error(), log);
         return 1;
@@ -100,22 +100,20 @@ int main() {
     shader->set(shader->uniform<tgx::gl::TextureSlot>("u_texture"), {0});
 
     // Nearest keeps the 8 pixels as sharp squares; linear would blur them.
-    auto texture = tgx::gl::Texture::create(app->device(), make_image(), {.filter = tgx::gl::TextureFilter::nearest});
+    auto texture = tgx::Texture::create(make_image(), {.filter = tgx::TextureFilter::nearest});
     if (!texture) {
         std::println(stderr, "texture: {}", texture.error());
         return 1;
     }
 
-    auto vbo = tgx::gl::Buffer::create(app->device(), vertices);
+    auto vbo = tgx::gl::Buffer::create(vertices);
     if (!vbo) {
         std::println(stderr, "buffer: {}", vbo.error());
         return 1;
     }
 
-    auto vao = tgx::gl::VertexArray::create<Vertex>(app->device(), layout);
+    auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
-
-    app->device().set_clear_color(tgx::colors::black);
 
     while (!app->should_close()) {
         app->poll_events();
@@ -128,7 +126,7 @@ int main() {
             shader->set(u_projection, projection_for(app->window().framebuffer_size()));
         }
 
-        app->device().clear();
+        app->device().clear({.color = tgx::colors::black});
         app->device().draw(*shader, vao, {.textures = {&*texture}});
 
         app->swap_buffers();

@@ -1,4 +1,4 @@
-#include "tgx/gl/texture.h"
+#include "tgx/texture.h"
 
 #include "tgx/assert.h"
 #include "tgx/image.h"
@@ -15,8 +15,8 @@ namespace {
     // next draw that wants another texture in this slot rebinds it.
     constexpr std::uint32_t edit_slot = 0;
 
-    [[nodiscard]] constexpr auto to_gl(tgx::gl::TextureWrap wrap) noexcept -> GLint {
-        using enum tgx::gl::TextureWrap;
+    [[nodiscard]] constexpr auto to_gl(tgx::TextureWrap wrap) noexcept -> GLint {
+        using enum tgx::TextureWrap;
         switch (wrap) {
             case clamp: return GL_CLAMP_TO_EDGE;
             case repeat: return GL_REPEAT;
@@ -27,23 +27,24 @@ namespace {
 
     // Both filters are always set: the default minification filter wants
     // mipmaps, and a texture without them would then read as black.
-    [[nodiscard]] constexpr auto min_filter(const tgx::gl::TextureParams &params) noexcept -> GLint {
-        const bool linear = params.filter == tgx::gl::TextureFilter::linear;
+    [[nodiscard]] constexpr auto min_filter(const tgx::TextureParams &params) noexcept -> GLint {
+        const bool linear = params.filter == tgx::TextureFilter::linear;
         if (!params.mipmaps) {
             return linear ? GL_LINEAR : GL_NEAREST;
         }
         return linear ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
     }
 
-    [[nodiscard]] constexpr auto mag_filter(const tgx::gl::TextureParams &params) noexcept -> GLint {
-        return params.filter == tgx::gl::TextureFilter::linear ? GL_LINEAR : GL_NEAREST;
+    [[nodiscard]] constexpr auto mag_filter(const tgx::TextureParams &params) noexcept -> GLint {
+        return params.filter == tgx::TextureFilter::linear ? GL_LINEAR : GL_NEAREST;
     }
 
     [[nodiscard]] auto make(
         tgx::Size size,
         const void *pixels,
-        const tgx::gl::TextureParams &params
+        const tgx::TextureParams &params
     ) noexcept -> tgx::Result<GLuint> {
+        TGX_ASSERT_MSG(tgx::gl::detail::context_alive(), "creating a Texture before the Device");
         TGX_ASSERT_MSG(!size.empty(), "texture of size {}x{}", size.width, size.height);
 
         // Too large is up to the driver, not the caller: the limit differs from
@@ -71,7 +72,7 @@ namespace {
         );
 
         if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
-            tgx::gl::detail::delete_texture(id);
+            tgx::detail::delete_texture(id);
             return std::unexpected{err == GL_OUT_OF_MEMORY ? tgx::Error::out_of_mem : tgx::Error::platform};
         }
 
@@ -89,14 +90,47 @@ namespace {
     }
 }
 
-namespace tgx::gl {
-    auto detail::delete_texture(GlId id) noexcept -> void {
-        tgx::detail::forget_texture(id);
+namespace tgx {
+    auto detail::delete_texture(gl::GlId id) noexcept -> void {
+        detail::forget_texture(id);
         glDeleteTextures(1, &id);
     }
 
+    Texture::Texture(Texture &&other) noexcept {
+        if (other.m_handle) {
+            tgx::detail::flush_texture_use(other.m_handle.get());
+        }
+        m_handle = std::move(other.m_handle);
+        m_size = other.m_size;
+        m_params = other.m_params;
+    }
+
+    auto Texture::operator=(Texture &&other) noexcept -> Texture & {
+        if (this == &other) {
+            return *this;
+        }
+
+        // Both change: this one's texture goes, the other's moves away.
+        if (m_handle) {
+            tgx::detail::flush_texture_use(m_handle.get());
+        }
+        if (other.m_handle) {
+            tgx::detail::flush_texture_use(other.m_handle.get());
+        }
+        m_handle = std::move(other.m_handle);
+        m_size = other.m_size;
+        m_params = other.m_params;
+        return *this;
+    }
+
+    Texture::~Texture() {
+        // While this object is still whole: the draw reads it.
+        if (m_handle) {
+            tgx::detail::flush_texture_use(m_handle.get());
+        }
+    }
+
     auto Texture::create(
-        Device &,
         const Image &image,
         const TextureParams &params
     ) noexcept -> Result<Texture> {
@@ -106,7 +140,6 @@ namespace tgx::gl {
     }
 
     auto Texture::create(
-        Device &,
         Size size,
         const TextureParams &params
     ) noexcept -> Result<Texture> {
@@ -132,7 +165,7 @@ namespace tgx::gl {
             return;
         }
 
-        tgx::detail::bind_texture(edit_slot, m_handle.get());
+        detail::bind_texture(edit_slot, m_handle.get());
         glTexSubImage2D(
             GL_TEXTURE_2D, 0,
             x, y, size.width, size.height,
@@ -144,7 +177,7 @@ namespace tgx::gl {
         }
     }
 
-    auto Texture::id() const noexcept -> GlId {
+    auto Texture::id() const noexcept -> gl::GlId {
         TGX_ASSERT(m_handle);
 
         return m_handle.get();

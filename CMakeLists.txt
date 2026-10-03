@@ -15,18 +15,20 @@ add_subdirectory(thirdparty)
 set(TGX_SOURCES
         src/app.cpp
         src/assert.cpp
+        src/batch.cpp
+        src/canvas.cpp
         src/clock.cpp
         src/device.cpp
         src/image.cpp
         src/log.cpp
         src/platform.cpp
+        src/texture.cpp
         src/window.cpp
 )
 
 set(TGX_GL_SOURCES
         src/gl/buffer.cpp
         src/gl/shader.cpp
-        src/gl/texture.cpp
         src/gl/vertex_array.cpp
 )
 

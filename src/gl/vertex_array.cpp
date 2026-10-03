@@ -45,10 +45,10 @@ namespace tgx::gl {
     }
 
     auto VertexArray::create(
-        Device &,
         std::size_t stride,
         std::span<const VertexAttribute> attributes
     ) noexcept -> VertexArray {
+        TGX_ASSERT_MSG(detail::context_alive(), "creating a VertexArray before the Device");
         TGX_ASSERT(stride > 0 && stride <= max_stride);
         TGX_ASSERT(!attributes.empty() && attributes.size() <= VertexArray::max_attributes);
 

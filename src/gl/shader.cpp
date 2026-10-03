@@ -377,11 +377,12 @@ namespace tgx::gl {
     }
 
     auto Shader::from_source(
-        Device &,
         std::string_view vertex,
         std::string_view fragment,
         std::string *out_log
     ) -> Result<Shader> {
+        TGX_ASSERT_MSG(detail::context_alive(), "creating a Shader before the Device");
+
         if (out_log != nullptr) {
             out_log->clear();
         }

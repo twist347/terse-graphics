@@ -1,50 +1,44 @@
 #pragma once
 
+#include "tgx/blend.h"
 #include "tgx/color.h"
 #include "tgx/error.h"
 #include "tgx/size.h"
 
-#include "tgx/gl/texture.h"
+#include "tgx/gl/texture_slot.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
+#include <optional>
 
 namespace tgx {
+    class Texture;
     class Window;
+}
 
-    namespace gl {
-        class Shader;
-        class VertexArray;
+namespace tgx::gl {
+    class Shader;
+    class VertexArray;
+
+    namespace detail {
+        class Batch;
+        struct DeviceAccess;
     }
 
-    enum class ClearMask : std::uint32_t {
-        none = 0u,
-        color = 1u << 0u,
-        depth = 1u << 1u,
-        stencil = 1u << 2u,
+    // What a clear resets, and to what; what is left empty stays as it is.
+    // Like a draw, every clear states it all, so nothing carries over from
+    // one clear to the next.
+    //
+    //     device.clear({.color = colors::black, .depth = 1.f});
+    struct ClearParams {
+        std::optional<Color> color{};
+        // Usually 1, the far end of the depth range.
+        std::optional<float> depth{};
+        std::optional<std::int32_t> stencil{};
     };
-
-    [[nodiscard]] constexpr auto operator|(ClearMask lhs, ClearMask rhs) noexcept -> ClearMask {
-        return static_cast<ClearMask>(
-            static_cast<std::uint32_t>(lhs) | static_cast<std::uint32_t>(rhs)
-        );
-    }
-
-    [[nodiscard]] constexpr auto operator&(ClearMask lhs, ClearMask rhs) noexcept -> ClearMask {
-        return static_cast<ClearMask>(
-            static_cast<std::uint32_t>(lhs) & static_cast<std::uint32_t>(rhs)
-        );
-    }
-
-    constexpr auto operator|=(ClearMask &lhs, ClearMask rhs) noexcept -> ClearMask & {
-        return lhs = lhs | rhs;
-    }
-
-    [[nodiscard]] constexpr auto any_of(ClearMask mask, ClearMask bit) noexcept -> bool {
-        return (static_cast<std::uint32_t>(mask) & static_cast<std::uint32_t>(bit)) != 0u;
-    }
 
     // How consecutive vertices are assembled into primitives.
     enum class Primitive : std::int32_t {
@@ -53,24 +47,6 @@ namespace tgx {
         lines,
         line_strip,
         points
-    };
-
-    // How a draw's colors combine with what the framebuffer already holds.
-    // Colors are straight (not premultiplied) unless the mode says otherwise.
-    enum class Blend : std::int32_t {
-        // Overwrites; alpha has no effect.
-        none,
-        // src * a + dst * (1 - a): ordinary transparency.
-        alpha,
-        // src + dst * (1 - a), for colors already multiplied by their alpha.
-        premultiplied,
-        // src * a + dst: light adding up, as in glows and particles.
-        additive,
-        // src * dst, faded towards dst as alpha drops: darkening and tinting.
-        // Like premultiplied, it wants colors already multiplied by their alpha
-        // (Color::premultiplied()); a straight see-through color would come out
-        // lighter than dst. Opaque colors are the same either way.
-        multiply,
     };
 
     // Which fragments survive against the depth already stored.
@@ -126,11 +102,18 @@ namespace tgx {
         // slot a sampler reads must have one. Empty slots are left as they are.
         //
         //     device.draw(shader, quad, {.textures = {&texture}});
-        std::array<const gl::Texture *, gl::max_texture_slots> textures{};
+        std::array<const Texture *, max_texture_slots> textures{};
     };
 
-    // Owns nothing on the GPU, but marks the GL context as usable: every gl::
-    // resource must be destroyed before its Device. At most one may exist.
+    // Marks the GL context as usable: GPU resources (gl:: ones, Texture) may
+    // be created only while it exists and must be destroyed before it. At most
+    // one may exist.
+    //
+    // It also holds what the Canvas has collected and not drawn yet, and draws
+    // that before anything else of its own: a draw, a clear, a viewport
+    // change. So the picture follows the order of the calls. flush() draws it
+    // on demand: before swapping buffers (App::swap_buffers does it) and before
+    // raw GL calls.
     class Device {
     public:
         // Loads GL functions for the window's context and, on a debug context,
@@ -145,9 +128,10 @@ namespace tgx {
 
         ~Device();
 
-        auto set_clear_color(Color color) noexcept -> void;
+        auto clear(const ClearParams &params) noexcept -> void;
 
-        auto clear(ClearMask mask = ClearMask::color) noexcept -> void;
+        // Draws what the Canvas has collected.
+        auto flush() noexcept -> void;
 
         auto set_viewport(int x, int y, int width, int height) noexcept -> void;
         // The whole of a framebuffer of this size, usually framebuffer_size().
@@ -156,20 +140,29 @@ namespace tgx {
         // Draws with the index buffer when the vertex array has one, straight
         // from the vertices otherwise.
         auto draw(
-            const gl::Shader &shader,
-            const gl::VertexArray &vertices,
+            const Shader &shader,
+            const VertexArray &vertices,
             const DrawParams &params = {}
         ) noexcept -> void;
 
     private:
+        friend struct detail::DeviceAccess;
+
         Device() noexcept;
 
         auto release() noexcept -> void;
 
-        Color m_clear_color{};
+
+        // The values GL clears to now, so a clear only sets what changed.
+        Color m_clear_color{0, 0, 0, 0};
+        float m_clear_depth{1.f};
+        std::int32_t m_clear_stencil{0};
         std::array<int, 4> m_viewport{};
         // What GL is set to now; a fresh context starts at the defaults.
         RenderState m_state{};
+        // Created with the Device; behind a pointer to keep its internals out
+        // of this header.
+        std::unique_ptr<detail::Batch> m_batch;
         bool m_owned{false};
     };
 }

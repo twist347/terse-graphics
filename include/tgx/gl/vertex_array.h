@@ -12,7 +12,6 @@
 #include <type_traits>
 
 namespace tgx {
-    class Device;
 }
 
 namespace tgx::gl {
@@ -97,8 +96,7 @@ namespace tgx::gl {
     // them. The layout is set at creation; buffers can be swapped later.
     //
     // Buffers are borrowed, not owned: they must outlive every draw that uses
-    // this vertex array. The Device in create() is proof that GL functions are
-    // loaded; it is not stored.
+    // this vertex array. Created only while the Device exists (asserted).
     class VertexArray {
     public:
         // Attribute locations must be below this: the lower bound every GL 3.3
@@ -106,7 +104,6 @@ namespace tgx::gl {
         static constexpr std::uint32_t max_attributes = 16;
 
         [[nodiscard]] static auto create(
-            Device &device,
             std::size_t stride,
             std::span<const VertexAttribute> attributes
         ) noexcept -> VertexArray;
@@ -116,10 +113,9 @@ namespace tgx::gl {
         template<typename Vertex>
             requires std::is_standard_layout_v<Vertex> && std::is_trivially_copyable_v<Vertex>
         [[nodiscard]] static auto create(
-            Device &device,
             std::span<const VertexAttribute> attributes
         ) noexcept -> VertexArray {
-            return create(device, sizeof(Vertex), attributes);
+            return create(sizeof(Vertex), attributes);
         }
 
         VertexArray(const VertexArray &) = delete;

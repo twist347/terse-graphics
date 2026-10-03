@@ -35,6 +35,17 @@ namespace tgx {
         [[nodiscard]] constexpr auto operator==(const Vec4 &) const noexcept -> bool = default;
     };
 
+    // An axis-aligned rectangle: its top-left corner and size, in 2D drawing's
+    // y-down coordinates.
+    struct Rect {
+        float x{0.f};
+        float y{0.f};
+        float width{0.f};
+        float height{0.f};
+
+        [[nodiscard]] constexpr auto operator==(const Rect &) const noexcept -> bool = default;
+    };
+
     // Column-major, like GLSL's mat4: columns[c] is column c, so a translation
     // sits in columns[3]. Starts as the identity, so a matrix left unset draws
     // untransformed rather than collapsing everything to a point.
@@ -60,6 +71,7 @@ namespace tgx {
     static_assert(std::is_standard_layout_v<Vec3> && std::is_trivially_copyable_v<Vec3>);
     static_assert(std::is_standard_layout_v<Vec4> && std::is_trivially_copyable_v<Vec4>);
     static_assert(std::is_standard_layout_v<Mat4> && std::is_trivially_copyable_v<Mat4>);
+    static_assert(std::is_standard_layout_v<Rect> && std::is_trivially_copyable_v<Rect>);
 
     [[nodiscard]] constexpr auto radians(float degrees) noexcept -> float {
         return degrees * (std::numbers::pi_v<float> / 180.f);

@@ -1,4 +1,4 @@
-#include "tgx/tgx.h"
+#include "tgx/gl.h"
 
 #include <array>
 #include <cstddef>
@@ -81,7 +81,7 @@ int main() {
     }
 
     std::string log;
-    auto shader = tgx::gl::Shader::from_source(app->device(), vertex_source, fragment_source, &log);
+    auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
     if (!shader) {
         std::print(stderr, "shader: {}\n{}", shader.error(), log);
         return 1;
@@ -94,18 +94,16 @@ int main() {
 
     shader->set(u_projection, tgx::ortho(0.f, 16.f, 0.f, 9.f));
 
-    auto vbo = tgx::gl::Buffer::create(app->device(), vertices);
-    auto ibo = tgx::gl::Buffer::create(app->device(), indices);
+    auto vbo = tgx::gl::Buffer::create(vertices);
+    auto ibo = tgx::gl::Buffer::create(indices);
     if (!vbo || !ibo) {
         std::println(stderr, "buffer: {}", !vbo ? vbo.error() : ibo.error());
         return 1;
     }
 
-    auto vao = tgx::gl::VertexArray::create<Vertex>(app->device(), layout);
+    auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
     vao.set_index_buffer(*ibo, tgx::gl::IndexType::uint16);
-
-    app->device().set_clear_color(tgx::colors::dark_gray);
 
     const auto rect = [&](tgx::Vec2 offset, tgx::Vec2 size, tgx::Color color, tgx::Blend blend) {
         shader->set(u_offset, offset);
@@ -117,7 +115,7 @@ int main() {
     while (!app->should_close()) {
         app->poll_events();
 
-        app->device().clear();
+        app->device().clear({.color = tgx::colors::dark_gray});
 
         // A light band across the middle, so each mode shows both over the
         // dark background and over something bright.

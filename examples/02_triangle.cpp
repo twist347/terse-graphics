@@ -1,4 +1,4 @@
-#include "tgx/tgx.h"
+#include "tgx/gl.h"
 
 #include <array>
 #include <cstdio>
@@ -58,22 +58,20 @@ int main() {
     }
 
     std::string log;
-    auto shader = tgx::gl::Shader::from_source(app->device(), vertex_source, fragment_source, &log);
+    auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
     if (!shader) {
         std::print(stderr, "shader: {}\n{}", shader.error(), log);
         return 1;
     }
 
-    auto vbo = tgx::gl::Buffer::create(app->device(), vertices);
+    auto vbo = tgx::gl::Buffer::create(vertices);
     if (!vbo) {
         std::println(stderr, "buffer: {}", vbo.error());
         return 1;
     }
 
-    auto vao = tgx::gl::VertexArray::create<Vertex>(app->device(), layout);
+    auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
-
-    app->device().set_clear_color(tgx::colors::dark_gray);
 
     while (!app->should_close()) {
         app->poll_events();
@@ -82,7 +80,7 @@ int main() {
             app->window().set_title(std::format("{} - {:.0f} fps", title, app->clock().fps()).c_str());
         }
 
-        app->device().clear();
+        app->device().clear({.color = tgx::colors::dark_gray});
         app->device().draw(*shader, vao);
 
         app->swap_buffers();

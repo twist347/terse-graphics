@@ -106,6 +106,14 @@ namespace tgx {
         glfwSwapInterval(enabled ? 1 : 0);
     }
 
+    auto Window::size() const noexcept -> Size {
+        TGX_ASSERT(m_handle);
+
+        int width = 0, height = 0;
+        glfwGetWindowSize(m_handle, &width, &height);
+        return {width, height};
+    }
+
     auto Window::framebuffer_size() const noexcept -> Size {
         TGX_ASSERT(m_handle);
 

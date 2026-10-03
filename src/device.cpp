@@ -1,14 +1,16 @@
-#include "tgx/device.h"
+#include "tgx/gl/device.h"
 
 #include "tgx/assert.h"
+#include "tgx/texture.h"
 #include "tgx/window.h"
 
 #include "tgx/gl/handle.h"
 #include "tgx/gl/shader.h"
-#include "tgx/gl/texture.h"
+#include "tgx/gl/texture_slot.h"
 #include "tgx/gl/version.h"
 #include "tgx/gl/vertex_array.h"
 
+#include "batch.h"
 #include "device_internal.h"
 #include "log_internal.h"
 #include "window_internal.h"
@@ -18,6 +20,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -37,6 +40,9 @@ namespace {
     // Whether a Device exists, i.e. GL may be called. Main thread only, like
     // the rest of the Device.
     bool s_device_alive = false;
+
+    // Where that Device is now; follows it through moves.
+    tgx::gl::Device *s_device = nullptr;
 
     // The program glUseProgram last made current; 0 for none.
     GLuint s_current_program = 0;
@@ -58,8 +64,12 @@ namespace {
         glClearColor(unit.x, unit.y, unit.z, unit.w);
     }
 
-    [[nodiscard]] constexpr auto to_gl(tgx::Primitive primitive) noexcept -> GLenum {
-        using enum tgx::Primitive;
+    auto apply_clear_depth(float depth) noexcept -> void {
+        glClearDepth(static_cast<GLdouble>(depth));
+    }
+
+    [[nodiscard]] constexpr auto to_gl(tgx::gl::Primitive primitive) noexcept -> GLenum {
+        using enum tgx::gl::Primitive;
         switch (primitive) {
             case triangles: return GL_TRIANGLES;
             case triangle_strip: return GL_TRIANGLE_STRIP;
@@ -100,8 +110,8 @@ namespace {
         return {GL_ONE, GL_ZERO, GL_ONE, GL_ZERO};
     }
 
-    [[nodiscard]] constexpr auto to_gl(tgx::Depth depth) noexcept -> GLenum {
-        using enum tgx::Depth;
+    [[nodiscard]] constexpr auto to_gl(tgx::gl::Depth depth) noexcept -> GLenum {
+        using enum tgx::gl::Depth;
         switch (depth) {
             case none: return GL_ALWAYS;
             case less: return GL_LESS;
@@ -110,8 +120,8 @@ namespace {
         return GL_ALWAYS;
     }
 
-    [[nodiscard]] constexpr auto to_gl(tgx::Cull cull) noexcept -> GLenum {
-        using enum tgx::Cull;
+    [[nodiscard]] constexpr auto to_gl(tgx::gl::Cull cull) noexcept -> GLenum {
+        using enum tgx::gl::Cull;
         switch (cull) {
             // Never reaches GL: culling is switched off instead.
             case none:
@@ -121,8 +131,8 @@ namespace {
         return GL_BACK;
     }
 
-    [[nodiscard]] constexpr auto to_gl(tgx::Fill fill) noexcept -> GLenum {
-        using enum tgx::Fill;
+    [[nodiscard]] constexpr auto to_gl(tgx::gl::Fill fill) noexcept -> GLenum {
+        using enum tgx::gl::Fill;
         switch (fill) {
             case solid: return GL_FILL;
             case wireframe: return GL_LINE;
@@ -151,7 +161,7 @@ namespace {
 
     // Brings GL from the state current describes to next, touching only what
     // differs.
-    auto apply_state(tgx::RenderState &current, const tgx::RenderState &next) noexcept -> void {
+    auto apply_state(tgx::gl::RenderState &current, const tgx::gl::RenderState &next) noexcept -> void {
         if (next.blend != current.blend) {
             if ((next.blend == tgx::Blend::none) != (current.blend == tgx::Blend::none)) {
                 set_enabled(GL_BLEND, next.blend != tgx::Blend::none);
@@ -163,10 +173,10 @@ namespace {
         }
 
         if (next.depth != current.depth) {
-            if ((next.depth == tgx::Depth::none) != (current.depth == tgx::Depth::none)) {
-                set_enabled(GL_DEPTH_TEST, next.depth != tgx::Depth::none);
+            if ((next.depth == tgx::gl::Depth::none) != (current.depth == tgx::gl::Depth::none)) {
+                set_enabled(GL_DEPTH_TEST, next.depth != tgx::gl::Depth::none);
             }
-            if (next.depth != tgx::Depth::none) {
+            if (next.depth != tgx::gl::Depth::none) {
                 glDepthFunc(to_gl(next.depth));
             }
         }
@@ -176,10 +186,10 @@ namespace {
         }
 
         if (next.cull != current.cull) {
-            if ((next.cull == tgx::Cull::none) != (current.cull == tgx::Cull::none)) {
-                set_enabled(GL_CULL_FACE, next.cull != tgx::Cull::none);
+            if ((next.cull == tgx::gl::Cull::none) != (current.cull == tgx::gl::Cull::none)) {
+                set_enabled(GL_CULL_FACE, next.cull != tgx::gl::Cull::none);
             }
-            if (next.cull != tgx::Cull::none) {
+            if (next.cull != tgx::gl::Cull::none) {
                 glCullFace(to_gl(next.cull));
             }
         }
@@ -245,7 +255,7 @@ namespace {
     // gets whatever an earlier draw left, or black. Neither is reported.
     auto check_textures(
         const tgx::gl::Shader &shader,
-        const tgx::DrawParams &params
+        const tgx::gl::DrawParams &params
     ) noexcept -> void {
         for (const auto &sampler : tgx::gl::detail::samplers(shader)) {
             TGX_ASSERT_MSG(
@@ -369,12 +379,40 @@ namespace tgx {
         std::ranges::replace(s_bound_textures, texture, GLuint{0});
     }
 
-    auto Device::create(Window &window) noexcept -> Result<Device> {
+    auto detail::device() noexcept -> gl::Device & {
+        TGX_ASSERT_MSG(s_device != nullptr, "no Device");
+
+        return *s_device;
+    }
+
+    auto detail::flush_texture_use(gl::GlId texture) noexcept -> void {
+        // No Device, or one still making or already dropping its batch (whose
+        // own white texture comes through here): nothing collected to draw.
+        if (s_device == nullptr) {
+            return;
+        }
+        gl::detail::Batch *const batch = gl::detail::DeviceAccess::batch_if_any(*s_device);
+        if (batch != nullptr && batch->uses(texture)) {
+            batch->flush(*s_device);
+        }
+    }
+
+    auto gl::detail::DeviceAccess::batch(Device &device) noexcept -> Batch & {
+        TGX_ASSERT(device.m_batch != nullptr);
+
+        return *device.m_batch;
+    }
+
+    auto gl::detail::DeviceAccess::batch_if_any(Device &device) noexcept -> Batch * {
+        return device.m_batch.get();
+    }
+
+    auto gl::Device::create(Window &window) noexcept -> Result<Device> {
         TGX_ASSERT_MSG(!s_device_alive, "only one Device may exist at a time");
 
         // glad 2 returns the version it loaded, so loading and checking that we
         // got the requested one is the same call.
-        const int version = gladLoadGL(detail::gl_loader(window));
+        const int version = gladLoadGL(tgx::detail::gl_loader(window));
         if (version == 0) {
             return std::unexpected{Error::platform};
         }
@@ -390,65 +428,104 @@ namespace tgx {
         Device device;
         reset_state();
         device.set_viewport(window.framebuffer_size());
+        // Set rather than assumed: a context can outlive a Device and keep
+        // what the last one set.
         apply_clear_color(device.m_clear_color);
+        apply_clear_depth(device.m_clear_depth);
+        glClearStencil(device.m_clear_stencil);
+
+        // Made of gl resources, so only once the Device marks GL usable.
+        auto batch = gl::detail::Batch::create();
+        if (!batch) {
+            return std::unexpected{batch.error()};
+        }
+        device.m_batch = std::make_unique<gl::detail::Batch>(std::move(*batch));
         return device;
     }
 
-    Device::Device() noexcept : m_owned{true} {
+    gl::Device::Device() noexcept : m_owned{true} {
         s_device_alive = true;
+        s_device = this;
         reset_bindings();
     }
 
-    Device::Device(Device &&other) noexcept
+    gl::Device::Device(Device &&other) noexcept
         : m_clear_color{other.m_clear_color},
+          m_clear_depth{other.m_clear_depth},
+          m_clear_stencil{other.m_clear_stencil},
           m_viewport{other.m_viewport},
           m_state{other.m_state},
+          m_batch{std::move(other.m_batch)},
           m_owned{std::exchange(other.m_owned, false)} {
+        if (m_owned) {
+            s_device = this;
+        }
     }
 
-    auto Device::operator=(Device &&other) noexcept -> Device & {
+    auto gl::Device::operator=(Device &&other) noexcept -> Device & {
         if (this == &other) {
             return *this;
         }
         release();
         m_clear_color = other.m_clear_color;
+        m_clear_depth = other.m_clear_depth;
+        m_clear_stencil = other.m_clear_stencil;
         m_viewport = other.m_viewport;
         m_state = other.m_state;
+        m_batch = std::move(other.m_batch);
         m_owned = std::exchange(other.m_owned, false);
+        if (m_owned) {
+            s_device = this;
+        }
         return *this;
     }
 
-    Device::~Device() {
+    gl::Device::~Device() {
         release();
     }
 
-    auto Device::release() noexcept -> void {
+    auto gl::Device::release() noexcept -> void {
         if (m_owned) {
+            // Its gl resources go while GL is still usable. What it still
+            // holds is dropped: the frame it was for is over.
+            m_batch.reset();
             s_device_alive = false;
+            s_device = nullptr;
             reset_bindings();
             m_owned = false;
         }
     }
 
-    auto Device::set_clear_color(Color color) noexcept -> void {
-        if (color == m_clear_color) {
-            return;
+    auto gl::Device::flush() noexcept -> void {
+        if (m_batch != nullptr) {
+            m_batch->flush(*this);
         }
-
-        m_clear_color = color;
-        apply_clear_color(color);
     }
 
-    auto Device::clear(ClearMask mask) noexcept -> void {
+    auto gl::Device::clear(const ClearParams &params) noexcept -> void {
+        flush();
+
         GLbitfield bits = 0;
 
-        if (any_of(mask, ClearMask::color)) {
+        if (params.color) {
+            if (*params.color != m_clear_color) {
+                m_clear_color = *params.color;
+                apply_clear_color(m_clear_color);
+            }
             bits |= GL_COLOR_BUFFER_BIT;
         }
-        if (any_of(mask, ClearMask::depth)) {
+        if (params.depth) {
+            if (*params.depth != m_clear_depth) {
+                m_clear_depth = *params.depth;
+                apply_clear_depth(m_clear_depth);
+            }
             bits |= GL_DEPTH_BUFFER_BIT;
         }
-        if (any_of(mask, ClearMask::stencil)) {
+        if (params.stencil) {
+            if (*params.stencil != m_clear_stencil) {
+                m_clear_stencil = *params.stencil;
+                glClearStencil(m_clear_stencil);
+            }
             bits |= GL_STENCIL_BUFFER_BIT;
         }
 
@@ -465,21 +542,24 @@ namespace tgx {
         glClear(bits);
     }
 
-    auto Device::set_viewport(int x, int y, int width, int height) noexcept -> void {
+    auto gl::Device::set_viewport(int x, int y, int width, int height) noexcept -> void {
         const std::array next{x, y, width, height};
         if (next == m_viewport) {
             return;
         }
 
+        flush();
         m_viewport = next;
         glViewport(x, y, width, height);
     }
 
-    auto Device::draw(
+    auto gl::Device::draw(
         const gl::Shader &shader,
         const gl::VertexArray &vertices,
         const DrawParams &params
     ) noexcept -> void {
+        flush();
+
         TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
             check_vertex_inputs(shader, vertices);
@@ -509,10 +589,10 @@ namespace tgx {
         }
 
         apply_state(m_state, params.state);
-        detail::use_program(shader.id());
+        tgx::detail::use_program(shader.id());
         for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
-            if (const gl::Texture *texture = params.textures[slot]; texture != nullptr) {
-                detail::bind_texture(slot, texture->id());
+            if (const Texture *texture = params.textures[slot]; texture != nullptr) {
+                tgx::detail::bind_texture(slot, texture->id());
             }
         }
         glBindVertexArray(vertices.id());
