@@ -97,16 +97,7 @@ Frames are shown with `device->present()`, which also draws the last of the
 
 The quick way to draw in 2D: no shaders, buffers or vertex arrays. Coordinates
 are the window's screen coordinates, (0, 0) at the top-left, y down; on a
-scaling display (Retina) things keep their size. A canvas can instead have a
-size of its own, a fixed logical resolution stretched over the window:
-
-    pixels.set_size({320, 180});   // set_size({}) follows the window again
-
-A canvas can also cover only a part of the window, for a minimap or a split
-screen; its coordinates then span that part:
-
-    tgx::Canvas minimap = app->canvas();
-    minimap.set_viewport({16, 16, 200, 150});   // screen coordinates of the window
+scaling display (Retina) things keep their size.
 
     auto &canvas = app->canvas();
     while (!app->should_close()) {
@@ -122,6 +113,18 @@ screen; its coordinates then span that part:
 
         app->swap_buffers();
     }
+
+A canvas can instead have a size of its own, a fixed logical resolution
+stretched over the window:
+
+    tgx::Canvas pixels = app->canvas();
+    pixels.set_size({320, 180});   // set_size({}) follows the window again
+
+It can also cover only a part of the window, for a minimap or a split screen;
+its coordinates then span that part:
+
+    tgx::Canvas minimap = app->canvas();
+    minimap.set_viewport({16, 16, 200, 150});   // screen coordinates of the window
 
 Outlines lie inside the shape they outline, so a frame and a fill of the same
 rectangle cover the same area.
@@ -164,8 +167,10 @@ the order of the calls:
     tgx::Canvas glow = app->canvas();
     glow.set_blend(tgx::Blend::additive);   // Blend::alpha by default
 
-`camera.to_world(point)` and `to_screen(point)` convert between the two, e.g.
-for what is under the mouse.
+`canvas.to_world(point)` gives the world point under a point of the window,
+such as the mouse, and `to_screen(world)` the way back; they go through the
+canvas's viewport and size as well as its camera, so they hold for a minimap
+or a pixel-art canvas too.
 
 Shapes in a row with the same texture, camera, blend and shader go out as one
 draw; a change of any of them starts the next. So many sprites from one texture

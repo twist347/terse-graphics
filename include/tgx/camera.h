@@ -6,13 +6,13 @@
 
 namespace tgx {
     // A 2D view of the world for the Canvas: the world point target appears at
-    // the screen point offset, turned by rotation and scaled by zoom around it.
-    // The default one shows the world as it is, one unit to one screen unit.
+    // the canvas point offset, turned by rotation and scaled by zoom around it.
+    // The default one shows the world as it is, one unit to one canvas unit.
     //
     //     canvas.set_camera({.target = player, .offset = {640, 360}, .zoom = 2.f});
     struct Camera2D {
         Vec2 target{};
-        // Usually the middle of the screen, to keep target there.
+        // Usually the middle of the canvas, to keep target there.
         Vec2 offset{};
         // Radians, clockwise on screen, like Canvas rotations.
         float rotation{0.f};
@@ -20,7 +20,8 @@ namespace tgx {
 
         [[nodiscard]] constexpr auto operator==(const Camera2D &) const noexcept -> bool = default;
 
-        // Where a world point shows up on screen.
+        // Where a world point shows up on the canvas. Canvas::to_screen goes
+        // on to the window.
         [[nodiscard]] auto to_screen(Vec2 world) const noexcept -> Vec2 {
             const float c = std::cos(rotation);
             const float s = std::sin(rotation);
@@ -28,7 +29,9 @@ namespace tgx {
             return Vec2{v.x * c - v.y * s, v.x * s + v.y * c} + offset;
         }
 
-        // The world point under a screen point, e.g. under the mouse.
+        // The world point under a point of the canvas. For a point of the
+        // window, such as the mouse, Canvas::to_world: it also knows where the
+        // canvas lies in the window and how it is stretched.
         [[nodiscard]] auto to_world(Vec2 screen) const noexcept -> Vec2 {
             const float c = std::cos(rotation);
             const float s = std::sin(rotation);

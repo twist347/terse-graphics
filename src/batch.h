@@ -43,7 +43,8 @@ namespace tgx::detail {
         std::int32_t u_projection{-1};
         // From the vertices' coordinates to clip space: u_projection.
         Mat4 transform{};
-        // The part of the framebuffer the canvas covers, in pixels.
+        // The part of the framebuffer the canvas covers, in pixels from the
+        // top-left.
         gl::Viewport viewport{};
 
         [[nodiscard]] auto operator==(const BatchState &) const noexcept -> bool = default;

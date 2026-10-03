@@ -402,17 +402,18 @@ namespace tgx {
             return;
         }
 
-        // GL counts from the bottom-left, so the same rectangle moves with the
-        // framebuffer's height.
+        // Turned here, against the framebuffer as it is when drawn into, not
+        // when the draw was asked for: a rectangle from the top-left stays at
+        // the top-left even if the window was resized in between.
         const gl::Viewport flipped{
             call.viewport.x,
             framebuffer_size().height - call.viewport.y - call.viewport.height,
             call.viewport.width,
             call.viewport.height,
         };
-        if (flipped != viewport) {
+        if (flipped != gl_viewport) {
             glViewport(flipped.x, flipped.y, flipped.width, flipped.height);
-            viewport = flipped;
+            gl_viewport = flipped;
         }
         apply_state(state, call.state);
         use_program(call.program);
@@ -490,8 +491,8 @@ namespace tgx {
         // Set rather than assumed, like the rest: draws only change the
         // viewport when theirs differs from this. The whole framebuffer is the
         // same from either corner.
-        s_context.viewport = detail::full_viewport();
-        glViewport(0, 0, s_context.viewport.width, s_context.viewport.height);
+        s_context.gl_viewport = detail::full_viewport();
+        glViewport(0, 0, s_context.gl_viewport.width, s_context.gl_viewport.height);
 
         auto batch = detail::Batch::create();
         if (!batch) {

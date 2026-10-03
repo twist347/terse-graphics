@@ -99,6 +99,17 @@ namespace tgx {
 
         [[nodiscard]] auto camera() const noexcept -> const Camera2D & { return m_camera; }
 
+        // The world point under a point of the window, in the window's screen
+        // coordinates: what is under the mouse. Goes through the viewport, the
+        // size and the camera, so it holds for a minimap or a pixel-art canvas
+        // too; Camera2D::to_world alone holds only for a canvas over the whole
+        // window at its size.
+        [[nodiscard]] auto to_world(Vec2 window_point) const noexcept -> Vec2;
+
+        // Where a world point shows up in the window, in its screen
+        // coordinates: the way back from to_world.
+        [[nodiscard]] auto to_screen(Vec2 world) const noexcept -> Vec2;
+
         // For what comes after; Blend::alpha by default.
         auto set_blend(Blend blend) noexcept -> void { m_blend = blend; }
 

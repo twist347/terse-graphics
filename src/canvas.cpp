@@ -52,6 +52,16 @@ namespace {
         return rect.width > 0.f && rect.height > 0.f;
     }
 
+    // The part of the window a canvas covers, in its screen coordinates: the
+    // viewport, or all of it.
+    [[nodiscard]] auto covered(tgx::Rect viewport) noexcept -> tgx::Rect {
+        if (has_area(viewport)) {
+            return viewport;
+        }
+        const tgx::Size window = tgx::detail::window_size();
+        return {0.f, 0.f, static_cast<float>(window.width), static_cast<float>(window.height)};
+    }
+
     // The part of the framebuffer a canvas covers, in pixels: its viewport,
     // from screen coordinates, or all of it.
     [[nodiscard]] auto pixel_viewport(tgx::Rect rect) noexcept -> tgx::gl::Viewport {
@@ -151,6 +161,33 @@ namespace tgx {
 
         m_camera = camera;
         refit();
+    }
+
+    auto Canvas::to_world(Vec2 window_point) const noexcept -> Vec2 {
+        const Rect area = covered(m_viewport);
+        const Size span = size();
+        // A minimized window covers nothing to map from.
+        if (!has_area(area) || span.empty()) {
+            return m_camera.to_world(window_point);
+        }
+        const Vec2 canvas_point{
+            (window_point.x - area.x) * static_cast<float>(span.width) / area.width,
+            (window_point.y - area.y) * static_cast<float>(span.height) / area.height,
+        };
+        return m_camera.to_world(canvas_point);
+    }
+
+    auto Canvas::to_screen(Vec2 world) const noexcept -> Vec2 {
+        const Rect area = covered(m_viewport);
+        const Size span = size();
+        const Vec2 canvas_point = m_camera.to_screen(world);
+        if (!has_area(area) || span.empty()) {
+            return canvas_point;
+        }
+        return {
+            canvas_point.x * area.width / static_cast<float>(span.width) + area.x,
+            canvas_point.y * area.height / static_cast<float>(span.height) + area.y,
+        };
     }
 
     auto Canvas::refit() noexcept -> void {
