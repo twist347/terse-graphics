@@ -14,7 +14,6 @@ namespace tgx {
         out_of_mem,
         unsupported,
         platform,
-        invalid_argument,
     };
 
     [[nodiscard]] constexpr auto to_str(Error err) noexcept -> const char * {
@@ -26,7 +25,6 @@ namespace tgx {
             case Error::out_of_mem: return "out of memory";
             case Error::unsupported: return "unsupported";
             case Error::platform: return "platform";
-            case Error::invalid_argument: return "invalid argument";
         }
         return "unknown";
     }

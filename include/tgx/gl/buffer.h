@@ -32,7 +32,7 @@ namespace tgx::gl {
     // A GPU buffer whose size is fixed at creation and whose contents may
     // change only when created as dynamic.
     //
-    // Created only while the Device exists (asserted).
+    // Lives inside the Device: created after it, destroyed before it.
     class Buffer {
     public:
         // Uninitialised storage of the given size; only useful as dynamic.

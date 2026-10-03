@@ -14,6 +14,13 @@ Early and moving: the API changes from commit to commit.
   buffers through the `gl::Device`. Everything in it is OpenGL. It builds on
   `tgx` and mixes with the `Canvas` in the same frame.
 
+The levels split the headers, not the library: it is one library, and the two
+lean on each other inside. The `gl::Device` holds the `Canvas`'s batch, so it
+always makes it (a shader, a 1x1 white texture, about 420 KB of buffers), even
+for a program that draws only with its own shaders. `App` hands out the
+`gl::Device`, so `tgx/tgx.h` declares it too; what stays out of it are the raw
+resources (`gl::Buffer`, `gl::VertexArray`, `gl::Shader`).
+
 ## What there is
 
 In `tgx`:
@@ -58,8 +65,7 @@ Not yet: input, text, render targets.
 | `gl::*`       | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA), but never where a draw would read it. |
 
 GPU resources (`Texture`, `gl::*`) are created without naming the `Device`, but
-only while it exists, and destroyed before it (both asserted). Declare them
-after the `App`.
+only while it exists, and destroyed before it. Declare them after the `App`.
 
 `App` creates everything in one call. Its frame loop has the shape of a plain
 GLFW one; `poll_events` also fits the viewport and the canvas after a resize,
@@ -114,7 +120,7 @@ Shapes are collected and drawn together, but the picture always follows the
 order of the calls: the `gl::Device` collects them and draws them before any
 draw, clear or viewport change of its own and before presenting the frame.
 Nothing the shapes use is read later than the calls that made them: a texture
-updated, moved or destroyed, or a uniform of the canvas shader set, has the
+updated or destroyed, or a uniform of the canvas shader set, has the
 shapes waiting on it drawn first. `canvas.flush()` is only needed before raw
 GL calls.
 
@@ -149,8 +155,8 @@ for what is under the mouse.
 
 Shapes in a row with the same texture, camera, blend and shader go out as one
 draw; a change of any of them starts the next. So many sprites from one texture
-(an atlas) cost one draw. A texture moved or destroyed while its sprites wait
-has them drawn first.
+(an atlas) cost one draw. A texture updated or destroyed while its sprites wait
+has them drawn first; moving one changes nothing.
 
 ## Custom drawing (`tgx::gl`)
 
@@ -234,9 +240,19 @@ has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
   `Canvas::set_shader`) are marked as such.
 - **`Result` for failures from outside** (driver, OS, files); **asserts for caller
   mistakes** (`TGX_ASSERT`, controlled by `TGX_ENABLE_ASSERTS`, not `NDEBUG`).
-- **One `Window`, one `Device`** at a time (asserted).
-- **GPU resources live inside the `Device`'s lifetime**: created after it,
-  destroyed before it (asserted).
+- **Out of memory: GPU memory is a failure, host memory is fatal.** A buffer or
+  texture the driver has no room for comes back as `Error::out_of_mem`. Host
+  memory running out is not reported: the functions that allocate as much as
+  their input asks for (`Image::create`, `from_pixels`, `load`, `decode`,
+  `gl::Shader::from_source`) may throw `std::bad_alloc`, and everywhere else,
+  `noexcept` included, it ends the program.
+- **One `Platform`, one `Window`, one `Device`.** They are one per process by
+  nature (GLFW, the GL context of the one window), so tgx keeps their state in
+  one place each and the objects only own it.
+- **Lifetimes nest**: `Platform` > `Window` > `Device` > GPU resources, each
+  created after and destroyed before the one it lives in. `App` declares them in
+  that order. Like the standard library, tgx does not check this, nor calls on
+  moved-from objects: asserts are for arguments, not for bookkeeping.
 - **tgx does not log what it returns.** A failure goes out as a `Result` only;
   the log is for what a `Result` cannot carry. Messages from the GL driver and
   GLFW always go to the log, even when the same failure also comes back as a
@@ -257,8 +273,8 @@ asserts on, tgx stops at the call instead:
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
 - a pixel outside an `Image`;
-- a second `Window` or `Device`, or GPU resources created before the `Device`
-  or outliving it.
+- a canvas shader without `u_projection`, or with a sampler other than
+  `u_texture`.
 
 Asserts cost nothing when off: the checks that need extra bookkeeping (such as
 reading the shader's inputs) are skipped altogether.

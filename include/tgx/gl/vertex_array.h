@@ -11,9 +11,6 @@
 #include <span>
 #include <type_traits>
 
-namespace tgx {
-}
-
 namespace tgx::gl {
     class Buffer;
 
@@ -96,7 +93,8 @@ namespace tgx::gl {
     // them. The layout is set at creation; buffers can be swapped later.
     //
     // Buffers are borrowed, not owned: they must outlive every draw that uses
-    // this vertex array. Created only while the Device exists (asserted).
+    // this vertex array. Lives inside the Device: created after it, destroyed
+    // before it.
     class VertexArray {
     public:
         // Attribute locations must be below this: the lower bound every GL 3.3

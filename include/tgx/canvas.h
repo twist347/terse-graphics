@@ -6,6 +6,8 @@
 #include "tgx/math.h"
 #include "tgx/size.h"
 
+#include <cstdint>
+
 namespace tgx {
     class Texture;
 
@@ -51,12 +53,12 @@ namespace tgx {
     //
     // Shapes are collected by the Device, which draws them before anything
     // else of its own (a draw, a clear, a viewport change) and when the frame
-    // is presented, so the picture follows the order of the calls. Shapes in a row with the same
-    // texture, camera, blend and shader go out as one draw; a change of any of
-    // them starts another.
+    // is presented, so the picture follows the order of the calls. Shapes in
+    // a row with the same texture, camera, blend and shader go out as one
+    // draw; a change of any of them starts another.
     //
     // Holds no GPU resources of its own, only how to draw: a plain value. It
-    // needs the Device to exist to be created and drawn with (asserted).
+    // draws through the Device, which must exist while it does.
     class Canvas {
     public:
         [[nodiscard]] static auto create(Size size) noexcept -> Canvas;
@@ -82,8 +84,8 @@ namespace tgx {
         // instead of the built-in one; nullptr goes back to it. The shader is
         // borrowed: it must outlive being set here, not only the shapes drawn
         // with it. While set, its u_projection and u_texture are the canvas's
-        // (it writes them on every draw), so do not share it with draws of
-        // your own.
+        // (u_projection is written on every draw, u_texture here), so do not
+        // share it with draws of your own.
         //
         // It takes what the built-in one does:
         //
@@ -93,9 +95,10 @@ namespace tgx {
         //     uniform mat4 u_projection;                  // canvas coordinates to clip space
         //     uniform sampler2D u_texture;                // optional; white for shapes
         //
-        // Its other uniforms are the caller's to set. Shapes keep the values
-        // set when they were added: setting a uniform later, or moving or
-        // destroying the shader, draws them first.
+        // u_texture is its only texture: the canvas fills slot 0 alone, so it
+        // may have no other sampler (asserted). Its other uniforms are the
+        // caller's to set. Shapes keep the values set when they were added:
+        // setting a uniform later, or destroying the shader, draws them first.
         auto set_shader(gl::Shader *shader) noexcept -> void;
 
         [[nodiscard]] auto shader() const noexcept -> gl::Shader * { return m_shader; }
@@ -121,8 +124,8 @@ namespace tgx {
         // A ring thickness wide, inside the circle's edge.
         auto circle_lines(Vec2 center, float radius, Color color, float thickness = 1.f) noexcept -> void;
 
-        // The texture is drawn from when the shapes are drawn; if it is moved
-        // or destroyed before, they are drawn then.
+        // The texture is drawn from when the shapes are drawn; if it is
+        // updated or destroyed before, they are drawn then.
         auto sprite(const Texture &texture, const Sprite &sprite) noexcept -> void;
 
         // Draws what has been collected; the same as Device::flush(). Only
@@ -132,8 +135,8 @@ namespace tgx {
     private:
         explicit Canvas(Size size) noexcept;
 
-        // How shapes drawn now with the texture (nullptr: none) go out.
-        [[nodiscard]] auto state_for(const Texture *texture) const noexcept -> gl::detail::BatchState;
+        // How shapes drawn now with the texture (0: none) go out.
+        [[nodiscard]] auto state_for(std::uint32_t texture) const noexcept -> gl::detail::BatchState;
 
         auto quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void;
 
@@ -142,6 +145,8 @@ namespace tgx {
         Blend m_blend{Blend::alpha};
         // nullptr for the built-in one.
         gl::Shader *m_shader{nullptr};
+        // The location of its u_projection, looked up when it was set.
+        std::int32_t m_u_projection{-1};
         // From canvas coordinates to clip space, kept in step with the size
         // and the camera.
         Mat4 m_transform{};

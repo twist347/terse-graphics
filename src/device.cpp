@@ -11,7 +11,7 @@
 #include "tgx/gl/vertex_array.h"
 
 #include "batch.h"
-#include "device_internal.h"
+#include "context.h"
 #include "log_internal.h"
 #include "window_internal.h"
 
@@ -21,6 +21,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -37,27 +38,7 @@ static_assert(
 namespace {
     using tgx::gl::detail::ComponentKind;
 
-    // Whether a Device exists, i.e. GL may be called. Main thread only, like
-    // the rest of the Device.
-    bool s_device_alive = false;
-
-    // Where that Device is now; follows it through moves.
-    tgx::gl::Device *s_device = nullptr;
-
-    // The program glUseProgram last made current; 0 for none.
-    GLuint s_current_program = 0;
-
-    // The texture bound in each slot, 0 for none, and the slot glActiveTexture
-    // last selected.
-    std::array<GLuint, tgx::gl::max_texture_slots> s_bound_textures{};
-    std::uint32_t s_active_slot = 0;
-
-    // Forgets every binding, for a Device starting on or leaving a context.
-    auto reset_bindings() noexcept -> void {
-        s_current_program = 0;
-        s_bound_textures = {};
-        s_active_slot = 0;
-    }
+    tgx::gl::detail::Context s_context;
 
     auto apply_clear_color(tgx::Color color) noexcept -> void {
         const tgx::Vec4 unit = tgx::to_vec4(color);
@@ -148,15 +129,19 @@ namespace {
         }
     }
 
-    // Puts GL where a default RenderState says it is. A context can outlive a
+    // Puts GL where a fresh Context says it is. A GL context can outlive a
     // Device and keep what the last one set.
-    auto reset_state() noexcept -> void {
+    auto reset_state(const tgx::gl::detail::Context &context) noexcept -> void {
         glDisable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
         glDisable(GL_CULL_FACE);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glActiveTexture(GL_TEXTURE0);
+        glUseProgram(0);
+        apply_clear_color(context.clear_color);
+        apply_clear_depth(context.clear_depth);
+        glClearStencil(context.clear_stencil);
     }
 
     // Brings GL from the state current describes to next, touching only what
@@ -344,209 +329,52 @@ namespace {
     }
 }
 
-namespace tgx {
-    auto gl::detail::context_alive() noexcept -> bool {
-        return s_device_alive;
+namespace tgx::gl {
+    auto detail::context() noexcept -> Context & {
+        return s_context;
     }
 
-    auto detail::use_program(gl::GlId program) noexcept -> void {
-        if (program != s_current_program) {
-            glUseProgram(program);
-            s_current_program = program;
+    auto detail::flush_texture_use(GlId texture) noexcept -> void {
+        if (s_context.batch != nullptr && s_context.batch->uses_texture(texture)) {
+            s_context.batch->flush(s_context);
         }
     }
 
-    auto detail::forget_program(gl::GlId program) noexcept -> void {
-        if (program == s_current_program) {
-            s_current_program = 0;
+    auto detail::flush_shader_use(GlId program) noexcept -> void {
+        if (s_context.batch != nullptr && s_context.batch->uses_shader(program)) {
+            s_context.batch->flush(s_context);
         }
     }
 
-    auto detail::bind_texture(std::uint32_t slot, gl::GlId texture) noexcept -> void {
-        TGX_ASSERT(slot < gl::max_texture_slots);
-
-        if (slot != s_active_slot) {
-            glActiveTexture(GL_TEXTURE0 + slot);
-            s_active_slot = slot;
-        }
-        if (texture != s_bound_textures[slot]) {
-            glBindTexture(GL_TEXTURE_2D, texture);
-            s_bound_textures[slot] = texture;
+    auto detail::Context::flush() noexcept -> void {
+        if (batch != nullptr) {
+            batch->flush(*this);
         }
     }
 
-    auto detail::forget_texture(gl::GlId texture) noexcept -> void {
-        std::ranges::replace(s_bound_textures, texture, GLuint{0});
-    }
-
-    auto detail::device() noexcept -> gl::Device & {
-        TGX_ASSERT_MSG(s_device != nullptr, "no Device");
-
-        return *s_device;
-    }
-
-    auto detail::flush_texture_use(gl::GlId texture) noexcept -> void {
-        // No Device, or one still making or already dropping its batch (whose
-        // own white texture comes through here): nothing collected to draw.
-        if (s_device == nullptr) {
-            return;
-        }
-        gl::detail::Batch *const batch = gl::detail::DeviceAccess::batch_if_any(*s_device);
-        if (batch != nullptr && batch->uses_texture(texture)) {
-            batch->flush(*s_device);
-        }
-    }
-
-    auto detail::flush_shader_use(gl::GlId program) noexcept -> void {
-        if (s_device == nullptr) {
-            return;
-        }
-        gl::detail::Batch *const batch = gl::detail::DeviceAccess::batch_if_any(*s_device);
-        if (batch != nullptr && batch->uses_shader(program)) {
-            batch->flush(*s_device);
-        }
-    }
-
-    auto gl::detail::DeviceAccess::batch(Device &device) noexcept -> Batch & {
-        TGX_ASSERT(device.m_batch != nullptr);
-
-        return *device.m_batch;
-    }
-
-    auto gl::detail::DeviceAccess::batch_if_any(Device &device) noexcept -> Batch * {
-        return device.m_batch.get();
-    }
-
-    auto gl::Device::create(Window &window) noexcept -> Result<Device> {
-        TGX_ASSERT_MSG(!s_device_alive, "only one Device may exist at a time");
-
-        // glad 2 returns the version it loaded, so loading and checking that we
-        // got the requested one is the same call.
-        const int version = gladLoadGL(tgx::detail::gl_loader(window));
-        if (version == 0) {
-            return std::unexpected{Error::platform};
-        }
-        // Before the version check, so a rejected context still shows what the
-        // driver actually gave.
-        log_context_info();
-        if (version < GLAD_MAKE_VERSION(gl::version_major, gl::version_minor)) {
-            return std::unexpected{Error::unsupported};
-        }
-
-        install_debug_callback();
-
-        Device device;
-        device.m_window = window.native_handle();
-        reset_state();
-        device.set_viewport(window.framebuffer_size());
-        // Set rather than assumed: a context can outlive a Device and keep
-        // what the last one set.
-        apply_clear_color(device.m_clear_color);
-        apply_clear_depth(device.m_clear_depth);
-        glClearStencil(device.m_clear_stencil);
-
-        // Made of gl resources, so only once the Device marks GL usable.
-        auto batch = gl::detail::Batch::create();
-        if (!batch) {
-            return std::unexpected{batch.error()};
-        }
-        device.m_batch = std::make_unique<gl::detail::Batch>(std::move(*batch));
-        return device;
-    }
-
-    gl::Device::Device() noexcept : m_owned{true} {
-        s_device_alive = true;
-        s_device = this;
-        reset_bindings();
-    }
-
-    gl::Device::Device(Device &&other) noexcept
-        : m_clear_color{other.m_clear_color},
-          m_clear_depth{other.m_clear_depth},
-          m_clear_stencil{other.m_clear_stencil},
-          m_viewport{other.m_viewport},
-          m_state{other.m_state},
-          m_window{other.m_window},
-          m_batch{std::move(other.m_batch)},
-          m_owned{std::exchange(other.m_owned, false)} {
-        if (m_owned) {
-            s_device = this;
-        }
-    }
-
-    auto gl::Device::operator=(Device &&other) noexcept -> Device & {
-        if (this == &other) {
-            return *this;
-        }
-        release();
-        m_clear_color = other.m_clear_color;
-        m_clear_depth = other.m_clear_depth;
-        m_clear_stencil = other.m_clear_stencil;
-        m_viewport = other.m_viewport;
-        m_state = other.m_state;
-        m_window = other.m_window;
-        m_batch = std::move(other.m_batch);
-        m_owned = std::exchange(other.m_owned, false);
-        if (m_owned) {
-            s_device = this;
-        }
-        return *this;
-    }
-
-    gl::Device::~Device() {
-        release();
-    }
-
-    auto gl::Device::release() noexcept -> void {
-        if (m_owned) {
-            // Its gl resources go while GL is still usable. What it still
-            // holds is dropped: the frame it was for is over.
-            m_batch.reset();
-            s_device_alive = false;
-            s_device = nullptr;
-            reset_bindings();
-            m_owned = false;
-        }
-    }
-
-    auto gl::Device::flush() noexcept -> void {
-        if (m_batch != nullptr) {
-            m_batch->flush(*this);
-        }
-    }
-
-    auto gl::Device::present() noexcept -> void {
-        flush();
-        tgx::detail::swap_buffers(m_window);
-    }
-
-    auto gl::Device::set_vsync(bool enabled) noexcept -> void {
-        tgx::detail::set_vsync(enabled);
-    }
-
-    auto gl::Device::clear(const ClearParams &params) noexcept -> void {
+    auto detail::Context::clear(const ClearParams &params) noexcept -> void {
         flush();
 
         GLbitfield bits = 0;
 
         if (params.color) {
-            if (*params.color != m_clear_color) {
-                m_clear_color = *params.color;
-                apply_clear_color(m_clear_color);
+            if (*params.color != clear_color) {
+                clear_color = *params.color;
+                apply_clear_color(clear_color);
             }
             bits |= GL_COLOR_BUFFER_BIT;
         }
         if (params.depth) {
-            if (*params.depth != m_clear_depth) {
-                m_clear_depth = *params.depth;
-                apply_clear_depth(m_clear_depth);
+            if (*params.depth != clear_depth) {
+                clear_depth = *params.depth;
+                apply_clear_depth(clear_depth);
             }
             bits |= GL_DEPTH_BUFFER_BIT;
         }
         if (params.stencil) {
-            if (*params.stencil != m_clear_stencil) {
-                m_clear_stencil = *params.stencil;
-                glClearStencil(m_clear_stencil);
+            if (*params.stencil != clear_stencil) {
+                clear_stencil = *params.stencil;
+                glClearStencil(clear_stencil);
             }
             bits |= GL_STENCIL_BUFFER_BIT;
         }
@@ -557,30 +385,169 @@ namespace tgx {
 
         // Clearing depth obeys the depth write mask like any draw, so a draw
         // that turned writes off would leave the old depth in place.
-        if ((bits & GL_DEPTH_BUFFER_BIT) != 0 && !m_state.depth_write) {
+        if ((bits & GL_DEPTH_BUFFER_BIT) != 0 && !state.depth_write) {
             glDepthMask(GL_TRUE);
-            m_state.depth_write = true;
+            state.depth_write = true;
         }
         glClear(bits);
     }
 
-    auto gl::Device::set_viewport(int x, int y, int width, int height) noexcept -> void {
+    auto detail::Context::set_viewport(int x, int y, int width, int height) noexcept -> void {
         const std::array next{x, y, width, height};
-        if (next == m_viewport) {
+        if (next == viewport) {
             return;
         }
 
         flush();
-        m_viewport = next;
+        viewport = next;
         glViewport(x, y, width, height);
     }
 
-    auto gl::Device::draw(
-        const gl::Shader &shader,
-        const gl::VertexArray &vertices,
+    auto detail::Context::draw(const DrawCall &call) noexcept -> void {
+        if (call.count == 0) {
+            return;
+        }
+
+        apply_state(state, call.state);
+        use_program(call.program);
+        for (std::uint32_t slot = 0; slot < max_texture_slots; ++slot) {
+            if (call.textures[slot] != 0) {
+                bind_texture(slot, call.textures[slot]);
+            }
+        }
+        glBindVertexArray(call.vertex_array);
+
+        const GLenum mode = to_gl(call.primitive);
+        const auto count = static_cast<GLsizei>(call.count);
+
+        if (!call.index_type) {
+            glDrawArrays(mode, static_cast<GLint>(call.first), count);
+            return;
+        }
+
+        const std::size_t index_size = *call.index_type == IndexType::uint32 ? 4 : 2;
+
+        // GL takes the start of an indexed draw as a byte offset into the index
+        // buffer, passed where a pointer used to go.
+        const auto *start = reinterpret_cast<const void *>(call.first * index_size);
+        glDrawElements(mode, count, to_gl(*call.index_type), start);
+    }
+
+    auto detail::Context::use_program(GlId next) noexcept -> void {
+        if (next != program) {
+            glUseProgram(next);
+            program = next;
+        }
+    }
+
+    auto detail::Context::forget_program(GlId id) noexcept -> void {
+        if (id == program) {
+            program = 0;
+        }
+    }
+
+    auto detail::Context::bind_texture(std::uint32_t slot, GlId texture) noexcept -> void {
+        TGX_ASSERT(slot < max_texture_slots);
+
+        if (slot != active_slot) {
+            glActiveTexture(GL_TEXTURE0 + slot);
+            active_slot = slot;
+        }
+        if (texture != textures[slot]) {
+            glBindTexture(GL_TEXTURE_2D, texture);
+            textures[slot] = texture;
+        }
+    }
+
+    auto detail::Context::forget_texture(GlId texture) noexcept -> void {
+        std::ranges::replace(textures, texture, GLuint{0});
+    }
+
+    auto Device::create(Window &window) noexcept -> Result<Device> {
+        // glad 2 returns the version it loaded, so loading and checking that we
+        // got the requested one is the same call.
+        const int version = gladLoadGL(tgx::detail::gl_loader(window));
+        if (version == 0) {
+            return std::unexpected{Error::platform};
+        }
+        // Before the version check, so a rejected context still shows what the
+        // driver actually gave.
+        log_context_info();
+        if (version < GLAD_MAKE_VERSION(version_major, version_minor)) {
+            return std::unexpected{Error::unsupported};
+        }
+
+        install_debug_callback();
+
+        s_context = {};
+        s_context.window = window.native_handle();
+        reset_state(s_context);
+        // Directly rather than through the cache: a 0x0 framebuffer (a
+        // minimized window) matches its empty start and would be skipped.
+        const Size size = window.framebuffer_size();
+        s_context.viewport = {0, 0, size.width, size.height};
+        glViewport(0, 0, size.width, size.height);
+
+        auto batch = detail::Batch::create();
+        if (!batch) {
+            s_context = {};
+            return std::unexpected{batch.error()};
+        }
+        s_context.batch = std::make_unique<detail::Batch>(std::move(*batch));
+        return Device{};
+    }
+
+    auto Device::operator=(Device &&other) noexcept -> Device & {
+        if (this == &other) {
+            return *this;
+        }
+        release();
+        m_owned = std::exchange(other.m_owned, false);
+        return *this;
+    }
+
+    Device::~Device() {
+        release();
+    }
+
+    auto Device::release() noexcept -> void {
+        if (m_owned) {
+            // Its gl resources go while GL is still usable, and while the
+            // context is still whole for them to unbind from. What it still
+            // holds is dropped: the frame it was for is over.
+            s_context.batch.reset();
+            s_context = {};
+            m_owned = false;
+        }
+    }
+
+    auto Device::flush() noexcept -> void {
+        s_context.flush();
+    }
+
+    auto Device::present() noexcept -> void {
+        s_context.flush();
+        tgx::detail::swap_buffers(s_context.window);
+    }
+
+    auto Device::set_vsync(bool enabled) noexcept -> void {
+        tgx::detail::set_vsync(enabled);
+    }
+
+    auto Device::clear(const ClearParams &params) noexcept -> void {
+        s_context.clear(params);
+    }
+
+    auto Device::set_viewport(int x, int y, int width, int height) noexcept -> void {
+        s_context.set_viewport(x, y, width, height);
+    }
+
+    auto Device::draw(
+        const Shader &shader,
+        const VertexArray &vertices,
         const DrawParams &params
     ) noexcept -> void {
-        flush();
+        s_context.flush();
 
         TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
@@ -606,33 +573,20 @@ namespace tgx {
             indexed ? "indices" : "vertices", params.first, params.first + count, available
         );
 
-        if (count == 0) {
-            return;
-        }
-
-        apply_state(m_state, params.state);
-        tgx::detail::use_program(shader.id());
-        for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
+        detail::DrawCall call{
+            .program = shader.id(),
+            .vertex_array = vertices.id(),
+            .index_type = indexed ? std::optional{vertices.index_type()} : std::nullopt,
+            .first = params.first,
+            .count = count,
+            .primitive = params.primitive,
+            .state = params.state,
+        };
+        for (std::uint32_t slot = 0; slot < max_texture_slots; ++slot) {
             if (const Texture *texture = params.textures[slot]; texture != nullptr) {
-                tgx::detail::bind_texture(slot, texture->id());
+                call.textures[slot] = texture->id();
             }
         }
-        glBindVertexArray(vertices.id());
-
-        const GLenum mode = to_gl(params.primitive);
-        const auto gl_count = static_cast<GLsizei>(count);
-
-        if (!indexed) {
-            glDrawArrays(mode, static_cast<GLint>(params.first), gl_count);
-            return;
-        }
-
-        const gl::IndexType index_type = vertices.index_type();
-        const std::size_t index_size = index_type == gl::IndexType::uint32 ? 4 : 2;
-
-        // GL takes the start of an indexed draw as a byte offset into the index
-        // buffer, passed where a pointer used to go.
-        const auto *start = reinterpret_cast<const void *>(params.first * index_size);
-        glDrawElements(mode, gl_count, to_gl(index_type), start);
+        s_context.draw(call);
     }
 }

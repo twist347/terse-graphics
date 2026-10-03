@@ -22,10 +22,11 @@ namespace tgx {
         bool debug_context{TGX_ENABLE_ASSERTS != 0};
     };
 
-    // At most one may exist for now: creating a window makes its GL context
-    // current.
+    // The one window, with its GL context: creating it makes the context
+    // current. It lives inside the Platform and outlives the Device.
     class Window {
     public:
+        // Taking the platform only orders the two: it is created first.
         [[nodiscard]] static auto create(Platform &platform, const WindowParams &params) noexcept -> Result<Window>;
 
         Window(const Window &) = delete;
@@ -42,7 +43,6 @@ namespace tgx {
 
         // Must be nul-terminated UTF-8, as the windowing backend requires.
         auto set_title(const char *title) noexcept -> void;
-
 
         // In screen coordinates, the units the OS lays windows out in and the
         // Canvas draws in. The same as framebuffer_size() unless the display

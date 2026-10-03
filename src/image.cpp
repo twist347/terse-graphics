@@ -11,6 +11,7 @@
 #include <ios>
 #include <memory>
 #include <span>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -31,13 +32,20 @@ namespace {
 
     // The whole file, or nothing if it cannot be opened or read through.
     [[nodiscard]] auto read_file(const std::filesystem::path &path) -> tgx::Result<std::vector<std::byte>> {
+        // A directory opens fine on some systems and reports a size that is
+        // anything but its contents (LLONG_MAX on ext4).
+        std::error_code err;
+        if (!std::filesystem::is_regular_file(path, err)) {
+            return std::unexpected{tgx::Error::io};
+        }
+
         std::ifstream file{path, std::ios::binary | std::ios::ate};
         if (!file) {
             return std::unexpected{tgx::Error::io};
         }
 
-        // Opened at the end, so the position is the size. -1 for a stream that
-        // cannot tell, e.g. a directory on some systems.
+        // Opened at the end, so the position is the size; -1 for a stream that
+        // cannot tell.
         const std::streamoff size = file.tellg();
         if (size < 0) {
             return std::unexpected{tgx::Error::io};

@@ -6,7 +6,12 @@
 #include "tgx/gl/device.h"
 #include "tgx/gl/version.h"
 
+#include "context.h"
+
+#include <glad/gl.h>
+
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -58,7 +63,7 @@ namespace tgx::gl::detail {
             TGX_ASSERT_MSG(false, "the 2D batch shader failed: {}", shader.error());
             return std::unexpected{Error::platform};
         }
-        const auto u_projection = shader->uniform<Mat4>("u_projection");
+        const std::int32_t u_projection = projection_location(*shader);
         shader->set(shader->uniform<TextureSlot>("u_texture"), {0});
 
         auto vertex_buffer = Buffer::create(batch_max_vertices * sizeof(BatchVertex), BufferAccess::dynamic);
@@ -96,7 +101,7 @@ namespace tgx::gl::detail {
 
     Batch::Batch(
         Shader shader,
-        Uniform<Mat4> u_projection,
+        std::int32_t u_projection,
         Buffer vertex_buffer,
         Buffer index_buffer,
         VertexArray vertex_array,
@@ -114,62 +119,62 @@ namespace tgx::gl::detail {
     }
 
     auto Batch::reserve(
-        Device &device,
+        Context &context,
         const BatchState &state,
         std::size_t vertex_count,
         std::size_t index_count
     ) noexcept -> std::uint16_t {
         TGX_ASSERT(vertex_count <= batch_max_vertices && index_count <= batch_max_indices);
 
-        // An empty batch takes the state afresh: the texture it points at may
-        // have been replaced at the same address since.
-        if (m_indices.empty()
-            || state != m_state
+        if (state != m_state
             || m_vertices.size() + vertex_count > batch_max_vertices
             || m_indices.size() + index_count > batch_max_indices) {
-            flush(device);
+            flush(context);
             m_state = state;
-            m_texture_id = state.texture != nullptr ? state.texture->id() : 0;
-            m_shader_id = state.shader != nullptr ? state.shader->id() : 0;
         }
         return static_cast<std::uint16_t>(m_vertices.size());
     }
 
-    auto Batch::flush(Device &device) noexcept -> void {
+    auto Batch::flush(Context &context) noexcept -> void {
         if (m_indices.empty()) {
             return;
         }
 
         m_vertex_buffer.update(0, m_vertices);
         m_index_buffer.update(0, m_indices);
-        const std::size_t count = m_indices.size();
-
-        // Emptied before the draw, which itself draws the batch first: there
-        // is nothing left for it then.
-        m_vertices.clear();
-        m_indices.clear();
 
         // Set on every draw: one matrix is cheap, and a custom shader may have
-        // been used elsewhere in between. Its uniform is looked up here, as
-        // the state holds only the shader.
-        Shader &shader = m_state.shader != nullptr ? *m_state.shader : m_shader;
-        const Uniform<Mat4> u_projection = m_state.shader != nullptr
-            ? shader.uniform<Mat4>("u_projection")
-            : m_u_projection;
-        shader.set(u_projection, m_state.transform);
+        // been used elsewhere in between. Straight to GL rather than through
+        // Shader::set, which would come back here to flush.
+        const bool custom = m_state.program != 0;
+        const GlId program = custom ? m_state.program : m_shader.id();
+        const std::int32_t u_projection = custom ? m_state.u_projection : m_u_projection;
+        const auto floats = std::bit_cast<std::array<float, 16>>(m_state.transform);
+        context.use_program(program);
+        glUniformMatrix4fv(u_projection, 1, GL_FALSE, floats.data());
 
-        device.draw(shader, m_vertex_array, {
-            .count = count,
+        context.draw({
+            .program = program,
+            .vertex_array = m_vertex_array.id(),
+            .index_type = IndexType::uint16,
+            .count = m_indices.size(),
             .state = {.blend = m_state.blend},
-            .textures = {m_state.texture != nullptr ? m_state.texture : &m_white},
+            .textures = {m_state.texture != 0 ? m_state.texture : m_white.id()},
         });
+
+        m_vertices.clear();
+        m_indices.clear();
     }
 
     auto Batch::uses_texture(GlId texture) const noexcept -> bool {
-        return !m_indices.empty() && m_texture_id == texture;
+        return !m_indices.empty() && m_state.texture == texture;
     }
 
     auto Batch::uses_shader(GlId program) const noexcept -> bool {
-        return !m_indices.empty() && m_shader_id == program;
+        return !m_indices.empty() && m_state.program == program;
+    }
+
+    auto projection_location(const Shader &shader) noexcept -> std::int32_t {
+        return glGetUniformLocation(shader.id(), "u_projection");
     }
 }

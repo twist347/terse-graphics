@@ -26,7 +26,6 @@ namespace {
         const void *data,
         tgx::gl::BufferAccess access
     ) noexcept -> tgx::Result<GLuint> {
-        TGX_ASSERT_MSG(tgx::gl::detail::context_alive(), "creating a Buffer before the Device");
         // GL rejects empty storage, and sizes travel as a signed GLsizeiptr.
         TGX_ASSERT(size > 0);
         TGX_ASSERT(std::in_range<GLsizeiptr>(size));
@@ -79,7 +78,6 @@ namespace tgx::gl {
     }
 
     auto Buffer::update_bytes(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void {
-        TGX_ASSERT(m_handle);
         TGX_ASSERT_MSG(m_access == BufferAccess::dynamic, "updating an immutable buffer");
         TGX_ASSERT_MSG(
             byte_offset <= m_size && data.size() <= m_size - byte_offset,
@@ -101,20 +99,14 @@ namespace tgx::gl {
     }
 
     auto Buffer::id() const noexcept -> GlId {
-        TGX_ASSERT(m_handle);
-
         return m_handle.get();
     }
 
     auto Buffer::size() const noexcept -> std::size_t {
-        TGX_ASSERT(m_handle);
-
         return m_size;
     }
 
     auto Buffer::access() const noexcept -> BufferAccess {
-        TGX_ASSERT(m_handle);
-
         return m_access;
     }
 }

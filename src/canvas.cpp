@@ -8,7 +8,7 @@
 #include "tgx/gl/shader.h"
 
 #include "batch.h"
-#include "device_internal.h"
+#include "context.h"
 
 #include <algorithm>
 #include <array>
@@ -17,7 +17,6 @@
 #include <cstdint>
 #include <initializer_list>
 #include <numbers>
-#include <string_view>
 #include <utility>
 
 namespace {
@@ -58,8 +57,13 @@ namespace {
             return min_segments;
         }
         // An edge of a circle split into n strays r * (1 - cos(pi / n)) from it.
+        // A huge radius rounds the cosine to 1 and n to infinity, which no
+        // cast survives: clamped while still a float.
         const float n = std::numbers::pi_v<float> / std::acos(1.f - circle_tolerance / screen_radius);
-        return std::clamp(static_cast<std::size_t>(std::ceil(n)), min_segments, max_segments);
+        if (!(n < static_cast<float>(max_segments))) {
+            return max_segments;
+        }
+        return std::max(static_cast<std::size_t>(std::ceil(n)), min_segments);
     }
 
     // The unit circle split into n, from angle 0 clockwise on screen.
@@ -75,9 +79,9 @@ namespace {
         std::size_t vertex_count,
         std::size_t index_count
     ) noexcept -> std::pair<Batch &, std::uint16_t> {
-        tgx::gl::Device &device = tgx::detail::device();
-        Batch &batch = tgx::gl::detail::DeviceAccess::batch(device);
-        const std::uint16_t first = batch.reserve(device, state, vertex_count, index_count);
+        tgx::gl::detail::Context &context = tgx::gl::detail::context();
+        Batch &batch = *context.batch;
+        const std::uint16_t first = batch.reserve(context, state, vertex_count, index_count);
         return {batch, first};
     }
 
@@ -90,8 +94,6 @@ namespace {
 
 namespace tgx {
     auto Canvas::create(Size size) noexcept -> Canvas {
-        TGX_ASSERT_MSG(gl::detail::context_alive(), "creating a Canvas before the Device");
-
         return Canvas{size};
     }
 
@@ -112,29 +114,44 @@ namespace tgx {
 
     auto Canvas::set_shader(gl::Shader *shader) noexcept -> void {
         m_shader = shader;
+        m_u_projection = -1;
         if (shader == nullptr) {
             return;
         }
 
-        // The projection is the one uniform the canvas needs: looked up here
-        // to assert it exists. The texture is optional: a shader may ignore it.
+        // The projection is the one uniform the canvas needs: looked up through
+        // the shader first to assert it exists and is a mat4.
         (void) shader->uniform<Mat4>("u_projection");
-        const auto samplers = gl::detail::samplers(*shader);
-        if (std::ranges::contains(samplers, std::string_view{"u_texture"}, &gl::detail::ShaderSampler::name)) {
+        m_u_projection = gl::detail::projection_location(*shader);
+
+        // The texture is optional: a shader may ignore it. The batch draws
+        // without Device::draw's checks, so the one on its samplers is here.
+        for (const auto &sampler : gl::detail::samplers(*shader)) {
+            TGX_ASSERT_MSG(
+                sampler.name == "u_texture",
+                "sampler '{}': a canvas shader gets no texture but u_texture",
+                sampler.name
+            );
             shader->set(shader->uniform<gl::TextureSlot>("u_texture"), {0});
         }
     }
 
     auto Canvas::clear(Color color) noexcept -> void {
-        detail::device().clear({.color = color});
+        gl::detail::context().clear({.color = color});
     }
 
     auto Canvas::flush() noexcept -> void {
-        detail::device().flush();
+        gl::detail::context().flush();
     }
 
-    auto Canvas::state_for(const Texture *texture) const noexcept -> gl::detail::BatchState {
-        return {.texture = texture, .blend = m_blend, .shader = m_shader, .transform = m_transform};
+    auto Canvas::state_for(std::uint32_t texture) const noexcept -> gl::detail::BatchState {
+        return {
+            .texture = texture,
+            .blend = m_blend,
+            .program = m_shader != nullptr ? m_shader->id() : 0,
+            .u_projection = m_u_projection,
+            .transform = m_transform,
+        };
     }
 
     auto Canvas::rect(Rect rect, Color color) noexcept -> void {
@@ -161,7 +178,7 @@ namespace tgx {
     }
 
     auto Canvas::triangle(Vec2 a, Vec2 b, Vec2 c, Color color) noexcept -> void {
-        auto [batch, first] = start(state_for(nullptr), 3, 3);
+        auto [batch, first] = start(state_for(0), 3, 3);
 
         batch.push_vertex({a, white_uv, color});
         batch.push_vertex({b, white_uv, color});
@@ -186,7 +203,7 @@ namespace tgx {
         }
 
         const std::size_t n = segments_for(radius * std::abs(m_camera.zoom));
-        auto [batch, first] = start(state_for(nullptr), n + 1, n * 3);
+        auto [batch, first] = start(state_for(0), n + 1, n * 3);
 
         // A fan around the center, vertex first.
         batch.push_vertex({center, white_uv, color});
@@ -210,7 +227,7 @@ namespace tgx {
 
         const float inner = radius - thickness;
         const std::size_t n = segments_for(radius * std::abs(m_camera.zoom));
-        auto [batch, first] = start(state_for(nullptr), n * 2, n * 6);
+        auto [batch, first] = start(state_for(0), n * 2, n * 6);
 
         // Outer and inner rim points in pairs; each pair and the next make a
         // quad of the ring.
@@ -269,7 +286,7 @@ namespace tgx {
             }
         }
 
-        auto [batch, first] = start(state_for(&texture), 4, 6);
+        auto [batch, first] = start(state_for(texture.id()), 4, 6);
         for (std::size_t i = 0; i < 4; ++i) {
             batch.push_vertex({corners[i], uvs[i], sprite.tint});
         }
@@ -278,7 +295,7 @@ namespace tgx {
     }
 
     auto Canvas::quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void {
-        auto [batch, first] = start(state_for(nullptr), 4, 6);
+        auto [batch, first] = start(state_for(0), 4, 6);
 
         batch.push_vertex({a, white_uv, color});
         batch.push_vertex({b, white_uv, color});

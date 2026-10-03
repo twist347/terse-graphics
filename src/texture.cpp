@@ -3,7 +3,7 @@
 #include "tgx/assert.h"
 #include "tgx/image.h"
 
-#include "device_internal.h"
+#include "context.h"
 
 #include <glad/gl.h>
 
@@ -44,7 +44,6 @@ namespace {
         const void *pixels,
         const tgx::TextureParams &params
     ) noexcept -> tgx::Result<GLuint> {
-        TGX_ASSERT_MSG(tgx::gl::detail::context_alive(), "creating a Texture before the Device");
         TGX_ASSERT_MSG(!size.empty(), "texture of size {}x{}", size.width, size.height);
 
         // Too large is up to the driver, not the caller: the limit differs from
@@ -61,7 +60,7 @@ namespace {
 
         GLuint id = 0;
         glGenTextures(1, &id);
-        tgx::detail::bind_texture(edit_slot, id);
+        tgx::gl::detail::context().bind_texture(edit_slot, id);
 
         // Rows of 4-byte pixels are always 4-byte aligned, GL's default unpack
         // alignment, so it needs no setting.
@@ -92,42 +91,10 @@ namespace {
 
 namespace tgx {
     auto detail::delete_texture(gl::GlId id) noexcept -> void {
-        detail::forget_texture(id);
+        // Sprites added before keep the texture they were added with.
+        gl::detail::flush_texture_use(id);
+        gl::detail::context().forget_texture(id);
         glDeleteTextures(1, &id);
-    }
-
-    Texture::Texture(Texture &&other) noexcept {
-        if (other.m_handle) {
-            tgx::detail::flush_texture_use(other.m_handle.get());
-        }
-        m_handle = std::move(other.m_handle);
-        m_size = other.m_size;
-        m_params = other.m_params;
-    }
-
-    auto Texture::operator=(Texture &&other) noexcept -> Texture & {
-        if (this == &other) {
-            return *this;
-        }
-
-        // Both change: this one's texture goes, the other's moves away.
-        if (m_handle) {
-            tgx::detail::flush_texture_use(m_handle.get());
-        }
-        if (other.m_handle) {
-            tgx::detail::flush_texture_use(other.m_handle.get());
-        }
-        m_handle = std::move(other.m_handle);
-        m_size = other.m_size;
-        m_params = other.m_params;
-        return *this;
-    }
-
-    Texture::~Texture() {
-        // While this object is still whole: the draw reads it.
-        if (m_handle) {
-            tgx::detail::flush_texture_use(m_handle.get());
-        }
     }
 
     auto Texture::create(
@@ -151,7 +118,6 @@ namespace tgx {
     }
 
     auto Texture::update(int x, int y, const Image &image) noexcept -> void {
-        TGX_ASSERT(m_handle);
         TGX_ASSERT_MSG(m_params.access == TextureAccess::dynamic, "updating an immutable texture");
 
         const Size size = image.size();
@@ -166,8 +132,8 @@ namespace tgx {
         }
 
         // Sprites added before keep the pixels they were added with.
-        detail::flush_texture_use(m_handle.get());
-        detail::bind_texture(edit_slot, m_handle.get());
+        gl::detail::flush_texture_use(m_handle.get());
+        gl::detail::context().bind_texture(edit_slot, m_handle.get());
         glTexSubImage2D(
             GL_TEXTURE_2D, 0,
             x, y, size.width, size.height,
@@ -180,20 +146,14 @@ namespace tgx {
     }
 
     auto Texture::id() const noexcept -> gl::GlId {
-        TGX_ASSERT(m_handle);
-
         return m_handle.get();
     }
 
     auto Texture::size() const noexcept -> Size {
-        TGX_ASSERT(m_handle);
-
         return m_size;
     }
 
     auto Texture::params() const noexcept -> const TextureParams & {
-        TGX_ASSERT(m_handle);
-
         return m_params;
     }
 }

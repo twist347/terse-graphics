@@ -3,10 +3,8 @@
 #include "tgx/assert.h"
 #include "tgx/platform.h"
 
-#include "tgx/gl/handle.h"
 #include "tgx/gl/version.h"
 
-#include "platform_internal.h"
 #include "window_internal.h"
 
 #include <GLFW/glfw3.h>
@@ -14,12 +12,9 @@
 #include <utility>
 
 namespace tgx {
-    auto Window::create(Platform &platform, const WindowParams &params) noexcept -> Result<Window> {
-        TGX_ASSERT_MSG(platform.is_valid(), "creating a window from a moved-from Platform");
-
-        if (params.width <= 0 || params.height <= 0 || params.title == nullptr) {
-            return std::unexpected{Error::invalid_argument};
-        }
+    auto Window::create(Platform &, const WindowParams &params) noexcept -> Result<Window> {
+        TGX_ASSERT_MSG(params.width > 0 && params.height > 0, "window of size {}x{}", params.width, params.height);
+        TGX_ASSERT(params.title);
 
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, gl::version_major);
@@ -49,14 +44,11 @@ namespace tgx {
         return window;
     }
 
-    auto detail::gl_loader(const Window &window) noexcept -> GlLoader {
-        TGX_ASSERT(window.native_handle() != nullptr);
-
+    auto detail::gl_loader(const Window &) noexcept -> GlLoader {
         return glfwGetProcAddress;
     }
 
     Window::Window(GLFWwindow *handle) noexcept : m_handle{handle} {
-        detail::window_opened();
     }
 
     Window::Window(Window &&other) noexcept : m_handle{std::exchange(other.m_handle, nullptr)} {
@@ -76,14 +68,10 @@ namespace tgx {
     }
 
     auto Window::should_close() const noexcept -> bool {
-        TGX_ASSERT(m_handle);
-
         return glfwWindowShouldClose(m_handle) == GLFW_TRUE;
     }
 
     auto Window::request_close() noexcept -> void {
-        TGX_ASSERT(m_handle);
-
         glfwSetWindowShouldClose(m_handle, GLFW_TRUE);
     }
 
@@ -94,7 +82,6 @@ namespace tgx {
     }
 
     auto Window::set_title(const char *title) noexcept -> void {
-        TGX_ASSERT(m_handle);
         TGX_ASSERT(title);
 
         glfwSetWindowTitle(m_handle, title);
@@ -105,33 +92,21 @@ namespace tgx {
     }
 
     auto Window::size() const noexcept -> Size {
-        TGX_ASSERT(m_handle);
-
         int width = 0, height = 0;
         glfwGetWindowSize(m_handle, &width, &height);
         return {width, height};
     }
 
     auto Window::framebuffer_size() const noexcept -> Size {
-        TGX_ASSERT(m_handle);
-
         int width = 0, height = 0;
         glfwGetFramebufferSize(m_handle, &width, &height);
         return {width, height};
     }
 
     auto Window::destroy() noexcept -> void {
-        if (!m_handle) {
-            return;
+        if (m_handle) {
+            glfwDestroyWindow(m_handle);
+            m_handle = nullptr;
         }
-
-        // The GL context goes with the window, but a live Device would still
-        // report it usable and let resources call GL without it.
-        TGX_ASSERT_MSG(!gl::detail::context_alive(), "Window destroyed while a Device is alive");
-
-        glfwDestroyWindow(m_handle);
-        m_handle = nullptr;
-
-        detail::window_closed();
     }
 }

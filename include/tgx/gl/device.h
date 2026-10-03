@@ -11,10 +11,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <memory>
 #include <optional>
-
-struct GLFWwindow;
+#include <utility>
 
 namespace tgx {
     class Texture;
@@ -24,11 +22,6 @@ namespace tgx {
 namespace tgx::gl {
     class Shader;
     class VertexArray;
-
-    namespace detail {
-        class Batch;
-        struct DeviceAccess;
-    }
 
     // What a clear resets, and to what; what is left empty stays as it is.
     // Like a draw, every clear states it all, so nothing carries over from
@@ -107,17 +100,18 @@ namespace tgx::gl {
         std::array<const Texture *, max_texture_slots> textures{};
     };
 
-    // Marks the GL context as usable: GPU resources (gl:: ones, Texture) may
-    // be created only while it exists and must be destroyed before it. At most
-    // one may exist.
+    // The GL context, ready to draw: GPU resources (gl:: ones, Texture) are
+    // created while it exists and destroyed before it goes. There is one, of
+    // the one window; it only sets the context up and tears it down, which is
+    // why it can be moved freely and holds nothing else.
     //
-    // It also holds what the Canvas has collected and not drawn yet, and draws
-    // that before anything else of its own: a draw, a clear, a viewport
-    // change, presenting the frame. So the picture follows the order of the
-    // calls. flush() draws it on demand, before raw GL calls.
+    // It also draws what the Canvas has collected before anything else of its
+    // own: a draw, a clear, a viewport change, presenting the frame. So the
+    // picture follows the order of the calls. flush() draws it on demand,
+    // before raw GL calls.
     //
-    // It presents the frames of the window it was created for; the window
-    // must outlive it (asserted).
+    // It presents the frames of the window it was created for, which must
+    // outlive it.
     class Device {
     public:
         // Loads GL functions for the window's context and, on a debug context,
@@ -127,7 +121,9 @@ namespace tgx::gl {
         Device(const Device &) = delete;
         auto operator=(const Device &) -> Device & = delete;
 
-        Device(Device &&other) noexcept;
+        Device(Device &&other) noexcept : m_owned{std::exchange(other.m_owned, false)} {
+        }
+
         auto operator=(Device &&other) noexcept -> Device &;
 
         ~Device();
@@ -159,26 +155,12 @@ namespace tgx::gl {
         ) noexcept -> void;
 
     private:
-        friend struct detail::DeviceAccess;
-
-        Device() noexcept;
+        Device() noexcept : m_owned{true} {
+        }
 
         auto release() noexcept -> void;
 
-
-        // The values GL clears to now, so a clear only sets what changed.
-        Color m_clear_color{0, 0, 0, 0};
-        float m_clear_depth{1.f};
-        std::int32_t m_clear_stencil{0};
-        std::array<int, 4> m_viewport{};
-        // What GL is set to now; a fresh context starts at the defaults.
-        RenderState m_state{};
-        // The window frames go to. Its handle stays put when the Window object
-        // moves.
-        GLFWwindow *m_window{nullptr};
-        // Created with the Device; behind a pointer to keep its internals out
-        // of this header.
-        std::unique_ptr<detail::Batch> m_batch;
+        // False once moved from: the context is someone else's to tear down.
         bool m_owned{false};
     };
 }

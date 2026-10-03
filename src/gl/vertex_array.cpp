@@ -48,7 +48,6 @@ namespace tgx::gl {
         std::size_t stride,
         std::span<const VertexAttribute> attributes
     ) noexcept -> VertexArray {
-        TGX_ASSERT_MSG(detail::context_alive(), "creating a VertexArray before the Device");
         TGX_ASSERT(stride > 0 && stride <= max_stride);
         TGX_ASSERT(!attributes.empty() && attributes.size() <= VertexArray::max_attributes);
 
@@ -98,7 +97,6 @@ namespace tgx::gl {
     }
 
     auto VertexArray::set_vertex_buffer(const Buffer &buffer, std::size_t byte_offset) noexcept -> void {
-        TGX_ASSERT(m_handle);
         TGX_ASSERT(byte_offset <= buffer.size());
 
         m_vertex_count = (buffer.size() - byte_offset) / m_stride;
@@ -132,8 +130,6 @@ namespace tgx::gl {
     }
 
     auto VertexArray::set_index_buffer(const Buffer &buffer, IndexType type) noexcept -> void {
-        TGX_ASSERT(m_handle);
-
         // Unlike ARRAY_BUFFER, this binding is VAO state: binding it with the
         // VAO bound is what attaches it.
         glBindVertexArray(m_handle.get());
@@ -147,46 +143,34 @@ namespace tgx::gl {
     }
 
     auto VertexArray::id() const noexcept -> GlId {
-        TGX_ASSERT(m_handle);
-
         return m_handle.get();
     }
 
     auto VertexArray::stride() const noexcept -> std::size_t {
-        TGX_ASSERT(m_handle);
-
         return m_stride;
     }
 
     auto VertexArray::vertex_count() const noexcept -> std::size_t {
-        TGX_ASSERT(m_handle);
-
         return m_vertex_count;
     }
 
     auto VertexArray::index_count() const noexcept -> std::size_t {
-        TGX_ASSERT(m_handle);
         TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
 
         return m_index_count;
     }
 
     auto VertexArray::has_index_buffer() const noexcept -> bool {
-        TGX_ASSERT(m_handle);
-
         return m_has_index_buffer;
     }
 
     auto VertexArray::index_type() const noexcept -> IndexType {
-        TGX_ASSERT(m_handle);
         TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
 
         return m_index_type;
     }
 
     auto VertexArray::attributes() const noexcept -> std::span<const VertexAttribute> {
-        TGX_ASSERT(m_handle);
-
         return std::span{m_attributes}.first(m_attribute_count);
     }
 }

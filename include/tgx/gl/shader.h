@@ -105,7 +105,9 @@ namespace tgx::gl {
     // own #version line; TGX_GLSL_VERSION (tgx/gl/version.h) is the one that
     // matches the context.
     //
-    // Created only while the Device exists (asserted).
+    // Lives inside the Device: created after it, destroyed before it. Shapes
+    // the Canvas drew with it and that still wait in the Device's batch are
+    // drawn first when a uniform of it is set or it goes.
     class Shader {
     public:
         // Fails with Error::compile or Error::link. The driver's log is written to
@@ -115,17 +117,6 @@ namespace tgx::gl {
             std::string_view fragment,
             std::string *out_log = nullptr
         ) -> Result<Shader>;
-
-        Shader(const Shader &) = delete;
-        auto operator=(const Shader &) -> Shader & = delete;
-
-        // Shapes the Canvas drew with this shader and that still wait in the
-        // Device's batch are drawn first whenever it is moved or goes, or a
-        // uniform of it is set.
-        Shader(Shader &&other) noexcept;
-        auto operator=(Shader &&other) noexcept -> Shader &;
-
-        ~Shader();
 
         // Looks a uniform up by name, for setting it later without the name.
         // Asserts that it is active, of a GLSL type T fits and not an array

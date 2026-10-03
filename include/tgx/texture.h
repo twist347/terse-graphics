@@ -55,7 +55,9 @@ namespace tgx {
     // Unlike the gl:: resources it has nothing GL-specific to configure, so it
     // serves both the Canvas and gl::Device::draw; id() is the way out to raw GL.
     //
-    // Created only while the Device exists (asserted).
+    // Lives inside the Device: created after it, destroyed before it. Sprites
+    // of it still waiting in the Device's batch are drawn first when it is
+    // updated or goes.
     class Texture {
     public:
         // Filled from the image, which must not be empty. Fails with
@@ -70,16 +72,6 @@ namespace tgx {
             Size size,
             const TextureParams &params
         ) noexcept -> Result<Texture>;
-
-        Texture(const Texture &) = delete;
-        auto operator=(const Texture &) -> Texture & = delete;
-
-        // Sprites of this Texture still waiting in the Device's batch are
-        // drawn first whenever it is moved or goes.
-        Texture(Texture &&other) noexcept;
-        auto operator=(Texture &&other) noexcept -> Texture &;
-
-        ~Texture();
 
         // Overwrites the pixels the image covers when its top-left pixel is put
         // at (x, y); only for dynamic textures, and the image must fit.
