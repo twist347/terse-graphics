@@ -4,6 +4,8 @@
 #include "tgx/error.h"
 #include "tgx/size.h"
 
+#include <utility>
+
 struct GLFWwindow;
 
 namespace tgx {
@@ -23,7 +25,9 @@ namespace tgx {
     };
 
     // The one window, with its GL context: creating it makes the context
-    // current. It lives inside the Platform and outlives the Device.
+    // current. It lives inside the Platform and outlives the Device. Like the
+    // Device, it only owns the window; its state is kept in one place inside
+    // tgx, so it can be moved freely.
     class Window {
     public:
         // Taking the platform only orders the two: it is created first.
@@ -32,7 +36,9 @@ namespace tgx {
         Window(const Window &) = delete;
         auto operator=(const Window &) -> Window & = delete;
 
-        Window(Window &&other) noexcept;
+        Window(Window &&other) noexcept : m_owned{std::exchange(other.m_owned, false)} {
+        }
+
         auto operator=(Window &&other) noexcept -> Window &;
 
         ~Window();
@@ -46,19 +52,22 @@ namespace tgx {
 
         // In screen coordinates, the units the OS lays windows out in and the
         // Canvas draws in. The same as framebuffer_size() unless the display
-        // scales, e.g. half of it on a Retina screen.
+        // scales, e.g. half of it on a Retina screen. Both sizes are as of the
+        // last events polled.
         [[nodiscard]] auto size() const noexcept -> Size;
 
-        // In pixels: what the viewport covers.
+        // In pixels: what a draw covers unless told otherwise.
         [[nodiscard]] auto framebuffer_size() const noexcept -> Size;
 
-        [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow * { return m_handle; }
+        [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow *;
 
     private:
-        explicit Window(GLFWwindow *handle) noexcept;
+        Window() noexcept : m_owned{true} {
+        }
 
         auto destroy() noexcept -> void;
 
-        GLFWwindow *m_handle{nullptr};
+        // False once moved from: the window is someone else's to close.
+        bool m_owned{false};
     };
 }

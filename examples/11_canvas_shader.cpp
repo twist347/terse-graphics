@@ -82,7 +82,10 @@ int main() {
     }
     const auto u_amount = shader->uniform<float>("u_amount");
 
+    // The canvas as it is, and a copy of it that draws through our shader.
     auto &canvas = app->canvas();
+    tgx::Canvas gray = canvas;
+    gray.set_shader(&*shader);
 
     while (!app->should_close()) {
         app->poll_events();
@@ -99,9 +102,7 @@ int main() {
 
         // Left: the canvas's own shader. Right: the same shapes through ours.
         draw_scene(canvas, 120.f);
-        canvas.set_shader(&*shader);
-        draw_scene(canvas, 760.f);
-        canvas.set_shader(nullptr);
+        draw_scene(gray, 760.f);
 
         app->swap_buffers();
     }

@@ -8,18 +8,17 @@ Early and moving: the API changes from commit to commit.
 ## Two levels
 
 - **`tgx`** (`#include "tgx/tgx.h"`): a window, a loop and 2D drawing on the
-  `Canvas`, with images and textures. Normal use needs nothing from OpenGL;
-  enough for a game in the spirit of raylib.
+  `Canvas`, with images and textures, and the `Device` that shows the frames.
+  Normal use needs nothing from OpenGL; enough for a game in the spirit of
+  raylib.
 - **`tgx::gl`** (`#include "tgx/gl.h"`): drawing with your own shaders and
-  buffers through the `gl::Device`. Everything in it is OpenGL. It builds on
+  buffers through `Device::draw`. Everything in it is OpenGL. It builds on
   `tgx` and mixes with the `Canvas` in the same frame.
 
-The levels split the headers, not the library: it is one library, and the two
-lean on each other inside. The `gl::Device` holds the `Canvas`'s batch, so it
-always makes it (a shader, a 1x1 white texture, about 420 KB of buffers), even
-for a program that draws only with its own shaders. `App` hands out the
-`gl::Device`, so `tgx/tgx.h` declares it too; what stays out of it are the raw
-resources (`gl::Buffer`, `gl::VertexArray`, `gl::Shader`).
+The levels split the headers, not the library: it is one library. The `Device`
+holds the `Canvas`'s batch, so it always makes it (a shader, a 1x1 white
+texture, about 420 KB of buffers), even for a program that draws only with its
+own shaders.
 
 ## What there is
 
@@ -56,20 +55,22 @@ Not yet: input, text, render targets.
 
 | Object        | Owns                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
-| `App`         | The simple way in: one `Platform`, `Window`, `gl::Device` and `Canvas` plus a frame `Clock`, created together and torn down in the right order. |
+| `App`         | The simple way in: one `Platform`, `Window`, `Device` and `Canvas` plus a frame `Clock`, created together and torn down in the right order. |
 | `Platform`    | `glfwInit`/`glfwTerminate` and event polling. Knows nothing about GL.                  |
-| `Window`      | The OS window and its GL context: version hints, making it current, size, title, closing. |
-| `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `gl::Device` to draw in as few draws as it can. Holds no GPU resources, only how to draw (size, camera, blend, shader). |
-| `Texture`     | An image on the GPU, for the `Canvas` and `gl::Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
-| `gl::Device`  | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, viewport, render state, draw calls, presenting frames (and vsync), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
+| `Window`      | The OS window and its GL context: version hints, making it current, size (kept up to date as GLFW reports it), title, closing. |
+| `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames (and vsync), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
+| `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how to draw (size, camera, blend, shader): a plain value to copy. |
+| `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
 | `gl::*`       | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA), but never where a draw would read it. |
 
 GPU resources (`Texture`, `gl::*`) are created without naming the `Device`, but
 only while it exists, and destroyed before it. Declare them after the `App`.
 
 `App` creates everything in one call. Its frame loop has the shape of a plain
-GLFW one; `poll_events` also fits the viewport and the canvas after a resize,
-`swap_buffers` presents the frame and ticks the clock:
+GLFW one; `poll_events` also notes a resize (`app->resized()`), `swap_buffers`
+presents the frame and ticks the clock. Nothing needs fitting after a resize:
+draws cover the whole framebuffer unless told otherwise, and the canvas
+follows the window.
 
     auto app = tgx::App::create({.title = "tgx"});
     while (!app->should_close()) {
@@ -86,8 +87,8 @@ chain, and each step fails on its own:
 
     auto platform = tgx::Platform::create();
     auto window   = tgx::Window::create(*platform, {...});
-    auto device   = tgx::gl::Device::create(*window);
-    auto canvas   = tgx::Canvas::create(window->size());
+    auto device   = tgx::Device::create(*window);
+    auto canvas   = tgx::Canvas::create();   // follows the window
 
 Frames are shown with `device->present()`, which also draws the last of the
 `Canvas` shapes; `App::swap_buffers` calls it.
@@ -96,7 +97,10 @@ Frames are shown with `device->present()`, which also draws the last of the
 
 The quick way to draw in 2D: no shaders, buffers or vertex arrays. Coordinates
 are the window's screen coordinates, (0, 0) at the top-left, y down; on a
-scaling display (Retina) things keep their size.
+scaling display (Retina) things keep their size. A canvas can instead have a
+size of its own, a fixed logical resolution stretched over the window:
+
+    pixels.set_size({320, 180});   // set_size({}) follows the window again
 
     auto &canvas = app->canvas();
     while (!app->should_close()) {
@@ -117,8 +121,8 @@ Outlines lie inside the shape they outline, so a frame and a fill of the same
 rectangle cover the same area.
 
 Shapes are collected and drawn together, but the picture always follows the
-order of the calls: the `gl::Device` collects them and draws them before any
-draw, clear or viewport change of its own and before presenting the frame.
+order of the calls: the `Device` collects them and draws them before any draw
+or clear of its own and before presenting the frame.
 Nothing the shapes use is read later than the calls that made them: a texture
 updated or destroyed, or a uniform of the canvas shader set, has the
 shapes waiting on it drawn first. `canvas.flush()` is only needed before raw
@@ -140,15 +144,19 @@ needs only a position: by default it is the whole texture at its own size.
         .tint = tgx::colors::red,
     });
 
-A camera moves, turns and zooms the world; set it back to the default for what
-stays on screen. Blending works the same way:
+A camera moves, turns and zooms the world. A canvas is a plain value holding
+how to draw (size, camera, blend, shader), so rather than switching one back
+and forth, keep a copy for each way of drawing. Copies share the frame and
+the order of the calls:
 
-    canvas.set_camera({.target = player_pos, .offset = screen_center, .zoom = 2.f});
-    ... the world ...
-    canvas.set_camera({});
-    ... the HUD ...
+    tgx::Canvas world = app->canvas();
+    world.set_camera({.target = player_pos, .offset = screen_center, .zoom = 2.f});
 
-    canvas.set_blend(tgx::Blend::additive);   // Blend::alpha by default
+    world.sprite(...);                  // the world
+    app->canvas().rect(...);            // the HUD, on top
+
+    tgx::Canvas glow = app->canvas();
+    glow.set_blend(tgx::Blend::additive);   // Blend::alpha by default
 
 `camera.to_world(point)` and `to_screen(point)` convert between the two, e.g.
 for what is under the mouse.
@@ -200,7 +208,8 @@ the compiler:
 
 A draw draws the whole buffer unless told otherwise, and carries its own render
 state; a clear carries its own values. Nothing one call sets leaks into the
-next; the `Device` only changes what differs from the previous call:
+next; the `Device` only changes what differs from the previous call. That
+includes the viewport: the whole framebuffer unless a draw says otherwise.
 
     auto &device = app->device();
     device.clear({.color = tgx::colors::black, .depth = 1.f});
@@ -208,6 +217,7 @@ next; the `Device` only changes what differs from the previous call:
     device.draw(*shader, vao, {.count = 6, .first = 12});
     device.draw(*shader, sprites, {.state = {.blend = tgx::Blend::alpha}});
     device.draw(*shader, cube, {.state = {.depth = tgx::gl::Depth::less, .cull = tgx::gl::Cull::back}});
+    device.draw(*shader, minimap, {.viewport = tgx::gl::Viewport{0, 0, 256, 256}});   // pixels, GL's bottom-left
 
 Textures are the same `tgx::Texture` the `Canvas` takes; texture coordinates
 (0, 0) are the image's top-left pixel. A `sampler2D` uniform is set once to a
@@ -219,9 +229,9 @@ slot, and each draw puts textures into slots:
 The `Canvas` can draw through a shader of your own, which takes what its own
 takes (see `Canvas::set_shader`); its other uniforms are yours to set:
 
-    canvas.set_shader(&*grayscale);
-    canvas.rect(...);   // through grayscale
-    canvas.set_shader(nullptr);
+    tgx::Canvas gray = app->canvas();
+    gray.set_shader(&*grayscale);
+    gray.rect(...);   // through grayscale
 
 `Blend` has `none`, `alpha`, `premultiplied`, `additive` and `multiply` (the last
 takes premultiplied colors, as `premultiplied` does: `Color::premultiplied()`); `Depth`

@@ -3,7 +3,7 @@
 #include "tgx/assert.h"
 #include "tgx/image.h"
 
-#include "tgx/gl/device.h"
+#include "tgx/gl/draw.h"
 #include "tgx/gl/version.h"
 
 #include "context.h"
@@ -48,15 +48,15 @@ namespace {
         }
     )";
 
-    using tgx::gl::detail::batch_max_indices;
-    using tgx::gl::detail::batch_max_vertices;
+    using tgx::detail::batch_max_indices;
+    using tgx::detail::batch_max_vertices;
 
     static_assert(batch_max_vertices - 1 <= std::numeric_limits<std::uint16_t>::max());
 }
 
-namespace tgx::gl::detail {
+namespace tgx::detail {
     auto Batch::create() -> Result<Batch> {
-        auto shader = Shader::from_source(vertex_source, fragment_source);
+        auto shader = gl::Shader::from_source(vertex_source, fragment_source);
         if (!shader) {
             // Ours, and checked by the examples on every platform tgx runs on;
             // a driver refusing it is the platform's failure.
@@ -64,25 +64,29 @@ namespace tgx::gl::detail {
             return std::unexpected{Error::platform};
         }
         const std::int32_t u_projection = projection_location(*shader);
-        shader->set(shader->uniform<TextureSlot>("u_texture"), {0});
+        shader->set(shader->uniform<gl::TextureSlot>("u_texture"), {0});
 
-        auto vertex_buffer = Buffer::create(batch_max_vertices * sizeof(BatchVertex), BufferAccess::dynamic);
+        auto vertex_buffer = gl::Buffer::create(
+            batch_max_vertices * sizeof(BatchVertex), gl::BufferAccess::dynamic
+        );
         if (!vertex_buffer) {
             return std::unexpected{vertex_buffer.error()};
         }
-        auto index_buffer = Buffer::create(batch_max_indices * sizeof(std::uint16_t), BufferAccess::dynamic);
+        auto index_buffer = gl::Buffer::create(
+            batch_max_indices * sizeof(std::uint16_t), gl::BufferAccess::dynamic
+        );
         if (!index_buffer) {
             return std::unexpected{index_buffer.error()};
         }
 
         const std::array layout{
-            VertexAttribute::of(0, &BatchVertex::position),
-            VertexAttribute::of(1, &BatchVertex::uv),
-            VertexAttribute::of(2, &BatchVertex::color),
+            gl::VertexAttribute::of(0, &BatchVertex::position),
+            gl::VertexAttribute::of(1, &BatchVertex::uv),
+            gl::VertexAttribute::of(2, &BatchVertex::color),
         };
-        auto vertex_array = VertexArray::create<BatchVertex>(layout);
+        auto vertex_array = gl::VertexArray::create<BatchVertex>(layout);
         vertex_array.set_vertex_buffer(*vertex_buffer);
-        vertex_array.set_index_buffer(*index_buffer, IndexType::uint16);
+        vertex_array.set_index_buffer(*index_buffer, gl::IndexType::uint16);
 
         auto white = Texture::create(Image::create({1, 1}, colors::white));
         if (!white) {
@@ -100,11 +104,11 @@ namespace tgx::gl::detail {
     }
 
     Batch::Batch(
-        Shader shader,
+        gl::Shader shader,
         std::int32_t u_projection,
-        Buffer vertex_buffer,
-        Buffer index_buffer,
-        VertexArray vertex_array,
+        gl::Buffer vertex_buffer,
+        gl::Buffer index_buffer,
+        gl::VertexArray vertex_array,
         Texture white
     )
         : m_shader{std::move(shader)},
@@ -156,9 +160,11 @@ namespace tgx::gl::detail {
         context.draw({
             .program = program,
             .vertex_array = m_vertex_array.id(),
-            .index_type = IndexType::uint16,
+            .index_type = gl::IndexType::uint16,
             .count = m_indices.size(),
             .state = {.blend = m_state.blend},
+            // The canvas covers the whole framebuffer.
+            .viewport = full_viewport(),
             .textures = {m_state.texture != 0 ? m_state.texture : m_white.id()},
         });
 
@@ -174,7 +180,7 @@ namespace tgx::gl::detail {
         return !m_indices.empty() && m_state.program == program;
     }
 
-    auto projection_location(const Shader &shader) noexcept -> std::int32_t {
+    auto projection_location(const gl::Shader &shader) noexcept -> std::int32_t {
         return glGetUniformLocation(shader.id(), "u_projection");
     }
 }

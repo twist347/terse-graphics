@@ -1,15 +1,14 @@
 #pragma once
 
 #include "tgx/error.h"
+#include "tgx/handle.h"
 #include "tgx/size.h"
-
-#include "tgx/gl/handle.h"
 
 namespace tgx {
     class Image;
 
     namespace detail {
-        auto delete_texture(gl::GlId id) noexcept -> void;
+        auto delete_texture(GlId id) noexcept -> void;
     }
 
     enum class TextureAccess {
@@ -53,7 +52,7 @@ namespace tgx {
     // (1, 1) the bottom-right.
     //
     // Unlike the gl:: resources it has nothing GL-specific to configure, so it
-    // serves both the Canvas and gl::Device::draw; id() is the way out to raw GL.
+    // serves both the Canvas and Device::draw; id() is the way out to raw GL.
     //
     // Lives inside the Device: created after it, destroyed before it. Sprites
     // of it still waiting in the Device's batch are drawn first when it is
@@ -77,18 +76,18 @@ namespace tgx {
         // at (x, y); only for dynamic textures, and the image must fit.
         auto update(int x, int y, const Image &image) noexcept -> void;
 
-        [[nodiscard]] auto id() const noexcept -> gl::GlId;
+        [[nodiscard]] auto id() const noexcept -> GlId;
 
         [[nodiscard]] auto size() const noexcept -> Size;
 
         [[nodiscard]] auto params() const noexcept -> const TextureParams &;
 
     private:
-        Texture(gl::GlId id, Size size, const TextureParams &params) noexcept
+        Texture(GlId id, Size size, const TextureParams &params) noexcept
             : m_handle{id}, m_size{size}, m_params{params} {
         }
 
-        gl::Handle<detail::delete_texture> m_handle;
+        Handle<detail::delete_texture> m_handle;
         Size m_size{};
         TextureParams m_params{};
     };

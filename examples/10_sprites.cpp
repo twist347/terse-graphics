@@ -68,7 +68,10 @@ int main() {
         return 1;
     }
 
-    auto &canvas = app->canvas();
+    // The screen, for what stays put, and the world, a copy of it seen through
+    // a camera. Both draw into the same frame, in the order of the calls.
+    auto &screen = app->canvas();
+    tgx::Canvas world = screen;
     constexpr tgx::Vec2 big{frame_size * scale, frame_size * scale};
     constexpr tgx::Vec2 middle = big / 2.f;
 
@@ -81,33 +84,32 @@ int main() {
 
         const auto t = static_cast<float>(app->clock().elapsed());
         const int look = static_cast<int>(t * 2.f) % 2;   // switches frame twice a second
-        const tgx::Size size = canvas.size();
+        const tgx::Size size = screen.size();
         const tgx::Vec2 screen_center{static_cast<float>(size.width) / 2.f, static_cast<float>(size.height) / 2.f};
 
-        canvas.clear(tgx::colors::dark_gray);
+        screen.clear(tgx::colors::dark_gray);
 
-        // The world, seen through a camera that sways and breathes around the
-        // middle of the screen.
-        canvas.set_camera({
+        // The camera sways and breathes around the middle of the screen.
+        world.set_camera({
             .target = {0.f, 0.f},
             .offset = screen_center,
             .rotation = 0.15f * std::sin(t * 0.7f),
             .zoom = 1.f + 0.2f * std::sin(t * 0.5f),
         });
 
-        canvas.rect({-400.f, -200.f, 800.f, 400.f}, tgx::colors::black.with_alpha(80));
+        world.rect({-400.f, -200.f, 800.f, 400.f}, tgx::colors::black.with_alpha(80));
 
         // The whole atlas at its own size, then the same frames big: as is,
         // mirrored, tinted, and turning about its middle.
-        canvas.sprite(*atlas, {{-380.f, -180.f}});
-        canvas.sprite(*atlas, {.position = {-300.f, -100.f}, .size = big, .src = frame(look)});
-        canvas.sprite(*atlas, {
+        world.sprite(*atlas, {{-380.f, -180.f}});
+        world.sprite(*atlas, {.position = {-300.f, -100.f}, .size = big, .src = frame(look)});
+        world.sprite(*atlas, {
             .position = {-160.f, -100.f},
             .size = big,
             .src = {frame(look).x, 0.f, -frame_size, frame_size},
         });
-        canvas.sprite(*atlas, {.position = {-20.f, -100.f}, .size = big, .src = frame(look), .tint = tgx::colors::cyan});
-        canvas.sprite(*atlas, {
+        world.sprite(*atlas, {.position = {-20.f, -100.f}, .size = big, .src = frame(look), .tint = tgx::colors::cyan});
+        world.sprite(*atlas, {
             .position = tgx::Vec2{120.f, -100.f} + middle,
             .size = big,
             .src = frame(look),
@@ -118,7 +120,7 @@ int main() {
         // A row of them fading in, one draw for all of them: same texture.
         for (int i = 0; i < 10; ++i) {
             const auto alpha = static_cast<std::uint8_t>(25 * (i + 1));
-            canvas.sprite(*atlas, {
+            world.sprite(*atlas, {
                 .position = {-380.f + 76.f * static_cast<float>(i), 60.f},
                 .size = big,
                 .src = frame((i + look) % 2),
@@ -126,10 +128,9 @@ int main() {
             });
         }
 
-        // Back to plain screen coordinates for what stays put.
-        canvas.set_camera({});
-        canvas.rect({0.f, 0.f, static_cast<float>(size.width), 32.f}, tgx::colors::black.with_alpha(160));
-        canvas.sprite(*atlas, {.position = {8.f, 4.f}, .size = {24.f, 24.f}, .src = frame(0)});
+        // What stays put, on top.
+        screen.rect({0.f, 0.f, static_cast<float>(size.width), 32.f}, tgx::colors::black.with_alpha(160));
+        screen.sprite(*atlas, {.position = {8.f, 4.f}, .size = {24.f, 24.f}, .src = frame(0)});
 
         app->swap_buffers();
     }

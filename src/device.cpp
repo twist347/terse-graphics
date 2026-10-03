@@ -1,10 +1,11 @@
-#include "tgx/gl/device.h"
+#include "tgx/device.h"
 
 #include "tgx/assert.h"
+#include "tgx/handle.h"
 #include "tgx/texture.h"
 #include "tgx/window.h"
 
-#include "tgx/gl/handle.h"
+#include "tgx/gl/draw.h"
 #include "tgx/gl/shader.h"
 #include "tgx/gl/texture_slot.h"
 #include "tgx/gl/version.h"
@@ -20,13 +21,12 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 
-static_assert(std::is_same_v<GLuint, tgx::gl::GlId>);
+static_assert(std::is_same_v<GLuint, tgx::GlId>);
 
 // Only the 3.3 backend exists: this refuses to build against an unwritten one,
 // it is not a switch.
@@ -38,7 +38,7 @@ static_assert(
 namespace {
     using tgx::gl::detail::ComponentKind;
 
-    tgx::gl::detail::Context s_context;
+    tgx::detail::Context s_context;
 
     auto apply_clear_color(tgx::Color color) noexcept -> void {
         const tgx::Vec4 unit = tgx::to_vec4(color);
@@ -131,7 +131,7 @@ namespace {
 
     // Puts GL where a fresh Context says it is. A GL context can outlive a
     // Device and keep what the last one set.
-    auto reset_state(const tgx::gl::detail::Context &context) noexcept -> void {
+    auto reset_state(const tgx::detail::Context &context) noexcept -> void {
         glDisable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
@@ -329,9 +329,14 @@ namespace {
     }
 }
 
-namespace tgx::gl {
+namespace tgx {
     auto detail::context() noexcept -> Context & {
         return s_context;
+    }
+
+    auto detail::full_viewport() noexcept -> gl::Viewport {
+        const Size size = framebuffer_size();
+        return {0, 0, size.width, size.height};
     }
 
     auto detail::flush_texture_use(GlId texture) noexcept -> void {
@@ -392,25 +397,18 @@ namespace tgx::gl {
         glClear(bits);
     }
 
-    auto detail::Context::set_viewport(int x, int y, int width, int height) noexcept -> void {
-        const std::array next{x, y, width, height};
-        if (next == viewport) {
-            return;
-        }
-
-        flush();
-        viewport = next;
-        glViewport(x, y, width, height);
-    }
-
     auto detail::Context::draw(const DrawCall &call) noexcept -> void {
         if (call.count == 0) {
             return;
         }
 
+        if (call.viewport != viewport) {
+            glViewport(call.viewport.x, call.viewport.y, call.viewport.width, call.viewport.height);
+            viewport = call.viewport;
+        }
         apply_state(state, call.state);
         use_program(call.program);
-        for (std::uint32_t slot = 0; slot < max_texture_slots; ++slot) {
+        for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
             if (call.textures[slot] != 0) {
                 bind_texture(slot, call.textures[slot]);
             }
@@ -425,7 +423,7 @@ namespace tgx::gl {
             return;
         }
 
-        const std::size_t index_size = *call.index_type == IndexType::uint32 ? 4 : 2;
+        const std::size_t index_size = *call.index_type == gl::IndexType::uint32 ? 4 : 2;
 
         // GL takes the start of an indexed draw as a byte offset into the index
         // buffer, passed where a pointer used to go.
@@ -447,7 +445,7 @@ namespace tgx::gl {
     }
 
     auto detail::Context::bind_texture(std::uint32_t slot, GlId texture) noexcept -> void {
-        TGX_ASSERT(slot < max_texture_slots);
+        TGX_ASSERT(slot < gl::max_texture_slots);
 
         if (slot != active_slot) {
             glActiveTexture(GL_TEXTURE0 + slot);
@@ -463,30 +461,28 @@ namespace tgx::gl {
         std::ranges::replace(textures, texture, GLuint{0});
     }
 
-    auto Device::create(Window &window) noexcept -> Result<Device> {
+    auto Device::create(Window &) noexcept -> Result<Device> {
         // glad 2 returns the version it loaded, so loading and checking that we
         // got the requested one is the same call.
-        const int version = gladLoadGL(tgx::detail::gl_loader(window));
+        const int version = gladLoadGL(detail::gl_loader());
         if (version == 0) {
             return std::unexpected{Error::platform};
         }
         // Before the version check, so a rejected context still shows what the
         // driver actually gave.
         log_context_info();
-        if (version < GLAD_MAKE_VERSION(version_major, version_minor)) {
+        if (version < GLAD_MAKE_VERSION(gl::version_major, gl::version_minor)) {
             return std::unexpected{Error::unsupported};
         }
 
         install_debug_callback();
 
         s_context = {};
-        s_context.window = window.native_handle();
         reset_state(s_context);
-        // Directly rather than through the cache: a 0x0 framebuffer (a
-        // minimized window) matches its empty start and would be skipped.
-        const Size size = window.framebuffer_size();
-        s_context.viewport = {0, 0, size.width, size.height};
-        glViewport(0, 0, size.width, size.height);
+        // Set rather than assumed, like the rest: draws only change the
+        // viewport when theirs differs from this.
+        s_context.viewport = detail::full_viewport();
+        glViewport(0, 0, s_context.viewport.width, s_context.viewport.height);
 
         auto batch = detail::Batch::create();
         if (!batch) {
@@ -527,25 +523,25 @@ namespace tgx::gl {
 
     auto Device::present() noexcept -> void {
         s_context.flush();
-        tgx::detail::swap_buffers(s_context.window);
+        detail::swap_buffers();
     }
 
     auto Device::set_vsync(bool enabled) noexcept -> void {
-        tgx::detail::set_vsync(enabled);
+        detail::set_vsync(enabled);
     }
 
     auto Device::clear(const ClearParams &params) noexcept -> void {
         s_context.clear(params);
     }
 
-    auto Device::set_viewport(int x, int y, int width, int height) noexcept -> void {
-        s_context.set_viewport(x, y, width, height);
+    auto Device::draw(const gl::Shader &shader, const gl::VertexArray &vertices) noexcept -> void {
+        draw(shader, vertices, {});
     }
 
     auto Device::draw(
-        const Shader &shader,
-        const VertexArray &vertices,
-        const DrawParams &params
+        const gl::Shader &shader,
+        const gl::VertexArray &vertices,
+        const gl::DrawParams &params
     ) noexcept -> void {
         s_context.flush();
 
@@ -557,7 +553,7 @@ namespace tgx::gl {
 
         const bool indexed = vertices.has_index_buffer();
         const std::size_t available = indexed ? vertices.index_count() : vertices.vertex_count();
-        const std::size_t count = params.count != DrawParams::all ? params.count
+        const std::size_t count = params.count != gl::DrawParams::all ? params.count
             : params.first < available ? available - params.first
             : 0;
 
@@ -581,8 +577,9 @@ namespace tgx::gl {
             .count = count,
             .primitive = params.primitive,
             .state = params.state,
+            .viewport = params.viewport.value_or(detail::full_viewport()),
         };
-        for (std::uint32_t slot = 0; slot < max_texture_slots; ++slot) {
+        for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
             if (const Texture *texture = params.textures[slot]; texture != nullptr) {
                 call.textures[slot] = texture->id();
             }

@@ -1,9 +1,8 @@
 #pragma once
 
 #include "tgx/color.h"
+#include "tgx/handle.h"
 #include "tgx/math.h"
-
-#include "tgx/gl/handle.h"
 
 #include <array>
 #include <cstddef>

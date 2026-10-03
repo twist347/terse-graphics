@@ -3,11 +3,11 @@
 #include "tgx/blend.h"
 #include "tgx/color.h"
 #include "tgx/error.h"
+#include "tgx/handle.h"
 #include "tgx/math.h"
 #include "tgx/texture.h"
 
 #include "tgx/gl/buffer.h"
-#include "tgx/gl/handle.h"
 #include "tgx/gl/shader.h"
 #include "tgx/gl/vertex_array.h"
 
@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace tgx::gl::detail {
+namespace tgx::detail {
     struct Context;
 
     // One vertex of 2D drawing, in the layout the built-in shader reads and a
@@ -78,20 +78,20 @@ namespace tgx::gl::detail {
 
     private:
         Batch(
-            Shader shader,
+            gl::Shader shader,
             std::int32_t u_projection,
-            Buffer vertex_buffer,
-            Buffer index_buffer,
-            VertexArray vertex_array,
+            gl::Buffer vertex_buffer,
+            gl::Buffer index_buffer,
+            gl::VertexArray vertex_array,
             Texture white
         );
 
-        Shader m_shader;
+        gl::Shader m_shader;
         // The location of its u_projection.
         std::int32_t m_u_projection;
-        Buffer m_vertex_buffer;
-        Buffer m_index_buffer;
-        VertexArray m_vertex_array;
+        gl::Buffer m_vertex_buffer;
+        gl::Buffer m_index_buffer;
+        gl::VertexArray m_vertex_array;
         // Shapes sample its one white texel, so they share the shader with
         // textured drawing and their color comes from the vertices alone.
         Texture m_white;
@@ -103,7 +103,7 @@ namespace tgx::gl::detail {
 
     // The location of the shader's u_projection, for BatchState: looked up
     // once, when the Canvas is given the shader. -1 if it has none.
-    [[nodiscard]] auto projection_location(const Shader &shader) noexcept -> std::int32_t;
+    [[nodiscard]] auto projection_location(const gl::Shader &shader) noexcept -> std::int32_t;
 
     // Per draw. Indices are 16-bit, so vertices stay below 65536. A circle
     // takes about 3 indices per vertex, the most of any shape.

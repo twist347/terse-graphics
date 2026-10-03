@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <utility>
 
-namespace tgx::gl {
+namespace tgx {
     using GlId = std::uint32_t;
 
     template<void (*Delete)(GlId) noexcept>

@@ -1,5 +1,7 @@
 #include "tgx/app.h"
 
+#include "tgx/size.h"
+
 #include <utility>
 
 namespace tgx {
@@ -14,24 +16,19 @@ namespace tgx {
             return std::unexpected{window.error()};
         }
 
-        auto device = gl::Device::create(*window);
+        auto device = Device::create(*window);
         if (!device) {
             return std::unexpected{device.error()};
         }
 
-        auto canvas = Canvas::create(window->size());
-
-        return App{std::move(*platform), std::move(*window), std::move(*device), canvas};
+        return App{std::move(*platform), std::move(*window), std::move(*device), Canvas::create()};
     }
 
-    App::App(Platform platform, Window window, gl::Device device, Canvas canvas) noexcept
+    App::App(Platform platform, Window window, Device device, Canvas canvas) noexcept
         : m_platform{std::move(platform)},
           m_window{std::move(window)},
           m_device{std::move(device)},
-          m_canvas{std::move(canvas)},
-          m_framebuffer_size{m_window.framebuffer_size()},
-          m_window_size{m_window.size()} {
-        // Device::create and Canvas::create have already been fitted to these.
+          m_canvas{canvas} {
     }
 
     auto App::should_close() const noexcept -> bool {
@@ -45,17 +42,11 @@ namespace tgx {
             m_clock.restart();
         }
 
-        m_platform.poll_events();
-
+        // The sizes change only while events are polled, as GLFW reports them.
         const Size framebuffer_size = m_window.framebuffer_size();
         const Size window_size = m_window.size();
-        m_resized = framebuffer_size != m_framebuffer_size || window_size != m_window_size;
-        if (m_resized) {
-            m_framebuffer_size = framebuffer_size;
-            m_window_size = window_size;
-            m_device.set_viewport(framebuffer_size);
-            m_canvas.set_size(window_size);
-        }
+        m_platform.poll_events();
+        m_resized = m_window.framebuffer_size() != framebuffer_size || m_window.size() != window_size;
     }
 
     auto App::swap_buffers() noexcept -> void {

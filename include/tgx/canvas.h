@@ -3,6 +3,7 @@
 #include "tgx/blend.h"
 #include "tgx/camera.h"
 #include "tgx/color.h"
+#include "tgx/handle.h"
 #include "tgx/math.h"
 #include "tgx/size.h"
 
@@ -13,10 +14,10 @@ namespace tgx {
 
     namespace gl {
         class Shader;
+    }
 
-        namespace detail {
-            struct BatchState;
-        }
+    namespace detail {
+        struct BatchState;
     }
 
     // A texture, or a part of one, put on the canvas. Only the position is
@@ -47,30 +48,41 @@ namespace tgx {
     // together, in as few draws as the GPU allows.
     //
     // Coordinates are screen coordinates (Window::size()), (0, 0) at the
-    // top-left, y down; the canvas is stretched over the whole viewport, so on
-    // a scaling display one unit covers several pixels and things keep their
-    // size. A camera (set_camera) moves, turns and zooms the world under them.
+    // top-left, y down; the canvas is stretched over the whole framebuffer,
+    // so on a scaling display one unit covers several pixels and things keep
+    // their size. It follows the window as it is resized. A camera
+    // (set_camera) moves, turns and zooms the world under them.
     //
     // Shapes are collected by the Device, which draws them before anything
-    // else of its own (a draw, a clear, a viewport change) and when the frame
-    // is presented, so the picture follows the order of the calls. Shapes in
-    // a row with the same texture, camera, blend and shader go out as one
-    // draw; a change of any of them starts another.
+    // else of its own (a draw, a clear) and when the frame is presented, so
+    // the picture follows the order of the calls. Shapes in a row with the
+    // same texture, camera, blend and shader go out as one draw; a change of
+    // any of them starts another.
     //
-    // Holds no GPU resources of its own, only how to draw: a plain value. It
-    // draws through the Device, which must exist while it does.
+    // Holds no GPU resources of its own, only how to draw: a plain value, to
+    // copy for each way of drawing rather than to switch back and forth. All
+    // copies draw into the same batch, in the order of the calls:
+    //
+    //     tgx::Canvas world = app->canvas();
+    //     world.set_camera(camera);
+    //     world.sprite(player, {pos});            // moves with the camera
+    //     app->canvas().rect(bar, colors::red);   // stays put: a HUD
+    //
+    // It draws through the Device, which must exist while it does.
     class Canvas {
     public:
-        [[nodiscard]] static auto create(Size size) noexcept -> Canvas;
+        // Empty follows the window, as App's canvas does; see set_size().
+        [[nodiscard]] static auto create(Size size = {}) noexcept -> Canvas;
 
-        // The area the coordinates span, usually Window::size(). App keeps its
-        // own canvas at the window's size.
+        // The area the coordinates span. Empty (the default) is the window's
+        // size, whatever it is at the time; a size of its own is a fixed
+        // logical resolution, stretched over the window: 320x180 for pixel art.
         auto set_size(Size size) noexcept -> void;
 
-        [[nodiscard]] auto size() const noexcept -> Size { return m_size; }
+        // The area the coordinates span now.
+        [[nodiscard]] auto size() const noexcept -> Size;
 
-        // For what comes after; the default shows the world as it is. Set it
-        // back to Camera2D{} for things that stay put on screen, like a HUD.
+        // For what comes after; the default shows the world as it is.
         auto set_camera(const Camera2D &camera) noexcept -> void;
 
         [[nodiscard]] auto camera() const noexcept -> const Camera2D & { return m_camera; }
@@ -136,7 +148,7 @@ namespace tgx {
         explicit Canvas(Size size) noexcept;
 
         // How shapes drawn now with the texture (0: none) go out.
-        [[nodiscard]] auto state_for(std::uint32_t texture) const noexcept -> gl::detail::BatchState;
+        [[nodiscard]] auto state_for(GlId texture) noexcept -> detail::BatchState;
 
         auto quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void;
 
@@ -147,8 +159,9 @@ namespace tgx {
         gl::Shader *m_shader{nullptr};
         // The location of its u_projection, looked up when it was set.
         std::int32_t m_u_projection{-1};
-        // From canvas coordinates to clip space, kept in step with the size
-        // and the camera.
+        // From canvas coordinates to clip space, for the camera and the size
+        // it was last made for; remade when either changes.
         Mat4 m_transform{};
+        Size m_transform_size{};
     };
 }

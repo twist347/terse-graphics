@@ -1,14 +1,14 @@
 #include "tgx/canvas.h"
 
 #include "tgx/assert.h"
+#include "tgx/handle.h"
 #include "tgx/texture.h"
 
-#include "tgx/gl/device.h"
-#include "tgx/gl/handle.h"
 #include "tgx/gl/shader.h"
 
 #include "batch.h"
 #include "context.h"
+#include "window_internal.h"
 
 #include <algorithm>
 #include <array>
@@ -20,9 +20,9 @@
 #include <utility>
 
 namespace {
-    using tgx::gl::detail::Batch;
-    using tgx::gl::detail::BatchState;
-    using tgx::gl::detail::BatchVertex;
+    using tgx::detail::Batch;
+    using tgx::detail::BatchState;
+    using tgx::detail::BatchVertex;
 
     // Segments for a circle: enough that no edge strays more than a quarter
     // unit from the true circle, as large as it shows on screen.
@@ -31,8 +31,8 @@ namespace {
     constexpr std::size_t max_segments = 1024;
 
     static_assert(
-        max_segments * 2 <= tgx::gl::detail::batch_max_vertices
-        && max_segments * 6 <= tgx::gl::detail::batch_max_indices
+        max_segments * 2 <= tgx::detail::batch_max_vertices
+        && max_segments * 6 <= tgx::detail::batch_max_indices
     );
 
     // Where shapes sample the white texture: any point of a 1x1 one will do.
@@ -79,7 +79,7 @@ namespace {
         std::size_t vertex_count,
         std::size_t index_count
     ) noexcept -> std::pair<Batch &, std::uint16_t> {
-        tgx::gl::detail::Context &context = tgx::gl::detail::context();
+        tgx::detail::Context &context = tgx::detail::context();
         Batch &batch = *context.batch;
         const std::uint16_t first = batch.reserve(context, state, vertex_count, index_count);
         return {batch, first};
@@ -97,19 +97,26 @@ namespace tgx {
         return Canvas{size};
     }
 
-    Canvas::Canvas(Size size) noexcept : m_size{size}, m_transform{projection_for(size)} {
+    Canvas::Canvas(Size size) noexcept : m_size{size} {
+        m_transform_size = this->size();
+        m_transform = projection_for(m_transform_size);
     }
 
     auto Canvas::set_size(Size size) noexcept -> void {
         m_size = size;
-        m_transform = projection_for(m_size) * m_camera.matrix();
+        m_transform_size = this->size();
+        m_transform = projection_for(m_transform_size) * m_camera.matrix();
+    }
+
+    auto Canvas::size() const noexcept -> Size {
+        return m_size.empty() ? detail::window_size() : m_size;
     }
 
     auto Canvas::set_camera(const Camera2D &camera) noexcept -> void {
         TGX_ASSERT_MSG(camera.zoom != 0.f, "a camera with zoom 0 shows nothing and cannot map back");
 
         m_camera = camera;
-        m_transform = projection_for(m_size) * m_camera.matrix();
+        m_transform = projection_for(m_transform_size) * m_camera.matrix();
     }
 
     auto Canvas::set_shader(gl::Shader *shader) noexcept -> void {
@@ -122,7 +129,7 @@ namespace tgx {
         // The projection is the one uniform the canvas needs: looked up through
         // the shader first to assert it exists and is a mat4.
         (void) shader->uniform<Mat4>("u_projection");
-        m_u_projection = gl::detail::projection_location(*shader);
+        m_u_projection = detail::projection_location(*shader);
 
         // The texture is optional: a shader may ignore it. The batch draws
         // without Device::draw's checks, so the one on its samplers is here.
@@ -137,14 +144,20 @@ namespace tgx {
     }
 
     auto Canvas::clear(Color color) noexcept -> void {
-        gl::detail::context().clear({.color = color});
+        detail::context().clear({.color = color});
     }
 
     auto Canvas::flush() noexcept -> void {
-        gl::detail::context().flush();
+        detail::context().flush();
     }
 
-    auto Canvas::state_for(std::uint32_t texture) const noexcept -> gl::detail::BatchState {
+    auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
+        // A canvas that follows the window notices a resize here, at its first
+        // shape after it.
+        if (const Size now = size(); now != m_transform_size) {
+            m_transform_size = now;
+            m_transform = projection_for(now) * m_camera.matrix();
+        }
         return {
             .texture = texture,
             .blend = m_blend,

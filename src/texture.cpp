@@ -60,7 +60,7 @@ namespace {
 
         GLuint id = 0;
         glGenTextures(1, &id);
-        tgx::gl::detail::context().bind_texture(edit_slot, id);
+        tgx::detail::context().bind_texture(edit_slot, id);
 
         // Rows of 4-byte pixels are always 4-byte aligned, GL's default unpack
         // alignment, so it needs no setting.
@@ -90,10 +90,10 @@ namespace {
 }
 
 namespace tgx {
-    auto detail::delete_texture(gl::GlId id) noexcept -> void {
+    auto detail::delete_texture(GlId id) noexcept -> void {
         // Sprites added before keep the texture they were added with.
-        gl::detail::flush_texture_use(id);
-        gl::detail::context().forget_texture(id);
+        detail::flush_texture_use(id);
+        detail::context().forget_texture(id);
         glDeleteTextures(1, &id);
     }
 
@@ -132,8 +132,8 @@ namespace tgx {
         }
 
         // Sprites added before keep the pixels they were added with.
-        gl::detail::flush_texture_use(m_handle.get());
-        gl::detail::context().bind_texture(edit_slot, m_handle.get());
+        detail::flush_texture_use(m_handle.get());
+        detail::context().bind_texture(edit_slot, m_handle.get());
         glTexSubImage2D(
             GL_TEXTURE_2D, 0,
             x, y, size.width, size.height,
@@ -145,7 +145,7 @@ namespace tgx {
         }
     }
 
-    auto Texture::id() const noexcept -> gl::GlId {
+    auto Texture::id() const noexcept -> GlId {
         return m_handle.get();
     }
 

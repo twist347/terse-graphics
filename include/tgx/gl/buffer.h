@@ -1,8 +1,7 @@
 #pragma once
 
 #include "tgx/error.h"
-
-#include "tgx/gl/handle.h"
+#include "tgx/handle.h"
 
 #include <cstddef>
 #include <ranges>

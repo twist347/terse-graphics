@@ -2,12 +2,10 @@
 
 #include "tgx/canvas.h"
 #include "tgx/clock.h"
+#include "tgx/device.h"
 #include "tgx/error.h"
 #include "tgx/platform.h"
-#include "tgx/size.h"
 #include "tgx/window.h"
-
-#include "tgx/gl/device.h"
 
 namespace tgx {
     // The simple way in: one platform, one window, one device, a canvas and a
@@ -44,10 +42,10 @@ namespace tgx {
         // do the per-frame bookkeeping noted on each.
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
-        // Polls events, then fits the viewport and the canvas to the window if
-        // its size changed. A viewport set by hand stays until the next resize. The
-        // first call starts the clock, so loading done before the loop is not
-        // counted in the first delta().
+        // Polls events, noting whether the window was resized. The first call
+        // starts the clock, so loading done before the loop is not counted in
+        // the first delta(). Nothing needs fitting after a resize: draws cover
+        // the framebuffer and the canvas follows the window on their own.
         auto poll_events() noexcept -> void;
 
         // Whether the last poll_events() saw the window or its framebuffer
@@ -61,7 +59,7 @@ namespace tgx {
 
         [[nodiscard]] auto platform() noexcept -> Platform & { return m_platform; }
         [[nodiscard]] auto window() noexcept -> Window & { return m_window; }
-        [[nodiscard]] auto device() noexcept -> gl::Device & { return m_device; }
+        [[nodiscard]] auto device() noexcept -> Device & { return m_device; }
         [[nodiscard]] auto canvas() noexcept -> Canvas & { return m_canvas; }
         [[nodiscard]] auto clock() const noexcept -> const Clock & { return m_clock; }
 
@@ -70,19 +68,15 @@ namespace tgx {
         auto restart_clock() noexcept -> void { m_clock.restart(); }
 
     private:
-        App(Platform platform, Window window, gl::Device device, Canvas canvas) noexcept;
+        App(Platform platform, Window window, Device device, Canvas canvas) noexcept;
 
         // Declaration order is teardown order reversed: canvas, device, window,
         // platform.
         Platform m_platform;
         Window m_window;
-        gl::Device m_device;
+        Device m_device;
         Canvas m_canvas;
         Clock m_clock;
-        // What the viewport and the canvas were last fitted to, to notice a
-        // resize.
-        Size m_framebuffer_size{};
-        Size m_window_size{};
         bool m_resized{false};
     };
 }

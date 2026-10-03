@@ -7,8 +7,7 @@
 #include "tgx/tgx.h"
 
 #include "tgx/gl/buffer.h"
-#include "tgx/gl/device.h"
-#include "tgx/gl/handle.h"
+#include "tgx/gl/draw.h"
 #include "tgx/gl/shader.h"
 #include "tgx/gl/texture_slot.h"
 #include "tgx/gl/version.h"

@@ -25,12 +25,12 @@ namespace {
     using tgx::gl::detail::ShaderUniform;
     using tgx::gl::detail::VertexInput;
 
-    auto delete_shader(tgx::gl::GlId id) noexcept -> void {
+    auto delete_shader(tgx::GlId id) noexcept -> void {
         glDeleteShader(id);
     }
 
     // Stage objects are only needed until the program is linked.
-    using Stage = tgx::gl::Handle<delete_shader>;
+    using Stage = tgx::Handle<delete_shader>;
 
     // Shaders and programs keep their logs behind different, same-shaped calls.
     enum class LogOf {
@@ -365,8 +365,8 @@ namespace {
 namespace tgx::gl {
     auto detail::delete_program(GlId id) noexcept -> void {
         // Shapes added before keep the program they were added with.
-        flush_shader_use(id);
-        context().forget_program(id);
+        tgx::detail::flush_shader_use(id);
+        tgx::detail::context().forget_program(id);
         glDeleteProgram(id);
     }
 
@@ -437,7 +437,7 @@ namespace tgx::gl {
         }
 
         // Shapes added before keep the values they were added with.
-        detail::flush_shader_use(id());
+        tgx::detail::flush_shader_use(id());
         if constexpr (std::same_as<T, TextureSlot>) {
             TGX_ASSERT_MSG(
                 value.index < max_texture_slots,
@@ -450,7 +450,7 @@ namespace tgx::gl {
             }
         }
 
-        detail::context().use_program(id());
+        tgx::detail::context().use_program(id());
         UniformTraits<T>::upload(uniform.m_location, value);
     }
 
