@@ -33,6 +33,9 @@ In `tgx`:
   circles, outlines, sprites (parts of textures, mirrored, turned, tinted) and
   text in a built-in pixel font, under a 2D camera, with a choice of blending. Collected and drawn in
   batches, always in the order of the calls.
+- **Collisions**: `contains` (a point in a rect, circle or triangle),
+  `overlaps` (rects and circles, in any pair), `intersection` (the part two
+  rects share, the point two segments cross at), in `tgx/collision.h`.
 - **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
   JPEG, BMP, TGA or GIF, or made in code) and `Texture` made from it, with
   nearest or linear filtering, wrapping, optional mipmaps and partial updates.
@@ -355,6 +358,7 @@ e.g. `tgx_01_window`.
 | `08_blend`      | Alpha and additive blending side by side.                          |
 | `09_input`      | Keyboard and mouse: held keys, presses, the wheel, the mouse in the world. |
 | `10_text`       | Text in the built-in font: sizes, lines, centering, a field to type in. |
+| `11_collision`  | Collision checks: a point in a shape, shapes overlapping, the part rects share. |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|

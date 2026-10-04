@@ -91,6 +91,10 @@ namespace tgx {
     constexpr auto operator*=(Vec2 &v, float s) noexcept -> Vec2 & { return v = v * s; }
 
     [[nodiscard]] constexpr auto dot(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.x + a.y * b.y; }
+    // The z of the 3D cross product: positive when b turns clockwise from a on
+    // y-down screen coordinates, negative counter-clockwise, zero when they are
+    // parallel.
+    [[nodiscard]] constexpr auto cross(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.y - a.y * b.x; }
     [[nodiscard]] inline auto length(Vec2 v) noexcept -> float { return std::sqrt(dot(v, v)); }
     // A zero vector has no direction; normalizing one gives NaNs.
     [[nodiscard]] inline auto normalize(Vec2 v) noexcept -> Vec2 { return v / length(v); }

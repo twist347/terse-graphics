@@ -10,6 +10,7 @@
 #include "tgx/camera.h"
 #include "tgx/canvas.h"
 #include "tgx/clock.h"
+#include "tgx/collision.h"
 #include "tgx/color.h"
 #include "tgx/device.h"
 #include "tgx/error.h"
