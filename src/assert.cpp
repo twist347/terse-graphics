@@ -5,7 +5,7 @@
 
 namespace tgx::detail {
     auto assert_failed(const char *expr, const char *msg, std::source_location loc) noexcept -> void {
-        const bool has_msg = msg != nullptr && *msg != '\0';
+        const bool has_msg = msg && *msg != '\0';
 
         std::fprintf(
             stderr,

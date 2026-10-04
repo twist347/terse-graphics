@@ -244,7 +244,7 @@ namespace {
     ) noexcept -> void {
         for (const auto &sampler : tgx::gl::detail::samplers(shader)) {
             TGX_ASSERT_MSG(
-                params.textures[sampler.slot] != nullptr,
+                params.textures[sampler.slot],
                 "sampler '{}' reads texture slot {}, which the draw has no texture for",
                 sampler.name, sampler.slot
             );
@@ -284,7 +284,7 @@ namespace {
     // glGetString hands out unsigned chars; a lost context gives nullptr.
     [[nodiscard]] auto gl_string(GLenum name) noexcept -> std::string_view {
         const auto *str = reinterpret_cast<const char *>(glGetString(name));
-        return str != nullptr ? str : "?";
+        return str ? str : "?";
     }
 
     auto log_context_info() noexcept -> void {
@@ -340,19 +340,19 @@ namespace tgx {
     }
 
     auto detail::flush_texture_use(GlId texture) noexcept -> void {
-        if (s_context.batch != nullptr && s_context.batch->uses_texture(texture)) {
+        if (s_context.batch && s_context.batch->uses_texture(texture)) {
             s_context.batch->flush(s_context);
         }
     }
 
     auto detail::flush_shader_use(GlId program) noexcept -> void {
-        if (s_context.batch != nullptr && s_context.batch->uses_shader(program)) {
+        if (s_context.batch && s_context.batch->uses_shader(program)) {
             s_context.batch->flush(s_context);
         }
     }
 
     auto detail::Context::flush() noexcept -> void {
-        if (batch != nullptr) {
+        if (batch) {
             batch->flush(*this);
         }
     }
@@ -596,7 +596,7 @@ namespace tgx {
             .viewport = params.viewport.value_or(detail::full_viewport()),
         };
         for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
-            if (const Texture *texture = params.textures[slot]; texture != nullptr) {
+            if (const Texture *texture = params.textures[slot]) {
                 call.textures[slot] = texture->id();
             }
         }

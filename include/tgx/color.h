@@ -2,6 +2,7 @@
 
 #include "tgx/math.h"
 
+#include <algorithm>
 #include <cstdint>
 
 namespace tgx {
@@ -51,6 +52,17 @@ namespace tgx {
             static_cast<float>(color.b) / 255.f,
             static_cast<float>(color.a) / 255.f,
         };
+    }
+
+    // a at t = 0, b at t = 1, every channel and alpha alike. Unlike the vector
+    // lerps, t is clamped to [0, 1]: past the ends a channel has nowhere to go.
+    [[nodiscard]] constexpr auto lerp(Color a, Color b, float t) noexcept -> Color {
+        const float k = std::clamp(t, 0.f, 1.f);
+        const auto mix = [k](std::uint8_t from, std::uint8_t to) {
+            const float f = static_cast<float>(from);
+            return static_cast<std::uint8_t>(f + (static_cast<float>(to) - f) * k + 0.5f);
+        };
+        return {mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b), mix(a.a, b.a)};
     }
 
     static_assert(sizeof(Color) == 4);

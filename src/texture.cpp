@@ -117,6 +117,12 @@ namespace tgx {
         });
     }
 
+    auto Texture::load(const std::filesystem::path &path, const TextureParams &params) -> Result<Texture> {
+        return Image::load(path).and_then([&](const Image &image) {
+            return create(image, params);
+        });
+    }
+
     auto Texture::update(int x, int y, const Image &image) noexcept -> void {
         TGX_ASSERT_MSG(m_params.access == TextureAccess::dynamic, "updating an immutable texture");
 

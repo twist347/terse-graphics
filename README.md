@@ -145,11 +145,12 @@ updated or destroyed, or a uniform of the canvas shader set, has the
 shapes waiting on it drawn first. `canvas.flush()` is only needed before raw
 GL calls.
 
-Images load from files or are made in code; rows run top to bottom. A sprite
-needs only a position: by default it is the whole texture at its own size.
+Textures load from image files in one call; `Image` is for pixels made in code
+or read on the CPU, rows top to bottom. A sprite needs only a position: by
+default it is the whole texture at its own size.
 
-    auto image = tgx::Image::load("player.png");   // Error::io or Error::decode on failure
-    auto player = tgx::Texture::create(*image, {.filter = tgx::TextureFilter::nearest});
+    auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
+    // Error::io or Error::decode on failure; Image::load + Texture::create is the long way
 
     canvas.sprite(*player, {pos});
     canvas.sprite(*atlas, {
@@ -291,7 +292,7 @@ has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
   texture the driver has no room for comes back as `Error::out_of_mem`. Host
   memory running out is not reported: the functions that allocate as much as
   their input asks for (`Image::create`, `from_pixels`, `load`, `decode`,
-  `gl::Shader::from_source`) may throw `std::bad_alloc`, and everywhere else,
+  `Texture::load`, `gl::Shader::from_source`) may throw `std::bad_alloc`, and everywhere else,
   `noexcept` included, it ends the program.
 - **One `Window`, one `Device`.** They are one per process by
   nature (GLFW, the GL context of the one window), so tgx keeps their state in

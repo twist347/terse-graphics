@@ -38,7 +38,9 @@ int main() {
         if (input.down(tgx::Key::d) || input.down(tgx::Key::right)) { direction.x += 1; }
         if (input.down(tgx::Key::w) || input.down(tgx::Key::up)) { direction.y -= 1; }
         if (input.down(tgx::Key::s) || input.down(tgx::Key::down)) { direction.y += 1; }
-        player += direction * speed * app->clock().delta();
+        // Unit length, so a diagonal is not sqrt(2) times faster.
+        if (direction != tgx::Vec2{}) { direction = normalize(direction); }
+        player +=direction * speed * app->clock().delta();
 
         // pressed: once, on the frame the key goes down.
         if (input.pressed(tgx::Key::escape)) {

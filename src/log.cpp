@@ -33,8 +33,8 @@ namespace {
 
 namespace tgx {
     auto set_log_sink(LogSink sink, void *user) noexcept -> void {
-        g_sink = sink != nullptr ? sink : default_sink;
-        g_user = sink != nullptr ? user : nullptr;
+        g_sink = sink ? sink : default_sink;
+        g_user = sink ? user : nullptr;
     }
 
     auto set_log_level(LogLevel level) noexcept -> void {

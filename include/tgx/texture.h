@@ -4,6 +4,8 @@
 #include "tgx/handle.h"
 #include "tgx/size.h"
 
+#include <filesystem>
+
 namespace tgx {
     class Image;
 
@@ -65,6 +67,15 @@ namespace tgx {
             const Image &image,
             const TextureParams &params = {}
         ) noexcept -> Result<Texture>;
+
+        // Image::load and create() in one: fails with Error::io or
+        // Error::decode as the image does, Error::unsupported as create() does.
+        //
+        //     auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
+        [[nodiscard]] static auto load(
+            const std::filesystem::path &path,
+            const TextureParams &params = {}
+        ) -> Result<Texture>;
 
         // Uninitialised, to be filled with update(); only useful as dynamic.
         [[nodiscard]] static auto create(

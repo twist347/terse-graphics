@@ -130,11 +130,6 @@ namespace {
         return {left, top, right - left, bottom - top};
     }
 
-    // Rotated a quarter turn counter-clockwise on screen (y down).
-    [[nodiscard]] constexpr auto perpendicular(tgx::Vec2 v) noexcept -> tgx::Vec2 {
-        return {v.y, -v.x};
-    }
-
     [[nodiscard]] auto segments_for(float screen_radius) noexcept -> std::size_t {
         if (screen_radius <= circle_tolerance) {
             return min_segments;
@@ -151,8 +146,7 @@ namespace {
 
     // The unit circle split into n, from angle 0 clockwise on screen.
     [[nodiscard]] auto rim_point(std::size_t i, std::size_t n) noexcept -> tgx::Vec2 {
-        const float angle = 2.f * std::numbers::pi_v<float> * static_cast<float>(i) / static_cast<float>(n);
-        return {std::cos(angle), std::sin(angle)};
+        return tgx::from_angle(2.f * std::numbers::pi_v<float> * static_cast<float>(i) / static_cast<float>(n));
     }
 
     // The Device's batch, with room for this many more vertices and indices
@@ -246,7 +240,7 @@ namespace tgx {
     auto Canvas::set_shader(gl::Shader *shader) noexcept -> void {
         m_shader = shader;
         m_u_projection = -1;
-        if (shader == nullptr) {
+        if (!shader) {
             return;
         }
 
@@ -284,7 +278,7 @@ namespace tgx {
         return {
             .texture = texture,
             .blend = m_blend,
-            .program = m_shader != nullptr ? m_shader->id() : 0,
+            .program = m_shader ? m_shader->id() : 0,
             .u_projection = m_u_projection,
             .transform = m_transform,
             .viewport = pixel_viewport(m_viewport),

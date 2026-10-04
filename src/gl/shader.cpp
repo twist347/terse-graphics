@@ -41,7 +41,7 @@ namespace {
     // Appends "<label>:\n<log>" when the driver has anything to say. The length
     // GL reports includes the terminating null.
     auto append_log(std::string *out_log, std::string_view label, GLuint object, LogOf kind) -> void {
-        if (out_log == nullptr) {
+        if (!out_log) {
             return;
         }
 
@@ -383,7 +383,7 @@ namespace tgx::gl {
         std::string_view fragment,
         std::string *out_log
     ) -> Result<Shader> {
-        if (out_log != nullptr) {
+        if (out_log) {
             out_log->clear();
         }
 

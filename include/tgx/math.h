@@ -108,6 +108,26 @@ namespace tgx {
 
     [[nodiscard]] inline auto distance(Vec2 a, Vec2 b) noexcept -> float { return length(b - a); }
 
+    // Angles of 2D vectors are in radians from +x, clockwise on screen (y
+    // down), as Canvas rotations and Camera2D turn.
+
+    // The unit vector at the angle: from_angle(0) is {1, 0}.
+    [[nodiscard]] inline auto from_angle(float angle) noexcept -> Vec2 { return {std::cos(angle), std::sin(angle)}; }
+
+    // The angle of the vector, in [-pi, pi]; 0 for a zero vector.
+    [[nodiscard]] inline auto angle(Vec2 v) noexcept -> float { return std::atan2(v.y, v.x); }
+
+    // Turned by angle around {0, 0}.
+    [[nodiscard]] inline auto rotate(Vec2 v, float angle) noexcept -> Vec2 {
+        const float c = std::cos(angle);
+        const float s = std::sin(angle);
+        return {v.x * c - v.y * s, v.x * s + v.y * c};
+    }
+
+    // Turned a quarter counter-clockwise on screen, as rotate(v, -pi / 2)
+    // but exact: the left of v when facing along it.
+    [[nodiscard]] constexpr auto perpendicular(Vec2 v) noexcept -> Vec2 { return {v.y, -v.x}; }
+
     // a at t = 0, b at t = 1, on along the line beyond them.
     [[nodiscard]] constexpr auto lerp(Vec2 a, Vec2 b, float t) noexcept -> Vec2 { return a + (b - a) * t; }
 

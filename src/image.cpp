@@ -98,7 +98,7 @@ namespace tgx {
             static_cast<int>(encoded.size()),
             &width, &height, &channels_in_file, 4
         )};
-        if (pixels == nullptr) {
+        if (!pixels) {
             return std::unexpected{Error::decode};
         }
 
