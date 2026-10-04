@@ -81,6 +81,8 @@ int main() {
         app->device().clear({.color = tgx::colors::dark_gray});
         app->device().draw(*shader, vao);
 
+        app->canvas().fps({10, 10});
+
         app->swap_buffers();
     }
 

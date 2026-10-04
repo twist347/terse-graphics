@@ -1,41 +1,35 @@
 #pragma once
 
-#include <chrono>
-#include <cstddef>
-
 namespace tgx {
+    class Device;
+
+    // The time of the frames the Device presents, as of the last present(): a
+    // frame lasts from one present() to the next. Reached through
+    // device().clock() or app->clock(); like the Device, it only reads state
+    // kept in one place inside tgx, and counts from the first present().
     class Clock {
     public:
-        // Marks the end of a frame. A clock that is not running is started
-        // first, so that tick measures (almost) nothing.
-        auto tick() noexcept -> void;
+        Clock(const Clock &) = delete;
+        auto operator=(const Clock &) -> Clock & = delete;
 
-        // Makes the next delta() count from now, e.g. after loading a level:
-        // the time spent before is left out of delta() and fps(). elapsed()
-        // keeps counting real time. Starts the clock if it is not running.
-        auto restart() noexcept -> void;
+        // Seconds the last frame took; 0 for the first, which has no frame
+        // before it.
+        [[nodiscard]] auto delta() const noexcept -> float;
 
-        [[nodiscard]] auto started() const noexcept -> bool { return m_started; }
+        // Seconds since the first present(). A double: a float drops to
+        // millisecond steps after a few hours.
+        [[nodiscard]] auto elapsed() const noexcept -> double;
 
-        [[nodiscard]] auto delta() const noexcept -> float { return m_delta; }
-        // Seconds since the clock started. A double: a float drops to millisecond
-        // steps after a few hours.
-        [[nodiscard]] auto elapsed() const noexcept -> double { return m_elapsed; }
-        [[nodiscard]] auto fps() const noexcept -> float { return m_fps; }
+        // Frames per second over the last second; 0 during the first one.
+        [[nodiscard]] auto fps() const noexcept -> float;
 
-        [[nodiscard]] auto fps_updated() const noexcept -> bool { return m_fps_updated; }
+        // Whether the last present() updated fps(), which it does once a
+        // second.
+        [[nodiscard]] auto fps_updated() const noexcept -> bool;
 
     private:
-        using SteadyClock = std::chrono::steady_clock;
+        friend class Device;
 
-        SteadyClock::time_point m_start{};
-        SteadyClock::time_point m_last{};
-        SteadyClock::time_point m_window_start{};
-        std::size_t m_frames{0};
-        float m_delta{0.f};
-        double m_elapsed{0.0};
-        float m_fps{0.f};
-        bool m_fps_updated{false};
-        bool m_started{false};
+        Clock() noexcept = default;
     };
 }

@@ -4,7 +4,6 @@
 #include "tgx/tgx.h"
 
 #include <cstdio>
-#include <format>
 #include <print>
 #include <string>
 
@@ -44,9 +43,6 @@ int main() {
         // '\n' starts a new line under the first.
         canvas.text({40, 200}, "Several lines,\none under another.", tgx::colors::light_gray);
 
-        // Numbers, as a HUD shows them.
-        canvas.text({40, 260}, std::format("fps: {:.0f}", app->clock().fps()), tgx::colors::green);
-
         // Centered on the window by its measured size.
         const tgx::Size size = canvas.size();
         const char *title = "Centered";
@@ -66,6 +62,8 @@ int main() {
         canvas.text({field.x + 8, field.y + 4}, typed, tgx::colors::white, 32);
         canvas.rect({field.x + 8 + typed_extent.x + 2, field.y + 6, 2, 28}, tgx::colors::yellow);
         canvas.text({40, 490}, "Type here; Backspace erases.", tgx::colors::gray);
+
+        app->canvas().fps({10, 10});
 
         app->swap_buffers();
     }

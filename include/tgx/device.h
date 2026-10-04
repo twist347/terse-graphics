@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tgx/clock.h"
 #include "tgx/color.h"
 #include "tgx/error.h"
 
@@ -64,9 +65,18 @@ namespace tgx {
         auto flush() noexcept -> void;
 
         // Draws what the Canvas has collected and shows the frame in the
-        // window, waiting for the display with vsync on. App::swap_buffers
-        // does this.
+        // window, waiting for the display with vsync on, then times the frame
+        // for clock(). App::swap_buffers does this.
         auto present() noexcept -> void;
+
+        // The time of the frames present() shows.
+        [[nodiscard]] auto clock() const noexcept -> const Clock &;
+
+        // Makes the next Clock::delta() count from now, after a long pause
+        // inside the loop such as loading a level, so it does not jump: the
+        // time spent is left out of delta() and fps(). elapsed() keeps counting
+        // real time.
+        auto restart_clock() noexcept -> void;
 
         // Whether present() waits for the display: no tearing, and frames
         // paced by it. Starts as WindowParams::vsync.

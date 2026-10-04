@@ -101,6 +101,8 @@ int main() {
         squares(-0.6f, tgx::Blend::none);
         squares(0.2f, tgx::Blend::alpha);
 
+        app->canvas().fps({10, 10});
+
         app->swap_buffers();
     }
 

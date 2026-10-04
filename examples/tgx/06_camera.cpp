@@ -53,8 +53,10 @@ int main() {
 
         // The HUD, drawn after the world so it is on top: how far the player
         // has gone.
-        screen.rect({20, 20, 300, 20}, tgx::colors::gray);
-        screen.rect({20, 20, 300 * player.x / world_width, 20}, tgx::colors::yellow);
+        screen.rect({20, 40, 300, 20}, tgx::colors::gray);
+        screen.rect({20, 40, 300 * player.x / world_width, 20}, tgx::colors::yellow);
+
+        app->canvas().fps({10, 10});
 
         app->swap_buffers();
     }

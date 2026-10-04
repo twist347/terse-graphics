@@ -1,40 +1,56 @@
 #include "tgx/clock.h"
 
+#include "clock_internal.h"
+#include "context.h"
+
 namespace tgx {
-    auto Clock::tick() noexcept -> void {
-        if (!m_started) {
-            restart();
+    auto detail::FrameClock::tick() noexcept -> void {
+        const auto now = SteadyClock::now();
+        if (!started) {
+            started = true;
+            start = now;
+            last = now;
+            fps_start = now;
         }
 
-        const auto now = SteadyClock::now();
+        delta = std::chrono::duration<float>(now - last).count();
+        elapsed = std::chrono::duration<double>(now - start).count();
+        last = now;
 
-        m_delta = std::chrono::duration<float>(now - m_last).count();
-        m_elapsed = std::chrono::duration<double>(now - m_start).count();
-        m_last = now;
-
-        ++m_frames;
-        m_fps_updated = false;
-
-        if (const auto span = std::chrono::duration<double>(now - m_window_start).count(); span >= 1.0) {
-            m_fps = static_cast<float>(static_cast<double>(m_frames) / span);
-            m_frames = 0;
-            m_window_start = now;
-            m_fps_updated = true;
+        ++fps_frames;
+        fps_updated = false;
+        if (const auto span = std::chrono::duration<double>(now - fps_start).count(); span >= 1.0) {
+            fps = static_cast<float>(static_cast<double>(fps_frames) / span);
+            fps_frames = 0;
+            fps_start = now;
+            fps_updated = true;
         }
     }
 
-    auto Clock::restart() noexcept -> void {
-        const auto now = SteadyClock::now();
-
-        if (!m_started) {
-            m_started = true;
-            m_start = now;
+    auto detail::FrameClock::restart() noexcept -> void {
+        // Before the first frame there is nothing to leave out.
+        if (!started) {
+            return;
         }
+        const auto now = SteadyClock::now();
+        last = now;
+        fps_start = now;
+        fps_frames = 0;
+    }
 
-        m_last = now;
-        m_window_start = now;
-        m_frames = 0;
-        m_delta = 0.f;
-        m_fps_updated = false;
+    auto Clock::delta() const noexcept -> float {
+        return detail::context().clock.delta;
+    }
+
+    auto Clock::elapsed() const noexcept -> double {
+        return detail::context().clock.elapsed;
+    }
+
+    auto Clock::fps() const noexcept -> float {
+        return detail::context().clock.fps;
+    }
+
+    auto Clock::fps_updated() const noexcept -> bool {
+        return detail::context().clock.fps_updated;
     }
 }

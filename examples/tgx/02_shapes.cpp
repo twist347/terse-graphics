@@ -34,6 +34,8 @@ int main() {
         canvas.rect({760, 420, 140, 140}, tgx::colors::blue);
         canvas.rect({820, 460, 140, 140}, tgx::colors::red.with_alpha(128));
 
+        app->canvas().fps({10, 10});
+
         app->swap_buffers();
     }
 

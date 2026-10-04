@@ -22,6 +22,8 @@ int main() {
 
         app->canvas().clear(tgx::colors::dark_gray);
 
+        app->canvas().fps({10, 10});
+
         app->swap_buffers();
     }
 

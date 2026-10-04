@@ -33,6 +33,8 @@ int main() {
         draw_lights(canvas, {340, 360});
         draw_lights(additive, {940, 360});
 
+        app->canvas().fps({10, 10});
+
         app->swap_buffers();
     }
 

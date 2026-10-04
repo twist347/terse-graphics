@@ -534,6 +534,16 @@ namespace tgx {
     auto Device::present() noexcept -> void {
         s_context.flush();
         detail::swap_buffers();
+        s_context.clock.tick();
+    }
+
+    auto Device::clock() const noexcept -> const Clock & {
+        static const Clock clock;
+        return clock;
+    }
+
+    auto Device::restart_clock() noexcept -> void {
+        s_context.clock.restart();
     }
 
     auto Device::set_vsync(bool enabled) noexcept -> void {

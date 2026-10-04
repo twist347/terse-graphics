@@ -177,6 +177,11 @@ namespace tgx {
         // The size text takes when drawn: the widest line by the lines' height.
         [[nodiscard]] static auto measure_text(std::string_view text, float size = default_text_size) noexcept -> Vec2;
 
+        // The frames per second of the Device (Clock::fps) as text, "60 fps",
+        // its top-left corner at the position: green at 30 or more, orange at
+        // 15 or more, red below.
+        auto fps(Vec2 position, float size = default_text_size) noexcept -> void;
+
         // Draws what has been collected; the same as Device::flush(). Only
         // needed before raw GL calls.
         auto flush() noexcept -> void;

@@ -118,6 +118,8 @@ int main() {
         // textures[0] is slot 0.
         app->device().draw(*shader, vao, {.textures = {&*texture}});
 
+        app->canvas().fps({10, 10});
+
         app->swap_buffers();
     }
 

@@ -24,8 +24,9 @@ own shaders.
 
 In `tgx`:
 
-- **Window and loop**: `App` with a frame clock, resize tracking and a GLFW-shaped
-  loop.
+- **Window and loop**: `App` with resize tracking and a GLFW-shaped loop; frames
+  timed as they are presented (`clock()`: delta, elapsed, fps), and
+  `canvas.fps(pos)` to show them.
 - **Input**: keyboard and mouse as of the last poll: keys and buttons held,
   pressed or released this frame, the mouse in window coordinates (and through
   `Canvas::to_world` in the world), the wheel, typed text in UTF-8.
@@ -61,9 +62,9 @@ Not yet: fonts of your own (TTF), render targets.
 
 | Object        | Owns                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
-| `App`         | The simple way in: one `Window`, `Device` and `Canvas` plus a frame `Clock`, created together and torn down in the right order. |
+| `App`         | The simple way in: one `Window`, `Device` and `Canvas`, created together and torn down in the right order. |
 | `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it), title, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
-| `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames (and vsync), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
+| `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames (and vsync) and timing them (`Clock`), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
 | `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how to draw (size, camera, blend, shader): a plain value to copy. |
 | `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
 | `gl::*`       | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA), but never where a draw would read it. |
@@ -73,7 +74,7 @@ only while it exists, and destroyed before it. Declare them after the `App`.
 
 `App` creates everything in one call. Its frame loop has the shape of a plain
 GLFW one; `poll_events` also notes a resize (`app->resized()`), `swap_buffers`
-presents the frame and ticks the clock. Nothing needs fitting after a resize:
+presents the frame, which also times it for `app->clock()`. Nothing needs fitting after a resize:
 draws cover the whole framebuffer unless told otherwise, and the canvas
 follows the window.
 

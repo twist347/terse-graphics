@@ -30,12 +30,6 @@ namespace tgx {
     }
 
     auto App::poll_events() noexcept -> void {
-        // Started here rather than on creation: resources are loaded between
-        // the two, and that time is not a frame.
-        if (!m_clock.started()) {
-            m_clock.restart();
-        }
-
         // The sizes change only while events are polled, as GLFW reports them.
         const Size framebuffer_size = m_window.framebuffer_size();
         const Size window_size = m_window.size();
@@ -45,6 +39,5 @@ namespace tgx {
 
     auto App::swap_buffers() noexcept -> void {
         m_device.present();
-        m_clock.tick();
     }
 }

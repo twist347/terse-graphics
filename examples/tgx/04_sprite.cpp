@@ -74,6 +74,8 @@ int main() {
             .rotation = tgx::radians(90),
         });
 
+        app->canvas().fps({10, 10});
+
         app->swap_buffers();
     }
 

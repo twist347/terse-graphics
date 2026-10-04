@@ -8,6 +8,8 @@
 #include "tgx/gl/texture_slot.h"
 #include "tgx/gl/vertex_array.h"
 
+#include "clock_internal.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -54,6 +56,9 @@ namespace tgx::detail {
         // glActiveTexture last selected.
         std::array<GlId, gl::max_texture_slots> textures{};
         std::uint32_t active_slot{0};
+
+        // The frames presented, timed; Clock shows it.
+        FrameClock clock;
 
         // Null while it is being made and while it goes: its own shader and
         // texture reach the flush hooks then. unique_ptr is null before it

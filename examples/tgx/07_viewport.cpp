@@ -37,7 +37,7 @@ int main() {
 
     // A 400x100 corner of the window that spans the whole world: 2400x600
     // units squeezed into it.
-    constexpr tgx::Rect minimap_area{20, 20, 400, 100};
+    constexpr tgx::Rect minimap_area{20, 40, 400, 100};
     tgx::Canvas minimap = screen;
     minimap.set_viewport(minimap_area);
     minimap.set_size({static_cast<int>(world_size.x), static_cast<int>(world_size.y)});
@@ -64,6 +64,8 @@ int main() {
         draw_world(minimap, player);
         // A frame around the minimap, in window coordinates.
         screen.rect_lines(minimap_area, tgx::colors::white, 2);
+
+        app->canvas().fps({10, 10});
 
         app->swap_buffers();
     }

@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <initializer_list>
 #include <numbers>
 #include <string_view>
@@ -471,6 +472,19 @@ namespace tgx {
             }
         });
         return {widest, lines * size};
+    }
+
+    auto Canvas::fps(Vec2 position, float size) noexcept -> void {
+        const float value = detail::context().clock.fps;
+        const Color color = value >= 30.f ? colors::green
+            : value >= 15.f ? Color::rgb(0xFFA500)
+            : colors::red;
+
+        // Formatted on the stack: nothing allocated every frame.
+        std::array<char, 32> buffer{};
+        const auto result = std::format_to_n(buffer.data(), buffer.size(), "{:.0f} fps", value);
+        const auto length = static_cast<std::size_t>(result.out - buffer.data());
+        text(position, std::string_view{buffer.data(), length}, color, size);
     }
 
     auto Canvas::quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void {
