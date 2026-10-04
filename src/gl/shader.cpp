@@ -475,8 +475,4 @@ namespace tgx::gl {
     template auto Shader::set<Mat4>(Uniform<Mat4>, const Mat4 &) noexcept -> void;
     template auto Shader::set<Color>(Uniform<Color>, const Color &) noexcept -> void;
     template auto Shader::set<TextureSlot>(Uniform<TextureSlot>, const TextureSlot &) noexcept -> void;
-
-    auto Shader::id() const noexcept -> GlId {
-        return m_handle.get();
-    }
 }

@@ -133,7 +133,7 @@ namespace tgx::gl {
         template<UniformValue T>
         auto set(Uniform<T> uniform, const std::type_identity_t<T> &value) noexcept -> void;
 
-        [[nodiscard]] auto id() const noexcept -> GlId;
+        [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
 
     private:
         friend auto detail::vertex_inputs(const Shader &shader) noexcept -> std::span<const detail::VertexInput>;

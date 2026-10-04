@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tgx/assert.h"
 #include "tgx/color.h"
 #include "tgx/handle.h"
 #include "tgx/math.h"
@@ -125,23 +126,33 @@ namespace tgx::gl {
 
         auto set_index_buffer(const Buffer &buffer, IndexType type) noexcept -> void;
 
-        [[nodiscard]] auto id() const noexcept -> GlId;
+        [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
 
-        [[nodiscard]] auto stride() const noexcept -> std::size_t;
+        [[nodiscard]] auto stride() const noexcept -> std::size_t { return m_stride; }
 
         // Whole vertices the attached vertex buffer holds past its offset; 0
         // until one is attached.
-        [[nodiscard]] auto vertex_count() const noexcept -> std::size_t;
+        [[nodiscard]] auto vertex_count() const noexcept -> std::size_t { return m_vertex_count; }
 
         // Whole indices the attached index buffer holds.
-        [[nodiscard]] auto index_count() const noexcept -> std::size_t;
+        [[nodiscard]] auto index_count() const noexcept -> std::size_t {
+            TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
 
-        [[nodiscard]] auto has_index_buffer() const noexcept -> bool;
+            return m_index_count;
+        }
 
-        [[nodiscard]] auto index_type() const noexcept -> IndexType;
+        [[nodiscard]] auto has_index_buffer() const noexcept -> bool { return m_has_index_buffer; }
+
+        [[nodiscard]] auto index_type() const noexcept -> IndexType {
+            TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
+
+            return m_index_type;
+        }
 
         // The layout given at creation.
-        [[nodiscard]] auto attributes() const noexcept -> std::span<const VertexAttribute>;
+        [[nodiscard]] auto attributes() const noexcept -> std::span<const VertexAttribute> {
+            return std::span{m_attributes}.first(m_attribute_count);
+        }
 
     private:
         VertexArray(GlId id, std::size_t stride, std::span<const VertexAttribute> attributes) noexcept;

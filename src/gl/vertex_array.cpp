@@ -141,36 +141,4 @@ namespace tgx::gl {
         // Rounded down: trailing bytes that do not make a whole index are unused.
         m_index_count = buffer.size() / (type == IndexType::uint32 ? 4 : 2);
     }
-
-    auto VertexArray::id() const noexcept -> GlId {
-        return m_handle.get();
-    }
-
-    auto VertexArray::stride() const noexcept -> std::size_t {
-        return m_stride;
-    }
-
-    auto VertexArray::vertex_count() const noexcept -> std::size_t {
-        return m_vertex_count;
-    }
-
-    auto VertexArray::index_count() const noexcept -> std::size_t {
-        TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
-
-        return m_index_count;
-    }
-
-    auto VertexArray::has_index_buffer() const noexcept -> bool {
-        return m_has_index_buffer;
-    }
-
-    auto VertexArray::index_type() const noexcept -> IndexType {
-        TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
-
-        return m_index_type;
-    }
-
-    auto VertexArray::attributes() const noexcept -> std::span<const VertexAttribute> {
-        return std::span{m_attributes}.first(m_attribute_count);
-    }
 }

@@ -97,16 +97,4 @@ namespace tgx::gl {
             data.data()
         );
     }
-
-    auto Buffer::id() const noexcept -> GlId {
-        return m_handle.get();
-    }
-
-    auto Buffer::size() const noexcept -> std::size_t {
-        return m_size;
-    }
-
-    auto Buffer::access() const noexcept -> BufferAccess {
-        return m_access;
-    }
 }

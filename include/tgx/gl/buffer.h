@@ -62,11 +62,11 @@ namespace tgx::gl {
             update_bytes(byte_offset, std::as_bytes(std::span{data}));
         }
 
-        [[nodiscard]] auto id() const noexcept -> GlId;
+        [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
 
-        [[nodiscard]] auto size() const noexcept -> std::size_t;
+        [[nodiscard]] auto size() const noexcept -> std::size_t { return m_size; }
 
-        [[nodiscard]] auto access() const noexcept -> BufferAccess;
+        [[nodiscard]] auto access() const noexcept -> BufferAccess { return m_access; }
 
     private:
         [[nodiscard]] static auto create_bytes(

@@ -76,11 +76,11 @@ namespace tgx {
         // at (x, y); only for dynamic textures, and the image must fit.
         auto update(int x, int y, const Image &image) noexcept -> void;
 
-        [[nodiscard]] auto id() const noexcept -> GlId;
+        [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
 
-        [[nodiscard]] auto size() const noexcept -> Size;
+        [[nodiscard]] auto size() const noexcept -> Size { return m_size; }
 
-        [[nodiscard]] auto params() const noexcept -> const TextureParams &;
+        [[nodiscard]] auto params() const noexcept -> const TextureParams & { return m_params; }
 
     private:
         Texture(GlId id, Size size, const TextureParams &params) noexcept

@@ -144,16 +144,4 @@ namespace tgx {
             glGenerateMipmap(GL_TEXTURE_2D);
         }
     }
-
-    auto Texture::id() const noexcept -> GlId {
-        return m_handle.get();
-    }
-
-    auto Texture::size() const noexcept -> Size {
-        return m_size;
-    }
-
-    auto Texture::params() const noexcept -> const TextureParams & {
-        return m_params;
-    }
 }
