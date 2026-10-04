@@ -9,8 +9,6 @@
 struct GLFWwindow;
 
 namespace tgx {
-    class Platform;
-
     struct WindowParams {
         int width{1280};
         int height{720};
@@ -25,13 +23,14 @@ namespace tgx {
     };
 
     // The one window, with its GL context: creating it makes the context
-    // current. It lives inside the Platform and outlives the Device. Like the
-    // Device, it only owns the window; its state is kept in one place inside
-    // tgx, so it can be moved freely.
+    // current. It also owns the windowing backend (glfwInit/glfwTerminate),
+    // which is one per process, so there is one Window, all calls belong to the
+    // main thread, and it outlives the Device. Like the Device, it only owns
+    // the window; its state is kept in one place inside tgx, so it can be moved
+    // freely.
     class Window {
     public:
-        // Taking the platform only orders the two: it is created first.
-        [[nodiscard]] static auto create(Platform &platform, const WindowParams &params) noexcept -> Result<Window>;
+        [[nodiscard]] static auto create(const WindowParams &params = {}) noexcept -> Result<Window>;
 
         Window(const Window &) = delete;
         auto operator=(const Window &) -> Window & = delete;
@@ -42,6 +41,9 @@ namespace tgx {
         auto operator=(Window &&other) noexcept -> Window &;
 
         ~Window();
+
+        // Handles what happened since the last call: resizes, close requests.
+        auto poll_events() noexcept -> void;
 
         [[nodiscard]] auto should_close() const noexcept -> bool;
 

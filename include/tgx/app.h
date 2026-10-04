@@ -4,12 +4,10 @@
 #include "tgx/clock.h"
 #include "tgx/device.h"
 #include "tgx/error.h"
-#include "tgx/platform.h"
 #include "tgx/window.h"
 
 namespace tgx {
-    // The simple way in: one platform, one window, one device, a canvas and a
-    // frame clock, created together and torn down in the right order. The
+    // The simple way in: one window, one device, a canvas and a frame clock, created together and torn down in the right order. The
     // layers underneath stay public for anything this does not cover.
     //
     // App's own methods are the frame loop (should_close, poll_events,
@@ -22,8 +20,8 @@ namespace tgx {
         [[nodiscard]] static auto create(const WindowParams &params = {}) noexcept -> Result<App>;
 
         App(App &&) noexcept = default;
-        // Member-wise assignment would replace the platform before the window
-        // that depends on it; with one platform per process there is nothing
+        // Member-wise assignment would replace the window before the device
+        // that depends on it; with one window per process there is nothing
         // useful to assign anyway.
         auto operator=(App &&) noexcept -> App & = delete;
 
@@ -38,7 +36,7 @@ namespace tgx {
         //         app->swap_buffers();
         //     }
         //
-        // Unlike device().present() and platform().poll_events(), these also
+        // Unlike device().present() and window().poll_events(), these also
         // do the per-frame bookkeeping noted on each.
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
@@ -57,7 +55,6 @@ namespace tgx {
         // delta() is the time from one present to the next.
         auto swap_buffers() noexcept -> void;
 
-        [[nodiscard]] auto platform() noexcept -> Platform & { return m_platform; }
         [[nodiscard]] auto window() noexcept -> Window & { return m_window; }
         [[nodiscard]] auto device() noexcept -> Device & { return m_device; }
         [[nodiscard]] auto canvas() noexcept -> Canvas & { return m_canvas; }
@@ -68,11 +65,9 @@ namespace tgx {
         auto restart_clock() noexcept -> void { m_clock.restart(); }
 
     private:
-        App(Platform platform, Window window, Device device, Canvas canvas) noexcept;
+        App(Window window, Device device, Canvas canvas) noexcept;
 
-        // Declaration order is teardown order reversed: canvas, device, window,
-        // platform.
-        Platform m_platform;
+        // Declaration order is teardown order reversed: canvas, device, window.
         Window m_window;
         Device m_device;
         Canvas m_canvas;

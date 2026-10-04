@@ -32,10 +32,10 @@ namespace tgx {
         // The world point under a point of the canvas. For a point of the
         // window, such as the mouse, Canvas::to_world: it also knows where the
         // canvas lies in the window and how it is stretched.
-        [[nodiscard]] auto to_world(Vec2 screen) const noexcept -> Vec2 {
+        [[nodiscard]] auto to_world(Vec2 point) const noexcept -> Vec2 {
             const float c = std::cos(rotation);
             const float s = std::sin(rotation);
-            const Vec2 v = screen - offset;
+            const Vec2 v = point - offset;
             return Vec2{v.x * c + v.y * s, -v.x * s + v.y * c} / zoom + target;
         }
 

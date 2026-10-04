@@ -21,7 +21,6 @@ set(TGX_SOURCES
         src/device.cpp
         src/image.cpp
         src/log.cpp
-        src/platform.cpp
         src/texture.cpp
         src/window.cpp
 )

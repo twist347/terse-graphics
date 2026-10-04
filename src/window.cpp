@@ -1,10 +1,10 @@
 #include "tgx/window.h"
 
 #include "tgx/assert.h"
-#include "tgx/platform.h"
 
 #include "tgx/gl/version.h"
 
+#include "log_internal.h"
 #include "window_internal.h"
 
 #include <GLFW/glfw3.h>
@@ -33,12 +33,21 @@ namespace {
     auto on_resize(GLFWwindow *, int, int) noexcept -> void {
         refresh_sizes();
     }
+
+    auto on_glfw_error(int code, const char *desc) noexcept -> void {
+        tgx::detail::log_error("glfw {}: {}", code, desc);
+    }
 }
 
 namespace tgx {
-    auto Window::create(Platform &, const WindowParams &params) noexcept -> Result<Window> {
+    auto Window::create(const WindowParams &params) noexcept -> Result<Window> {
         TGX_ASSERT_MSG(params.width > 0 && params.height > 0, "window of size {}x{}", params.width, params.height);
         TGX_ASSERT(params.title);
+
+        glfwSetErrorCallback(on_glfw_error);
+        if (glfwInit() != GLFW_TRUE) {
+            return std::unexpected{Error::platform};
+        }
 
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, gl::version_major);
@@ -55,10 +64,9 @@ namespace tgx {
         if (!handle) {
             // The hints above are a hard requirement: GLFW refuses rather than
             // hand out an older context.
-            if (glfwGetError(nullptr) == GLFW_VERSION_UNAVAILABLE) {
-                return std::unexpected{Error::unsupported};
-            }
-            return std::unexpected{Error::platform};
+            const Error error = glfwGetError(nullptr) == GLFW_VERSION_UNAVAILABLE ? Error::unsupported : Error::platform;
+            glfwTerminate();
+            return std::unexpected{error};
         }
 
         glfwMakeContextCurrent(handle);
@@ -86,6 +94,10 @@ namespace tgx {
 
     Window::~Window() {
         destroy();
+    }
+
+    auto Window::poll_events() noexcept -> void {
+        glfwPollEvents();
     }
 
     auto Window::should_close() const noexcept -> bool {
@@ -133,6 +145,7 @@ namespace tgx {
     auto Window::destroy() noexcept -> void {
         if (m_owned) {
             glfwDestroyWindow(s_window.handle);
+            glfwTerminate();
             s_window = {};
             m_owned = false;
         }

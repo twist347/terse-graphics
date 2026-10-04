@@ -6,12 +6,7 @@
 
 namespace tgx {
     auto App::create(const WindowParams &params) noexcept -> Result<App> {
-        auto platform = Platform::create();
-        if (!platform) {
-            return std::unexpected{platform.error()};
-        }
-
-        auto window = Window::create(*platform, params);
+        auto window = Window::create(params);
         if (!window) {
             return std::unexpected{window.error()};
         }
@@ -21,12 +16,11 @@ namespace tgx {
             return std::unexpected{device.error()};
         }
 
-        return App{std::move(*platform), std::move(*window), std::move(*device), Canvas::create()};
+        return App{std::move(*window), std::move(*device), Canvas::create()};
     }
 
-    App::App(Platform platform, Window window, Device device, Canvas canvas) noexcept
-        : m_platform{std::move(platform)},
-          m_window{std::move(window)},
+    App::App(Window window, Device device, Canvas canvas) noexcept
+        : m_window{std::move(window)},
           m_device{std::move(device)},
           m_canvas{canvas} {
     }
@@ -45,7 +39,7 @@ namespace tgx {
         // The sizes change only while events are polled, as GLFW reports them.
         const Size framebuffer_size = m_window.framebuffer_size();
         const Size window_size = m_window.size();
-        m_platform.poll_events();
+        m_window.poll_events();
         m_resized = m_window.framebuffer_size() != framebuffer_size || m_window.size() != window_size;
     }
 

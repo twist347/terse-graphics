@@ -55,9 +55,8 @@ Not yet: input, text, render targets.
 
 | Object        | Owns                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
-| `App`         | The simple way in: one `Platform`, `Window`, `Device` and `Canvas` plus a frame `Clock`, created together and torn down in the right order. |
-| `Platform`    | `glfwInit`/`glfwTerminate` and event polling. Knows nothing about GL.                  |
-| `Window`      | The OS window and its GL context: version hints, making it current, size (kept up to date as GLFW reports it), title, closing. |
+| `App`         | The simple way in: one `Window`, `Device` and `Canvas` plus a frame `Clock`, created together and torn down in the right order. |
+| `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it), title, closing. Knows nothing else about GL. |
 | `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames (and vsync), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
 | `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how to draw (size, camera, blend, shader): a plain value to copy. |
 | `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
@@ -85,10 +84,9 @@ follows the window.
 The parts can also be created one by one; creation order is the dependency
 chain, and each step fails on its own:
 
-    auto platform = tgx::Platform::create();
-    auto window   = tgx::Window::create(*platform, {...});
-    auto device   = tgx::Device::create(*window);
-    auto canvas   = tgx::Canvas::create();   // follows the window
+    auto window = tgx::Window::create({...});
+    auto device = tgx::Device::create(*window);
+    auto canvas = tgx::Canvas::create();   // follows the window
 
 Frames are shown with `device->present()`, which also draws the last of the
 `Canvas` shapes; `App::swap_buffers` calls it.
@@ -270,10 +268,10 @@ has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
   their input asks for (`Image::create`, `from_pixels`, `load`, `decode`,
   `gl::Shader::from_source`) may throw `std::bad_alloc`, and everywhere else,
   `noexcept` included, it ends the program.
-- **One `Platform`, one `Window`, one `Device`.** They are one per process by
+- **One `Window`, one `Device`.** They are one per process by
   nature (GLFW, the GL context of the one window), so tgx keeps their state in
   one place each and the objects only own it.
-- **Lifetimes nest**: `Platform` > `Window` > `Device` > GPU resources, each
+- **Lifetimes nest**: `Window` > `Device` > GPU resources, each
   created after and destroyed before the one it lives in. `App` declares them in
   that order. Like the standard library, tgx does not check this, nor calls on
   moved-from objects: asserts are for arguments, not for bookkeeping.
