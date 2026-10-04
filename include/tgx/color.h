@@ -3,6 +3,7 @@
 #include "tgx/math.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 namespace tgx {
@@ -27,9 +28,33 @@ namespace tgx {
             return hex((rgb << 8u) | 0xFFu);
         }
 
+        // Hue in degrees around the color wheel (0 red, 120 green, 240 blue,
+        // any value wraps), saturation and value in [0, 1]; fully opaque.
+        // Stepping the hue gives evenly spread, equally bright colors.
+        [[nodiscard]] static auto hsv(float hue, float saturation, float value) noexcept -> Color {
+            float h = std::fmod(hue, 360.f);
+            if (h < 0.f) {
+                h += 360.f;
+            }
+            const float s = std::clamp(saturation, 0.f, 1.f);
+            const float v = std::clamp(value, 0.f, 1.f);
+            const auto channel = [&](float n) {
+                const float k = std::fmod(n + h / 60.f, 6.f);
+                const float f = v - v * s * std::clamp(std::min(k, 4.f - k), 0.f, 1.f);
+                return static_cast<std::uint8_t>(f * 255.f + 0.5f);
+            };
+            return {channel(5.f), channel(3.f), channel(1.f), 255};
+        }
+
         // The same color with another alpha, e.g. colors::red.with_alpha(128).
         [[nodiscard]] constexpr auto with_alpha(std::uint8_t alpha) const noexcept -> Color {
             return {r, g, b, alpha};
+        }
+
+        // The same color with alpha from [0, 1] (clamped), replacing its own as
+        // raylib's Fade does: colors::red.fade(0.5f) is half see-through.
+        [[nodiscard]] constexpr auto fade(float alpha) const noexcept -> Color {
+            return with_alpha(static_cast<std::uint8_t>(std::clamp(alpha, 0.f, 1.f) * 255.f + 0.5f));
         }
 
         // Each channel scaled by alpha, rounded: the form Blend::premultiplied

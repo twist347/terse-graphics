@@ -76,7 +76,9 @@ namespace tgx {
         if (!handle) {
             // The hints above are a hard requirement: GLFW refuses rather than
             // hand out an older context.
-            const Error error = glfwGetError(nullptr) == GLFW_VERSION_UNAVAILABLE ? Error::unsupported : Error::platform;
+            const Error error = glfwGetError(nullptr) == GLFW_VERSION_UNAVAILABLE
+                ? Error::unsupported
+                : Error::platform;
             glfwTerminate();
             return std::unexpected{error};
         }

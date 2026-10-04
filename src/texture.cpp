@@ -110,7 +110,10 @@ namespace tgx {
         Size size,
         const TextureParams &params
     ) noexcept -> Result<Texture> {
-        TGX_ASSERT_MSG(params.access == TextureAccess::dynamic, "an immutable texture without data can never be filled");
+        TGX_ASSERT_MSG(
+            params.access == TextureAccess::dynamic,
+            "an immutable texture without data can never be filled"
+        );
 
         return make(size, nullptr, params).transform([&](GLuint id) {
             return Texture{id, size, params};

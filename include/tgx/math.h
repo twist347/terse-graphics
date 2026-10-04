@@ -131,6 +131,14 @@ namespace tgx {
     // a at t = 0, b at t = 1, on along the line beyond them.
     [[nodiscard]] constexpr auto lerp(Vec2 a, Vec2 b, float t) noexcept -> Vec2 { return a + (b - a) * t; }
 
+    // From towards to by max_step at most, landing on to rather than past it:
+    // chasing a target at a speed, as from = move_towards(from, to, speed * dt).
+    [[nodiscard]] inline auto move_towards(Vec2 from, Vec2 to, float max_step) noexcept -> Vec2 {
+        const Vec2 d = to - from;
+        const float dist = length(d);
+        return dist <= max_step || dist == 0.f ? to : from + d * (max_step / dist);
+    }
+
     // Vec3
 
     [[nodiscard]] constexpr auto operator+(Vec3 a, Vec3 b) noexcept -> Vec3 {
@@ -166,6 +174,13 @@ namespace tgx {
 
     // a at t = 0, b at t = 1, on along the line beyond them.
     [[nodiscard]] constexpr auto lerp(Vec3 a, Vec3 b, float t) noexcept -> Vec3 { return a + (b - a) * t; }
+
+    // From towards to by max_step at most, landing on to rather than past it.
+    [[nodiscard]] inline auto move_towards(Vec3 from, Vec3 to, float max_step) noexcept -> Vec3 {
+        const Vec3 d = to - from;
+        const float dist = length(d);
+        return dist <= max_step || dist == 0.f ? to : from + d * (max_step / dist);
+    }
 
     // Vec4
 

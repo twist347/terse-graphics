@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <format>
 #include <string_view>
 
 namespace tgx {
@@ -39,3 +40,11 @@ namespace tgx {
     // the context the driver gave at startup.
     auto set_log_level(LogLevel level) noexcept -> void;
 }
+
+// std::format("{}", level) prints to_str(level); string specs such as width apply.
+template<>
+struct std::formatter<tgx::LogLevel> : std::formatter<std::string_view> {
+    auto format(tgx::LogLevel level, std::format_context &ctx) const {
+        return std::formatter<std::string_view>::format(tgx::to_str(level), ctx);
+    }
+};
