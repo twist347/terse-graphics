@@ -2,8 +2,6 @@
 
 #include "tgx/assert.h"
 
-#include "tgx/gl/buffer.h"
-
 #include <glad/gl.h>
 
 #include <algorithm>
@@ -96,15 +94,17 @@ namespace tgx::gl {
         std::ranges::copy(attributes, m_attributes.begin());
     }
 
-    auto VertexArray::set_vertex_buffer(const Buffer &buffer, std::size_t byte_offset) noexcept -> void {
-        TGX_ASSERT(byte_offset <= buffer.size());
-
-        m_vertex_count = (buffer.size() - byte_offset) / m_stride;
+    auto VertexArray::attach_vertex_buffer(
+        GlId buffer,
+        std::size_t byte_offset,
+        std::size_t vertex_count
+    ) noexcept -> void {
+        m_vertex_count = vertex_count;
 
         // The ARRAY_BUFFER binding is not VAO state: each pointer call below
         // captures it, together with the offset and stride.
         glBindVertexArray(m_handle.get());
-        glBindBuffer(GL_ARRAY_BUFFER, buffer.id());
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
         for (std::size_t i = 0; i < m_attribute_count; ++i) {
             const VertexAttribute &attribute = m_attributes[i];
             const GlFormat format = to_gl(attribute.format);
@@ -129,16 +129,15 @@ namespace tgx::gl {
         glBindVertexArray(0);
     }
 
-    auto VertexArray::set_index_buffer(const Buffer &buffer, IndexType type) noexcept -> void {
+    auto VertexArray::attach_index_buffer(GlId buffer, IndexType type, std::size_t index_count) noexcept -> void {
         // Unlike ARRAY_BUFFER, this binding is VAO state: binding it with the
         // VAO bound is what attaches it.
         glBindVertexArray(m_handle.get());
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.id());
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
         glBindVertexArray(0);
 
         m_index_type = type;
         m_has_index_buffer = true;
-        // Rounded down: trailing bytes that do not make a whole index are unused.
-        m_index_count = buffer.size() / (type == IndexType::uint32 ? 4 : 2);
+        m_index_count = index_count;
     }
 }

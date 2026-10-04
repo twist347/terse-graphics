@@ -71,7 +71,7 @@ int main() {
     // A shader keeps its uniforms until they are set again.
     shader->set(u_color, tgx::colors::yellow);
 
-    auto vbo = tgx::gl::Buffer::create(vertices);
+    auto vbo = tgx::gl::Buffer<Vertex>::create(vertices);
     if (!vbo) {
         std::println(stderr, "buffer: {}", vbo.error());
         return 1;

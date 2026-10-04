@@ -69,7 +69,7 @@ int main() {
         return 1;
     }
 
-    auto vbo = tgx::gl::Buffer::create(vertices);
+    auto vbo = tgx::gl::Buffer<Vertex>::create(vertices);
     if (!vbo) {
         std::println(stderr, "buffer: {}", vbo.error());
         return 1;

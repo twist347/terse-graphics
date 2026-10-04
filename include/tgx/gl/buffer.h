@@ -1,26 +1,15 @@
 #pragma once
 
+#include "tgx/assert.h"
 #include "tgx/error.h"
 #include "tgx/handle.h"
 
 #include <cstddef>
-#include <ranges>
+#include <limits>
 #include <span>
 #include <type_traits>
 
 namespace tgx::gl {
-    namespace detail {
-        auto delete_buffer(GlId id) noexcept -> void;
-    }
-
-    // Anything laid out in one piece of memory whose elements can be copied
-    // byte for byte: arrays, vectors, spans, strings. Other ranges have to be
-    // materialised first, e.g. with std::ranges::to<std::vector>().
-    template<typename R>
-    concept BufferData = std::ranges::contiguous_range<R>
-                         && std::ranges::sized_range<R>
-                         && std::is_trivially_copyable_v<std::ranges::range_value_t<R>>;
-
     enum class BufferAccess {
         // Contents are fixed at creation.
         immutable,
@@ -28,26 +17,49 @@ namespace tgx::gl {
         dynamic,
     };
 
-    // A GPU buffer whose size is fixed at creation and whose contents may
-    // change only when created as dynamic.
+    // What a buffer can hold: values copied to the GPU byte for byte.
+    template<typename T>
+    concept BufferElement = std::is_trivially_copyable_v<T> && std::is_same_v<T, std::remove_cv_t<T>>;
+
+    namespace detail {
+        auto delete_buffer(GlId id) noexcept -> void;
+
+        // The untyped core of Buffer<T>, in bytes. data may be null for
+        // uninitialised storage.
+        [[nodiscard]] auto create_buffer(
+            std::size_t byte_size,
+            const void *data,
+            BufferAccess access
+        ) noexcept -> Result<GlId>;
+
+        auto update_buffer(GlId id, std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void;
+    }
+
+    // A GPU buffer of Ts, whose size is fixed at creation and whose contents
+    // may change only when created as dynamic. Sizes and offsets count Ts, not
+    // bytes; raw bytes are a Buffer<std::byte>.
     //
     // Lives inside the Device: created after it, destroyed before it.
+    template<BufferElement T>
     class Buffer {
     public:
-        // Uninitialised storage of the given size; only useful as dynamic.
+        // Uninitialised storage for count Ts; only useful as dynamic.
         [[nodiscard]] static auto create(
-            std::size_t size,
+            std::size_t count,
             BufferAccess access
-        ) noexcept -> Result<Buffer>;
+        ) noexcept -> Result<Buffer> {
+            TGX_ASSERT_MSG(access == BufferAccess::dynamic, "an immutable buffer without data can never be filled");
 
-        // Storage sized and filled from the data. The data is copied at once,
-        // so a temporary is fine.
-        template<BufferData R>
+            return make(count, nullptr, access);
+        }
+
+        // Storage sized and filled from the data: an array, a vector, a span.
+        // The data is copied at once, so a temporary is fine.
         [[nodiscard]] static auto create(
-            R &&data,
+            std::span<const T> data,
             BufferAccess access = BufferAccess::immutable
         ) noexcept -> Result<Buffer> {
-            return create_bytes(std::as_bytes(std::span{data}), access);
+            return make(data.size(), data.data(), access);
         }
 
         Buffer(const Buffer &) = delete;
@@ -56,25 +68,41 @@ namespace tgx::gl {
         Buffer(Buffer &&) noexcept = default;
         auto operator=(Buffer &&) noexcept -> Buffer & = default;
 
-        // Overwrites the bytes starting at byte_offset; only for dynamic buffers.
-        template<BufferData R>
-        auto update(std::size_t byte_offset, R &&data) noexcept -> void {
-            update_bytes(byte_offset, std::as_bytes(std::span{data}));
+        // Overwrites the Ts starting at first; only for dynamic buffers.
+        auto update(std::size_t first, std::span<const T> data) noexcept -> void {
+            TGX_ASSERT_MSG(m_access == BufferAccess::dynamic, "updating an immutable buffer");
+            TGX_ASSERT_MSG(
+                first <= m_size && data.size() <= m_size - first,
+                "update of {} elements at {} overruns a buffer of {}",
+                data.size(), first, m_size
+            );
+
+            detail::update_buffer(m_handle.get(), first * sizeof(T), std::as_bytes(data));
         }
 
         [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
 
+        // How many Ts it holds.
         [[nodiscard]] auto size() const noexcept -> std::size_t { return m_size; }
 
         [[nodiscard]] auto access() const noexcept -> BufferAccess { return m_access; }
 
     private:
-        [[nodiscard]] static auto create_bytes(
-            std::span<const std::byte> data,
+        [[nodiscard]] static auto make(
+            std::size_t count,
+            const void *data,
             BufferAccess access
-        ) noexcept -> Result<Buffer>;
+        ) noexcept -> Result<Buffer> {
+            TGX_ASSERT_MSG(
+                count <= std::numeric_limits<std::size_t>::max() / sizeof(T),
+                "{} elements of {} bytes overflow a size",
+                count, sizeof(T)
+            );
 
-        auto update_bytes(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void;
+            return detail::create_buffer(count * sizeof(T), data, access).transform([&](GlId id) {
+                return Buffer{id, count, access};
+            });
+        }
 
         Buffer(GlId id, std::size_t size, BufferAccess access) noexcept
             : m_handle{id}, m_size{size}, m_access{access} {

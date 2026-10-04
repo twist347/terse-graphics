@@ -20,15 +20,21 @@ namespace {
         }
         return GL_STATIC_DRAW;
     }
+}
 
-    [[nodiscard]] auto make(
-        std::size_t size,
+namespace tgx::gl {
+    auto detail::delete_buffer(GlId id) noexcept -> void {
+        glDeleteBuffers(1, &id);
+    }
+
+    auto detail::create_buffer(
+        std::size_t byte_size,
         const void *data,
-        tgx::gl::BufferAccess access
-    ) noexcept -> tgx::Result<GLuint> {
+        BufferAccess access
+    ) noexcept -> Result<GlId> {
         // GL rejects empty storage, and sizes travel as a signed GLsizeiptr.
-        TGX_ASSERT(size > 0);
-        TGX_ASSERT(std::in_range<GLsizeiptr>(size));
+        TGX_ASSERT(byte_size > 0);
+        TGX_ASSERT(std::in_range<GLsizeiptr>(byte_size));
 
         // Drain errors left over from earlier calls, so the check below is
         // about this allocation only. GL keeps one flag per kind of error, so a
@@ -40,56 +46,23 @@ namespace {
         GLuint id = 0;
         glGenBuffers(1, &id);
         glBindBuffer(edit_target, id);
-        glBufferData(edit_target, static_cast<GLsizeiptr>(size), data, to_gl(access));
+        glBufferData(edit_target, static_cast<GLsizeiptr>(byte_size), data, to_gl(access));
 
         // Any error leaves the buffer without storage, so none is survivable.
         // Caller mistakes are asserted above; what is left is the driver.
         if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
             glDeleteBuffers(1, &id);
-            return std::unexpected{err == GL_OUT_OF_MEMORY ? tgx::Error::out_of_mem : tgx::Error::platform};
+            return std::unexpected{err == GL_OUT_OF_MEMORY ? Error::out_of_mem : Error::platform};
         }
         return id;
     }
-}
 
-namespace tgx::gl {
-    auto detail::delete_buffer(GlId id) noexcept -> void {
-        glDeleteBuffers(1, &id);
-    }
-
-    auto Buffer::create(
-        std::size_t size,
-        BufferAccess access
-    ) noexcept -> Result<Buffer> {
-        TGX_ASSERT_MSG(access == BufferAccess::dynamic, "an immutable buffer without data can never be filled");
-
-        return make(size, nullptr, access).transform([&](GLuint id) {
-            return Buffer{id, size, access};
-        });
-    }
-
-    auto Buffer::create_bytes(
-        std::span<const std::byte> data,
-        BufferAccess access
-    ) noexcept -> Result<Buffer> {
-        return make(data.size(), data.data(), access).transform([&](GLuint id) {
-            return Buffer{id, data.size(), access};
-        });
-    }
-
-    auto Buffer::update_bytes(std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void {
-        TGX_ASSERT_MSG(m_access == BufferAccess::dynamic, "updating an immutable buffer");
-        TGX_ASSERT_MSG(
-            byte_offset <= m_size && data.size() <= m_size - byte_offset,
-            "update of {} bytes at {} overruns a {}-byte buffer",
-            data.size(), byte_offset, m_size
-        );
-
+    auto detail::update_buffer(GlId id, std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void {
         if (data.empty()) {
             return;
         }
 
-        glBindBuffer(edit_target, m_handle.get());
+        glBindBuffer(edit_target, id);
         glBufferSubData(
             edit_target,
             static_cast<GLintptr>(byte_offset),

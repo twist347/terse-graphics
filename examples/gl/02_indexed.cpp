@@ -74,8 +74,8 @@ int main() {
         return 1;
     }
 
-    auto vbo = tgx::gl::Buffer::create(vertices);
-    auto ibo = tgx::gl::Buffer::create(indices);
+    auto vbo = tgx::gl::Buffer<Vertex>::create(vertices);
+    auto ibo = tgx::gl::Buffer<std::uint16_t>::create(indices);
     if (!vbo || !ibo) {
         std::println(stderr, "buffer: {}", !vbo ? vbo.error() : ibo.error());
         return 1;
@@ -84,7 +84,7 @@ int main() {
     auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
     // With an index buffer attached, draws go by the indices.
-    vao.set_index_buffer(*ibo, tgx::gl::IndexType::uint16);
+    vao.set_index_buffer(*ibo);
 
     while (!app->should_close()) {
         app->poll_events();

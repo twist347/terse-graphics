@@ -5,15 +5,16 @@
 #include "tgx/handle.h"
 #include "tgx/math.h"
 
+#include "tgx/gl/buffer.h"
+
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <span>
 #include <type_traits>
 
 namespace tgx::gl {
-    class Buffer;
-
     namespace detail {
         auto delete_vertex_array(GlId id) noexcept -> void;
     }
@@ -89,6 +90,10 @@ namespace tgx::gl {
         uint32
     };
 
+    // What an index buffer can hold.
+    template<typename T>
+    concept IndexElement = std::same_as<T, std::uint16_t> || std::same_as<T, std::uint32_t>;
+
     // Describes interleaved vertices of one fixed layout and which buffers feed
     // them. The layout is set at creation; buffers can be swapped later.
     //
@@ -122,19 +127,40 @@ namespace tgx::gl {
         VertexArray(VertexArray &&) noexcept = default;
         auto operator=(VertexArray &&) noexcept -> VertexArray & = default;
 
-        auto set_vertex_buffer(const Buffer &buffer, std::size_t byte_offset = 0) noexcept -> void;
+        // Feeds the vertices from the buffer, starting at its first-th element.
+        // The elements must be the vertices this array was created for; their
+        // size is checked against the stride.
+        template<BufferElement V>
+        auto set_vertex_buffer(const Buffer<V> &buffer, std::size_t first = 0) noexcept -> void {
+            TGX_ASSERT_MSG(
+                sizeof(V) == m_stride,
+                "a buffer of {}-byte elements feeds {}-byte vertices",
+                sizeof(V), m_stride
+            );
+            TGX_ASSERT(first <= buffer.size());
 
-        auto set_index_buffer(const Buffer &buffer, IndexType type) noexcept -> void;
+            attach_vertex_buffer(buffer.id(), first * sizeof(V), buffer.size() - first);
+        }
+
+        // Draws go by the indices from now on; their type comes from the buffer.
+        template<IndexElement I>
+        auto set_index_buffer(const Buffer<I> &buffer) noexcept -> void {
+            attach_index_buffer(
+                buffer.id(),
+                std::same_as<I, std::uint32_t> ? IndexType::uint32 : IndexType::uint16,
+                buffer.size()
+            );
+        }
 
         [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
 
         [[nodiscard]] auto stride() const noexcept -> std::size_t { return m_stride; }
 
-        // Whole vertices the attached vertex buffer holds past its offset; 0
+        // Vertices the attached vertex buffer holds from its first one used; 0
         // until one is attached.
         [[nodiscard]] auto vertex_count() const noexcept -> std::size_t { return m_vertex_count; }
 
-        // Whole indices the attached index buffer holds.
+        // Indices the attached index buffer holds.
         [[nodiscard]] auto index_count() const noexcept -> std::size_t {
             TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
 
@@ -157,13 +183,17 @@ namespace tgx::gl {
     private:
         VertexArray(GlId id, std::size_t stride, std::span<const VertexAttribute> attributes) noexcept;
 
+        auto attach_vertex_buffer(GlId buffer, std::size_t byte_offset, std::size_t vertex_count) noexcept -> void;
+
+        auto attach_index_buffer(GlId buffer, IndexType type, std::size_t index_count) noexcept -> void;
+
         tgx::detail::Handle<detail::delete_vertex_array> m_handle;
         std::size_t m_stride{0};
         // GL 3.3 ties an attribute's format to the buffer it reads from, so the
         // layout is kept here and handed to GL again whenever the buffer changes.
         std::array<VertexAttribute, max_attributes> m_attributes{};
         std::size_t m_attribute_count{0};
-        // Cached at attach time: buffer sizes are fixed at creation.
+        // Taken at attach time: buffer sizes are fixed at creation.
         std::size_t m_vertex_count{0};
         std::size_t m_index_count{0};
         IndexType m_index_type{IndexType::uint16};

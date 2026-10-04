@@ -85,8 +85,8 @@ namespace tgx::detail {
         Batch(
             gl::Shader shader,
             std::int32_t u_projection,
-            gl::Buffer vertex_buffer,
-            gl::Buffer index_buffer,
+            gl::Buffer<BatchVertex> vertex_buffer,
+            gl::Buffer<std::uint16_t> index_buffer,
             gl::VertexArray vertex_array,
             Texture builtin
         );
@@ -94,8 +94,8 @@ namespace tgx::detail {
         gl::Shader m_shader;
         // The location of its u_projection.
         std::int32_t m_u_projection;
-        gl::Buffer m_vertex_buffer;
-        gl::Buffer m_index_buffer;
+        gl::Buffer<BatchVertex> m_vertex_buffer;
+        gl::Buffer<std::uint16_t> m_index_buffer;
         gl::VertexArray m_vertex_array;
         // The default font's glyphs and a white block. Shapes sample the white,
         // so they share the shader with textured drawing and their color comes

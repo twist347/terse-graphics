@@ -51,8 +51,9 @@ In `tgx::gl`:
 
 - **Draws and clears** that state everything they need: render state (blending,
   depth test, face culling, wireframe), textures by slot, clear values.
-- **Buffers and vertex arrays**: immutable or dynamic `gl::Buffer`s from any
-  contiguous range; `gl::VertexArray` with the attribute layout taken straight
+- **Buffers and vertex arrays**: immutable or dynamic `gl::Buffer<T>`s, typed
+  by what they hold, so sizes and offsets count elements and the index type
+  follows the buffer; `gl::VertexArray` with the attribute layout taken straight
   from the vertex struct.
 - **Shaders and uniforms**: `gl::Shader` from source, uniforms set through typed
   handles looked up once by name; a shader of your own for the `Canvas`.
@@ -214,7 +215,7 @@ alike:
         tgx::gl::VertexAttribute::of(1, &Vertex::color),      // unorm8x4, read as vec4 in [0, 1]
     };
 
-    auto vbo = tgx::gl::Buffer::create(vertices);   // std::array, std::vector, span...
+    auto vbo = tgx::gl::Buffer<Vertex>::create(vertices);   // std::array, std::vector, span...
     auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
 

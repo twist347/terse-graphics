@@ -84,15 +84,11 @@ namespace tgx::detail {
         const std::int32_t u_projection = projection_location(*shader);
         shader->set(shader->uniform<gl::TextureSlot>("u_texture"), {0});
 
-        auto vertex_buffer = gl::Buffer::create(
-            batch_max_vertices * sizeof(BatchVertex), gl::BufferAccess::dynamic
-        );
+        auto vertex_buffer = gl::Buffer<BatchVertex>::create(batch_max_vertices, gl::BufferAccess::dynamic);
         if (!vertex_buffer) {
             return std::unexpected{vertex_buffer.error()};
         }
-        auto index_buffer = gl::Buffer::create(
-            batch_max_indices * sizeof(std::uint16_t), gl::BufferAccess::dynamic
-        );
+        auto index_buffer = gl::Buffer<std::uint16_t>::create(batch_max_indices, gl::BufferAccess::dynamic);
         if (!index_buffer) {
             return std::unexpected{index_buffer.error()};
         }
@@ -104,7 +100,7 @@ namespace tgx::detail {
         };
         auto vertex_array = gl::VertexArray::create<BatchVertex>(layout);
         vertex_array.set_vertex_buffer(*vertex_buffer);
-        vertex_array.set_index_buffer(*index_buffer, gl::IndexType::uint16);
+        vertex_array.set_index_buffer(*index_buffer);
 
         auto builtin = Texture::create(builtin_atlas(), {.filter = TextureFilter::nearest});
         if (!builtin) {
@@ -124,8 +120,8 @@ namespace tgx::detail {
     Batch::Batch(
         gl::Shader shader,
         std::int32_t u_projection,
-        gl::Buffer vertex_buffer,
-        gl::Buffer index_buffer,
+        gl::Buffer<BatchVertex> vertex_buffer,
+        gl::Buffer<std::uint16_t> index_buffer,
         gl::VertexArray vertex_array,
         Texture builtin
     )
