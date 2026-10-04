@@ -4,6 +4,7 @@
 
 #include "tgx/gl/version.h"
 
+#include "input_internal.h"
 #include "log_internal.h"
 #include "window_internal.h"
 
@@ -76,6 +77,8 @@ namespace tgx {
         refresh_sizes();
         glfwSetWindowSizeCallback(handle, on_resize);
         glfwSetFramebufferSizeCallback(handle, on_resize);
+
+        detail::attach_input(handle);
         return Window{};
     }
 
@@ -97,7 +100,13 @@ namespace tgx {
     }
 
     auto Window::poll_events() noexcept -> void {
+        detail::begin_input_frame();
         glfwPollEvents();
+    }
+
+    auto Window::input() const noexcept -> const Input & {
+        static const Input input;
+        return input;
     }
 
     auto Window::should_close() const noexcept -> bool {

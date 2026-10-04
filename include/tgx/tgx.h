@@ -14,6 +14,7 @@
 #include "tgx/device.h"
 #include "tgx/error.h"
 #include "tgx/image.h"
+#include "tgx/input.h"
 #include "tgx/log.h"
 #include "tgx/math.h"
 #include "tgx/size.h"

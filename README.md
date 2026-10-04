@@ -26,6 +26,9 @@ In `tgx`:
 
 - **Window and loop**: `App` with a frame clock, resize tracking and a GLFW-shaped
   loop.
+- **Input**: keyboard and mouse as of the last poll: keys and buttons held,
+  pressed or released this frame, the mouse in window coordinates (and through
+  `Canvas::to_world` in the world), the wheel, typed text in UTF-8.
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles, lines,
   circles, outlines and sprites (parts of textures, mirrored, turned, tinted),
   under a 2D camera, with a choice of blending. Collected and drawn in
@@ -49,14 +52,14 @@ In `tgx::gl`:
 - **Shaders and uniforms**: `gl::Shader` from source, uniforms set through typed
   handles looked up once by name; a shader of your own for the `Canvas`.
 
-Not yet: input, text, render targets.
+Not yet: text, render targets.
 
 ## Who does what
 
 | Object        | Owns                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
 | `App`         | The simple way in: one `Window`, `Device` and `Canvas` plus a frame `Clock`, created together and torn down in the right order. |
-| `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it), title, closing. Knows nothing else about GL. |
+| `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it), title, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
 | `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames (and vsync), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
 | `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how to draw (size, camera, blend, shader): a plain value to copy. |
 | `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
@@ -337,6 +340,7 @@ e.g. `tgx_01_window`.
 | `06_camera`     | A camera following a player, and a HUD that stays put.            |
 | `07_viewport`   | A minimap: the world again, in a corner, at its own scale.         |
 | `08_blend`      | Alpha and additive blending side by side.                          |
+| `09_input`      | Keyboard and mouse: held keys, presses, the wheel, the mouse in the world. |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|

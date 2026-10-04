@@ -20,6 +20,7 @@ set(TGX_SOURCES
         src/clock.cpp
         src/device.cpp
         src/image.cpp
+        src/input.cpp
         src/log.cpp
         src/texture.cpp
         src/window.cpp

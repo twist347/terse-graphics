@@ -4,6 +4,7 @@
 #include "tgx/clock.h"
 #include "tgx/device.h"
 #include "tgx/error.h"
+#include "tgx/input.h"
 #include "tgx/window.h"
 
 namespace tgx {
@@ -13,7 +14,7 @@ namespace tgx {
     // App's own methods are the frame loop (should_close, poll_events,
     // swap_buffers) and what it adds on top of its parts (resized,
     // restart_clock). Everything else belongs to a part and is reached through
-    // it: app->window(), app->canvas(), app->clock(), ... New features come as
+    // it: app->window(), app->input(), app->canvas(), app->clock(), ... New features come as
     // new parts, not as more methods here.
     class App {
     public:
@@ -56,6 +57,7 @@ namespace tgx {
         auto swap_buffers() noexcept -> void;
 
         [[nodiscard]] auto window() noexcept -> Window & { return m_window; }
+        [[nodiscard]] auto input() const noexcept -> const Input & { return m_window.input(); }
         [[nodiscard]] auto device() noexcept -> Device & { return m_device; }
         [[nodiscard]] auto canvas() noexcept -> Canvas & { return m_canvas; }
         [[nodiscard]] auto clock() const noexcept -> const Clock & { return m_clock; }

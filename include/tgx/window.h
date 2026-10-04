@@ -2,6 +2,7 @@
 
 #include "tgx/assert.h"
 #include "tgx/error.h"
+#include "tgx/input.h"
 #include "tgx/size.h"
 
 #include <utility>
@@ -42,8 +43,11 @@ namespace tgx {
 
         ~Window();
 
-        // Handles what happened since the last call: resizes, close requests.
+        // Handles what happened since the last call: resizes, close requests,
+        // keys and the mouse, which input() then shows.
         auto poll_events() noexcept -> void;
+
+        [[nodiscard]] auto input() const noexcept -> const Input &;
 
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
