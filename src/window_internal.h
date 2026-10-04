@@ -16,9 +16,6 @@ namespace tgx::detail {
     // the window only lends it the surface.
     auto swap_buffers() noexcept -> void;
 
-    // Whether swap_buffers() waits for the display.
-    auto set_vsync(bool enabled) noexcept -> void;
-
     // As the backend last reported them; asking it instead can be a round
     // trip to the display server (X11).
     [[nodiscard]] auto window_size() noexcept -> Size;

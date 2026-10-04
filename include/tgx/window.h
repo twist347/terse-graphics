@@ -14,7 +14,7 @@ namespace tgx {
         int width{1280};
         int height{720};
         const char *title{"tgx"};
-        // Whether presenting a frame waits for the display; device().set_vsync()
+        // Whether presenting a frame waits for the display; set_vsync()
         // changes it later.
         bool vsync{true};
         // Debug contexts report driver messages but slow the driver down, so by
@@ -47,6 +47,12 @@ namespace tgx {
         // keys and the mouse, which input() then shows.
         auto poll_events() noexcept -> void;
 
+        // Whether the last poll_events() saw the window or its framebuffer
+        // change size; the new sizes are size() and framebuffer_size().
+        // Nothing needs fitting after it: draws cover the framebuffer and the
+        // canvas follows the window on their own.
+        [[nodiscard]] auto resized() const noexcept -> bool;
+
         [[nodiscard]] auto input() const noexcept -> const Input &;
 
         [[nodiscard]] auto should_close() const noexcept -> bool;
@@ -55,6 +61,10 @@ namespace tgx {
 
         // Must be nul-terminated UTF-8, as the windowing backend requires.
         auto set_title(const char *title) noexcept -> void;
+
+        // Whether presenting a frame (Device::present) waits for the display:
+        // no tearing, and frames paced by it. Starts as WindowParams::vsync.
+        auto set_vsync(bool enabled) noexcept -> void;
 
         // In screen coordinates, the units the OS lays windows out in and the
         // Canvas draws in. The same as framebuffer_size() unless the display

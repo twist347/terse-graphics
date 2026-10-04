@@ -58,6 +58,9 @@ namespace {
 }
 
 int main() {
+    // Info also prints which GL context the driver gave.
+    tgx::set_log_level(tgx::LogLevel::info);
+
     auto app = tgx::App::create({.title = "gl - 02 indexed"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());

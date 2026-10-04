@@ -19,6 +19,13 @@ namespace {
         GLFWwindow *handle{nullptr};
         tgx::Size size{};
         tgx::Size framebuffer_size{};
+        // Both sizes as the poll before the last one left them, and whether
+        // the last one left them different. Compared at the poll rather than
+        // flagged by the callbacks, which GLFW may also call outside a poll
+        // (on Wayland, from inside glfwSetWindowSize).
+        tgx::Size polled_size{};
+        tgx::Size polled_framebuffer_size{};
+        bool resized{false};
     };
 
     WindowState s_window;
@@ -33,6 +40,10 @@ namespace {
 
     auto on_resize(GLFWwindow *, int, int) noexcept -> void {
         refresh_sizes();
+    }
+
+    auto set_swap_interval(bool vsync) noexcept -> void {
+        glfwSwapInterval(vsync ? 1 : 0);
     }
 
     auto on_glfw_error(int code, const char *desc) noexcept -> void {
@@ -71,10 +82,13 @@ namespace tgx {
         }
 
         glfwMakeContextCurrent(handle);
-        detail::set_vsync(params.vsync);
+        set_swap_interval(params.vsync);
 
         s_window.handle = handle;
         refresh_sizes();
+        // The sizes it starts with are not a resize.
+        s_window.polled_size = s_window.size;
+        s_window.polled_framebuffer_size = s_window.framebuffer_size;
         glfwSetWindowSizeCallback(handle, on_resize);
         glfwSetFramebufferSizeCallback(handle, on_resize);
 
@@ -102,6 +116,11 @@ namespace tgx {
     auto Window::poll_events() noexcept -> void {
         detail::begin_input_frame();
         glfwPollEvents();
+
+        s_window.resized = s_window.size != s_window.polled_size
+            || s_window.framebuffer_size != s_window.polled_framebuffer_size;
+        s_window.polled_size = s_window.size;
+        s_window.polled_framebuffer_size = s_window.framebuffer_size;
     }
 
     auto Window::input() const noexcept -> const Input & {
@@ -127,8 +146,12 @@ namespace tgx {
         glfwSetWindowTitle(s_window.handle, title);
     }
 
-    auto detail::set_vsync(bool enabled) noexcept -> void {
-        glfwSwapInterval(enabled ? 1 : 0);
+    auto Window::set_vsync(bool enabled) noexcept -> void {
+        set_swap_interval(enabled);
+    }
+
+    auto Window::resized() const noexcept -> bool {
+        return s_window.resized;
     }
 
     auto detail::window_size() noexcept -> Size {

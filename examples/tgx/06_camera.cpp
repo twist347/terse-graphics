@@ -9,6 +9,9 @@
 #include <print>
 
 int main() {
+    // Info also prints which GL context the driver gave.
+    tgx::set_log_level(tgx::LogLevel::info);
+
     auto app = tgx::App::create({.title = "tgx - 06 camera"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());

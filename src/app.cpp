@@ -1,7 +1,5 @@
 #include "tgx/app.h"
 
-#include "tgx/size.h"
-
 #include <utility>
 
 namespace tgx {
@@ -30,11 +28,7 @@ namespace tgx {
     }
 
     auto App::poll_events() noexcept -> void {
-        // The sizes change only while events are polled, as GLFW reports them.
-        const Size framebuffer_size = m_window.framebuffer_size();
-        const Size window_size = m_window.size();
         m_window.poll_events();
-        m_resized = m_window.framebuffer_size() != framebuffer_size || m_window.size() != window_size;
     }
 
     auto App::swap_buffers() noexcept -> void {

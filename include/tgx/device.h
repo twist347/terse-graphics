@@ -65,8 +65,9 @@ namespace tgx {
         auto flush() noexcept -> void;
 
         // Draws what the Canvas has collected and shows the frame in the
-        // window, waiting for the display with vsync on, then times the frame
-        // for clock(). App::swap_buffers does this.
+        // window, waiting for the display if the window has vsync on
+        // (Window::set_vsync), then times the frame for clock().
+        // App::swap_buffers does this.
         auto present() noexcept -> void;
 
         // The time of the frames present() shows.
@@ -77,10 +78,6 @@ namespace tgx {
         // time spent is left out of delta() and fps(). elapsed() keeps counting
         // real time.
         auto restart_clock() noexcept -> void;
-
-        // Whether present() waits for the display: no tearing, and frames
-        // paced by it. Starts as WindowParams::vsync.
-        auto set_vsync(bool enabled) noexcept -> void;
 
         // Draws with the index buffer when the vertex array has one, straight
         // from the vertices otherwise. Two overloads rather than a default

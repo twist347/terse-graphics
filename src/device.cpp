@@ -546,10 +546,6 @@ namespace tgx {
         s_context.clock.restart();
     }
 
-    auto Device::set_vsync(bool enabled) noexcept -> void {
-        detail::set_vsync(enabled);
-    }
-
     auto Device::clear(const ClearParams &params) noexcept -> void {
         s_context.clear(params);
     }
