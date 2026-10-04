@@ -28,8 +28,9 @@ In `tgx`:
   are polled (`window().resized()`), frames timed as they are presented
   (`clock()`: delta, elapsed, fps), and `canvas.fps(pos)` to show them.
 - **Input**: keyboard and mouse as of the last poll: keys and buttons held,
-  pressed or released this frame, the mouse in window coordinates (and through
-  `Canvas::to_world` in the world), the wheel, typed text in UTF-8.
+  pressed or released this frame, keys repeated by the OS while held, the
+  mouse in window coordinates (and through `Canvas::to_world` in the world),
+  the wheel, typed text in UTF-8.
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles, lines,
   circles, outlines, sprites (parts of textures, mirrored, turned, tinted) and
   text in a built-in pixel font, under a 2D camera, with a choice of blending. Collected and drawn in
@@ -62,7 +63,7 @@ Not yet: fonts of your own (TTF), render targets.
 
 | Object        | Owns                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
-| `App`         | The simple way in: one `Window`, `Device` and `Canvas`, created together and torn down in the right order. |
+| `App`         | The simple way in: creates the `Window`, `Device` and `Canvas` in the right order as one call that fails as one, owns them, tears them down in reverse, and gives the frame loop in three words (`should_close`, `poll_events`, `swap_buffers`). |
 | `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it) and whether it changed, title, vsync, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
 | `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames and timing them (`Clock`), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
 | `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how to draw (size, camera, blend, shader): a plain value to copy. |
@@ -180,8 +181,10 @@ or a pixel-art canvas too.
 
 Text comes in a built-in monospaced pixel font, [unscii-16](http://viznut.fi/unscii/)
 by Viznut (public domain): 8x16 pixels a character, printable ASCII; other
-characters show as `?`. Its own size is 16, the height of a line; whole
-multiples of it keep the pixels square.
+characters show as `?`. Its own size is 16, the height of a line. Its pixels
+stay even squares when three things are whole: the size a multiple of 16, the
+position in whole units, and the display's scale (1 or 2, as on Retina, but
+not 1.25); otherwise some columns come out a pixel wider than others.
 
     canvas.text({20, 20}, "Score: 120", tgx::colors::white);
     canvas.text({20, 60}, "GAME OVER", tgx::colors::red, 48);

@@ -8,9 +8,10 @@
 #include "tgx/window.h"
 
 namespace tgx {
-    // The simple way in: one window, one device and a canvas, created together
-    // and torn down in the right order. The layers underneath stay public for
-    // anything this does not cover.
+    // The simple way in: creates the window, the device and a canvas in the
+    // right order, failing as one call, owns them, tears them down in the
+    // reverse order, and gives the frame loop in three words. The layers
+    // underneath stay public for anything this does not cover.
     //
     // App's own methods are the frame loop (should_close, poll_events,
     // swap_buffers). Everything else belongs to a part and is reached through

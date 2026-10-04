@@ -165,7 +165,8 @@ namespace tgx {
         auto sprite(const Texture &texture, const Sprite &sprite) noexcept -> void;
 
         // The built-in font's own size, the height of a line: text drawn at it,
-        // or at a whole multiple of it, keeps its pixels square.
+        // or at a whole multiple of it, at a whole position, keeps its pixels
+        // even squares (on a display scaled by a whole factor).
         static constexpr float default_text_size = 16.f;
 
         // A line of text, or several split by '\n', its top-left corner at
@@ -175,6 +176,8 @@ namespace tgx {
         auto text(Vec2 position, std::string_view text, Color color, float size = default_text_size) noexcept -> void;
 
         // The size text takes when drawn: the widest line by the lines' height.
+        // A '\n' at the end starts a line with nothing on it yet, which
+        // counts, as the place the next character would go.
         [[nodiscard]] static auto measure_text(std::string_view text, float size = default_text_size) noexcept -> Vec2;
 
         // The frames per second of the Device (Clock::fps) as text, "60 fps",

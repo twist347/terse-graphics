@@ -17,6 +17,8 @@ namespace {
         bit_down = 1,
         bit_pressed = 2,
         bit_released = 4,
+        // Pressed or repeated by the OS since the poll before.
+        bit_repeated = 8,
     };
 
     // The keys and the mouse of the one window, filled by GLFW callbacks
@@ -104,10 +106,13 @@ namespace {
         }
     }
 
-    // Repeats are left out: a held key is down, and went down once.
+    // A repeat is neither a press nor a change of down: a held key went down
+    // once. Only repeated() sees it.
     auto set_edge(std::uint8_t &bits, int action) noexcept -> void {
         if (action == GLFW_PRESS) {
-            bits |= bit_down | bit_pressed;
+            bits |= bit_down | bit_pressed | bit_repeated;
+        } else if (action == GLFW_REPEAT) {
+            bits |= bit_repeated;
         } else if (action == GLFW_RELEASE) {
             bits = static_cast<std::uint8_t>((bits & ~bit_down) | bit_released);
         }
@@ -201,6 +206,10 @@ namespace tgx {
 
     auto Input::released(Key key) const noexcept -> bool {
         return (s_input.keys[static_cast<std::size_t>(key)] & bit_released) != 0;
+    }
+
+    auto Input::repeated(Key key) const noexcept -> bool {
+        return (s_input.keys[static_cast<std::size_t>(key)] & bit_repeated) != 0;
     }
 
     auto Input::down(MouseButton button) const noexcept -> bool {

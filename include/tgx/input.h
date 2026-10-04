@@ -67,6 +67,10 @@ namespace tgx {
         [[nodiscard]] auto pressed(Key key) const noexcept -> bool;
         [[nodiscard]] auto released(Key key) const noexcept -> bool;
 
+        // Pressed, or repeated by the OS while held, as typing repeats a
+        // letter: for Backspace in a text field or stepping through a menu.
+        [[nodiscard]] auto repeated(Key key) const noexcept -> bool;
+
         [[nodiscard]] auto down(MouseButton button) const noexcept -> bool;
         [[nodiscard]] auto pressed(MouseButton button) const noexcept -> bool;
         [[nodiscard]] auto released(MouseButton button) const noexcept -> bool;

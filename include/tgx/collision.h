@@ -30,8 +30,12 @@ namespace tgx {
         return dot(d, d) <= circle.radius * circle.radius;
     }
 
-    // The triangle a b c, either way round; the edges count as inside.
+    // The triangle a b c, either way round; the edges count as inside. One
+    // with no area, its corners on a line, has no inside.
     [[nodiscard]] constexpr auto contains(Vec2 a, Vec2 b, Vec2 c, Vec2 point) noexcept -> bool {
+        if (cross(b - a, c - a) == 0.f) {
+            return false;
+        }
         // Which side of each edge the point is on: inside it is the same side
         // of all three, or on one of them.
         const float ab = cross(b - a, point - a);

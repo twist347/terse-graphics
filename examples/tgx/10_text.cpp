@@ -26,8 +26,9 @@ int main() {
 
         // What was typed this frame, as the keyboard layout makes it.
         typed += input.text();
-        // One character back: UTF-8 continuation bytes are 10xxxxxx.
-        if (input.pressed(tgx::Key::backspace)) {
+        // One character back, again and again while held: UTF-8
+        // continuation bytes are 10xxxxxx.
+        if (input.repeated(tgx::Key::backspace)) {
             while (!typed.empty() && (static_cast<unsigned char>(typed.back()) & 0xC0) == 0x80) {
                 typed.pop_back();
             }

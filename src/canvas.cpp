@@ -62,13 +62,20 @@ namespace {
         for (std::size_t i = 0; i < text.size();) {
             const auto c = static_cast<unsigned char>(text[i]);
             // The lead byte says how long the sequence is; a stray
-            // continuation byte counts as a character of its own.
+            // continuation byte counts as a character of its own. Only
+            // continuation bytes are taken after it, so a sequence cut short
+            // does not swallow the next character.
             const std::size_t length = c < 0x80 ? 1
                 : (c >> 5) == 0x6 ? 2
                 : (c >> 4) == 0xE ? 3
                 : (c >> 3) == 0x1E ? 4
                 : 1;
-            i += length;
+            ++i;
+            for (std::size_t taken = 1; taken < length && i < text.size(); ++taken, ++i) {
+                if ((static_cast<unsigned char>(text[i]) & 0xC0) != 0x80) {
+                    break;
+                }
+            }
 
             if (c == '\n') {
                 f(newline);
