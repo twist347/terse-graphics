@@ -32,6 +32,11 @@ namespace tgx::gl {
         sint32
     };
 
+    // A vertex the GPU reads field by field: copied byte for byte and laid out
+    // plainly, so the offsets of its fields mean what the GPU will read.
+    template<typename T>
+    concept VertexElement = BufferElement<T> && std::is_standard_layout_v<T>;
+
     // The format a vertex field of type T is read with. Fails to compile for a
     // type with no natural format; describe such a field by hand.
     template<typename T>
@@ -69,10 +74,8 @@ namespace tgx::gl {
         //
         // Not constexpr: offsetof needs the field's name, and a member pointer
         // only gives up its offset measured on a real object.
-        template<typename Vertex, typename Field>
-            requires std::is_standard_layout_v<Vertex>
-                     && std::is_trivially_copyable_v<Vertex>
-                     && std::is_default_constructible_v<Vertex>
+        template<VertexElement Vertex, typename Field>
+            requires std::is_default_constructible_v<Vertex>
         [[nodiscard]] static auto of(std::uint32_t location, Field Vertex::*field) noexcept -> VertexAttribute {
             const Vertex vertex{};
             const auto *base = reinterpret_cast<const std::byte *>(&vertex);
@@ -94,6 +97,12 @@ namespace tgx::gl {
     template<typename T>
     concept IndexElement = std::same_as<T, std::uint16_t> || std::same_as<T, std::uint32_t>;
 
+    // The IndexType an index buffer of Is is read with.
+    template<IndexElement I>
+    [[nodiscard]] consteval auto index_type_of() noexcept -> IndexType {
+        return std::same_as<I, std::uint32_t> ? IndexType::uint32 : IndexType::uint16;
+    }
+
     // Describes interleaved vertices of one fixed layout and which buffers feed
     // them. The layout is set at creation; buffers can be swapped later.
     //
@@ -111,10 +120,8 @@ namespace tgx::gl {
             std::span<const VertexAttribute> attributes
         ) noexcept -> VertexArray;
 
-        // The stride is sizeof(Vertex). Vertex must be laid out plainly, so the
-        // offsetof() values in the attributes mean what the GPU will read.
-        template<typename Vertex>
-            requires std::is_standard_layout_v<Vertex> && std::is_trivially_copyable_v<Vertex>
+        // The stride is sizeof(Vertex).
+        template<VertexElement Vertex>
         [[nodiscard]] static auto create(
             std::span<const VertexAttribute> attributes
         ) noexcept -> VertexArray {
@@ -130,7 +137,7 @@ namespace tgx::gl {
         // Feeds the vertices from the buffer, starting at its first-th element.
         // The elements must be the vertices this array was created for; their
         // size is checked against the stride.
-        template<BufferElement V>
+        template<VertexElement V>
         auto set_vertex_buffer(const Buffer<V> &buffer, std::size_t first = 0) noexcept -> void {
             TGX_ASSERT_MSG(
                 sizeof(V) == m_stride,
@@ -145,11 +152,7 @@ namespace tgx::gl {
         // Draws go by the indices from now on; their type comes from the buffer.
         template<IndexElement I>
         auto set_index_buffer(const Buffer<I> &buffer) noexcept -> void {
-            attach_index_buffer(
-                buffer.id(),
-                std::same_as<I, std::uint32_t> ? IndexType::uint32 : IndexType::uint16,
-                buffer.size()
-            );
+            attach_index_buffer(buffer.id(), index_type_of<I>(), buffer.size());
         }
 
         [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
