@@ -1,9 +1,11 @@
+// An index buffer: a rectangle from four vertices instead of six, the two
+// triangles sharing two of them.
+
 #include "tgx/gl.h"
 
 #include <array>
 #include <cstdint>
 #include <cstdio>
-#include <format>
 #include <print>
 #include <string>
 
@@ -35,7 +37,7 @@ namespace {
         }
     )";
 
-    // Four corners, each vertex stored once.
+    // The four corners, each stored once.
     constexpr std::array vertices{
         Vertex{{-0.6f, -0.5f}, tgx::colors::red},
         Vertex{{0.6f, -0.5f}, tgx::colors::green},
@@ -43,8 +45,7 @@ namespace {
         Vertex{{-0.6f, 0.5f}, tgx::colors::yellow},
     };
 
-    // Two triangles sharing the 0-2 diagonal: six indices instead of six
-    // vertices.
+    // Two triangles by vertex number, both using corners 0 and 2.
     constexpr std::array<std::uint16_t, 6> indices{
         0, 1, 2,
         0, 2, 3,
@@ -54,14 +55,10 @@ namespace {
         tgx::gl::VertexAttribute::of(0, &Vertex::position),
         tgx::gl::VertexAttribute::of(1, &Vertex::color),
     };
-
-    constexpr const char *title = "tgx - 03 rectangle";
 }
 
 int main() {
-    tgx::set_log_level(tgx::LogLevel::info);
-
-    auto app = tgx::App::create({.title = title});
+    auto app = tgx::App::create({.title = "gl - 02 indexed"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;
@@ -83,15 +80,11 @@ int main() {
 
     auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
     vao.set_vertex_buffer(*vbo);
-    // With an index buffer attached, draw counts indices, not vertices.
+    // With an index buffer attached, draws go by the indices.
     vao.set_index_buffer(*ibo, tgx::gl::IndexType::uint16);
 
     while (!app->should_close()) {
         app->poll_events();
-
-        if (app->clock().fps_updated()) {
-            app->window().set_title(std::format("{} - {:.0f} fps", title, app->clock().fps()).c_str());
-        }
 
         app->device().clear({.color = tgx::colors::dark_gray});
         app->device().draw(*shader, vao);

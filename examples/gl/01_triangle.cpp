@@ -1,8 +1,10 @@
+// The GL level from the bottom: vertices in a buffer, a vertex array that says
+// how to read them, a shader that turns them into pixels, and a draw.
+
 #include "tgx/gl.h"
 
 #include <array>
 #include <cstdio>
-#include <format>
 #include <print>
 #include <string>
 
@@ -12,6 +14,8 @@ namespace {
         tgx::Color color;
     };
 
+    // Positions go straight through: GL's clip space, (-1, -1) at the
+    // bottom-left of the window, (1, 1) at the top-right.
     constexpr const char *vertex_source = TGX_GLSL_VERSION R"(
         layout(location = 0) in vec2 in_position;
         layout(location = 1) in vec4 in_color;
@@ -24,6 +28,7 @@ namespace {
         }
     )";
 
+    // The color is blended across the triangle between its corners.
     constexpr const char *fragment_source = TGX_GLSL_VERSION R"(
         in vec4 color;
 
@@ -40,18 +45,15 @@ namespace {
         Vertex{{0.0f, 0.6f}, tgx::colors::blue},
     };
 
+    // Which field feeds which `layout(location = N)` input of the shader.
     const std::array layout{
         tgx::gl::VertexAttribute::of(0, &Vertex::position),
         tgx::gl::VertexAttribute::of(1, &Vertex::color),
     };
-
-    constexpr const char *title = "tgx - 02 triangle";
 }
 
 int main() {
-    tgx::set_log_level(tgx::LogLevel::info);
-
-    auto app = tgx::App::create({.title = title});
+    auto app = tgx::App::create({.title = "gl - 01 triangle"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;
@@ -75,10 +77,6 @@ int main() {
 
     while (!app->should_close()) {
         app->poll_events();
-
-        if (app->clock().fps_updated()) {
-            app->window().set_title(std::format("{} - {:.0f} fps", title, app->clock().fps()).c_str());
-        }
 
         app->device().clear({.color = tgx::colors::dark_gray});
         app->device().draw(*shader, vao);

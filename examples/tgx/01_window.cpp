@@ -1,17 +1,17 @@
-#include <cstdio>
-#include <format>
-#include <print>
+// The smallest tgx program: a window cleared to one color, frame after frame,
+// until it is closed.
 
 #include "tgx/tgx.h"
 
-namespace {
-    constexpr const char *title = "tgx - 01 window";
-}
+#include <cstdio>
+#include <print>
 
 int main() {
+    // Info also prints which GL context the driver gave.
     tgx::set_log_level(tgx::LogLevel::info);
 
-    auto app = tgx::App::create({.title = title});
+    // The window, the GL device behind it and a canvas to draw on, in one go.
+    auto app = tgx::App::create({.title = "tgx - 01 window"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;
@@ -19,10 +19,6 @@ int main() {
 
     while (!app->should_close()) {
         app->poll_events();
-
-        if (app->clock().fps_updated()) {
-            app->window().set_title(std::format("{} - {:.0f} fps", title, app->clock().fps()).c_str());
-        }
 
         app->canvas().clear(tgx::colors::dark_gray);
 

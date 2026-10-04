@@ -323,19 +323,30 @@ driver messages, is on by default only in builds with asserts
 
 ## Examples
 
-| Example        | Level | Shows                                                              |
-|----------------|-------|--------------------------------------------------------------------|
-| `01_window`    | `tgx` | The bare loop: a cleared window with the frame rate in its title.  |
-| `02_triangle`  | `gl`  | Vertices, a vertex array and a shader.                             |
-| `03_rectangle` | `gl`  | An index buffer.                                                   |
-| `04_circle`    | `gl`  | An orthographic projection that keeps the circle round on resize.  |
-| `05_uniforms`  | `gl`  | Uniforms of several types, moving a triangle on the GPU.           |
-| `06_blend`     | `gl`  | The five blend modes side by side.                                 |
-| `07_cube`      | `gl`  | 3D: perspective, a camera, depth test and back-face culling.       |
-| `08_texture`   | `gl`  | A texture made from an `Image`, on a square.                       |
-| `09_canvas`    | `tgx` | The `Canvas` shapes: rectangles, triangles, lines, circles, outlines. |
-| `10_sprites`   | `tgx` | Sprites from an atlas, mirrored, tinted, turning; a camera and a HUD. |
-| `11_canvas_shader` | `gl` | The `Canvas` drawing through a shader of your own.              |
+Lessons, one idea each, in two folders by level: `examples/tgx/` includes only
+`tgx/tgx.h`, `examples/gl/` adds `tgx/gl.h`. Each builds as `<level>_<name>`,
+e.g. `tgx_01_window`.
+
+| `examples/tgx/` | Shows                                                              |
+|-----------------|--------------------------------------------------------------------|
+| `01_window`     | The bare loop: a window cleared to one color.                      |
+| `02_shapes`     | The `Canvas` shapes, one call each: filled, outlined, see-through. |
+| `03_texture`    | An `Image` made pixel by pixel, as a `Texture`, drawn as a sprite. |
+| `04_sprite`     | The `Sprite` fields: part of an atlas, mirrored, tinted, turned.   |
+| `05_moving`     | Movement by `clock().delta()`, the same at any frame rate.         |
+| `06_camera`     | A camera following a player, and a HUD that stays put.            |
+| `07_viewport`   | A minimap: the world again, in a corner, at its own scale.         |
+| `08_blend`      | Alpha and additive blending side by side.                          |
+
+| `examples/gl/`     | Shows                                                           |
+|--------------------|-----------------------------------------------------------------|
+| `01_triangle`      | Vertices in a buffer, a vertex array, a shader and a draw.      |
+| `02_indexed`       | An index buffer.                                                |
+| `03_uniforms`      | Uniforms: a color set once, a transform set every frame.        |
+| `04_texture`       | A texture on a square: uvs, a sampler and a texture slot.       |
+| `05_blend`         | Render state per draw: the same squares without and with blending. |
+| `06_cube`          | 3D: perspective, a camera, depth test and back-face culling.    |
+| `07_canvas_shader` | The `Canvas` drawing through a shader of your own.              |
 
 ## Building
 
