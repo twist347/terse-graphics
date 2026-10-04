@@ -115,7 +115,11 @@ namespace tgx {
     [[nodiscard]] inline auto from_angle(float angle) noexcept -> Vec2 { return {std::cos(angle), std::sin(angle)}; }
 
     // The angle of the vector, in [-pi, pi]; 0 for a zero vector.
-    [[nodiscard]] inline auto angle(Vec2 v) noexcept -> float { return std::atan2(v.y, v.x); }
+    [[nodiscard]] inline auto angle(Vec2 v) noexcept -> float {
+        // atan2 tells the zeros apart: -0 in x gives pi. A zero vector, of
+        // either sign, has no direction.
+        return v == Vec2{} ? 0.f : std::atan2(v.y, v.x);
+    }
 
     // Turned by angle around {0, 0}.
     [[nodiscard]] inline auto rotate(Vec2 v, float angle) noexcept -> Vec2 {

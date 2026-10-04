@@ -62,14 +62,16 @@ namespace tgx {
     class Texture {
     public:
         // Filled from the image, which must not be empty. Fails with
-        // Error::unsupported when a side exceeds what the driver allows.
+        // Error::unsupported when a side exceeds what the driver allows,
+        // Error::out_of_mem when the GPU has no room for it, Error::platform
+        // when the driver fails otherwise.
         [[nodiscard]] static auto create(
             const Image &image,
             const TextureParams &params = {}
         ) noexcept -> Result<Texture>;
 
-        // Image::load and create() in one: fails with Error::io or
-        // Error::decode as the image does, Error::unsupported as create() does.
+        // Image::load and create() in one, failing as either does: Error::io
+        // or Error::decode for the file, then as create() for the texture.
         //
         //     auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
         [[nodiscard]] static auto load(
@@ -78,6 +80,7 @@ namespace tgx {
         ) -> Result<Texture>;
 
         // Uninitialised, to be filled with update(); only useful as dynamic.
+        // Fails as the create() above.
         [[nodiscard]] static auto create(
             Size size,
             const TextureParams &params
