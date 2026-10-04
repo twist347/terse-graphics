@@ -9,6 +9,7 @@
 
 #include "batch.h"
 #include "context.h"
+#include "default_font.h"
 #include "window_internal.h"
 
 #include <algorithm>
@@ -18,6 +19,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <numbers>
+#include <string_view>
 #include <utility>
 
 namespace {
@@ -36,8 +38,46 @@ namespace {
         && max_segments * 6 <= tgx::detail::batch_max_indices
     );
 
-    // Where shapes sample the white texture: any point of a 1x1 one will do.
-    constexpr tgx::Vec2 white_uv{0.5f, 0.5f};
+    namespace font = tgx::detail::default_font;
+
+    // Where shapes sample the built-in texture: the middle texel of its white
+    // block, whose neighbours are white too.
+    constexpr tgx::Vec2 white_uv{
+        (static_cast<float>(font::white_x) + font::white_size / 2.f) / font::atlas_width,
+        (font::white_size / 2.f) / font::atlas_height,
+    };
+
+    // Stands for a line break among glyph indices.
+    constexpr std::size_t newline = font::glyphs.size();
+
+    // Calls f with the index of each character's glyph in the default font,
+    // or newline. UTF-8 sequences are one character each: those the font has
+    // no glyph for show as '?'.
+    template <typename F>
+    auto for_each_glyph(std::string_view text, F f) noexcept -> void {
+        constexpr auto index = [](char c) noexcept {
+            return static_cast<std::size_t>(c - font::first);
+        };
+        for (std::size_t i = 0; i < text.size();) {
+            const auto c = static_cast<unsigned char>(text[i]);
+            // The lead byte says how long the sequence is; a stray
+            // continuation byte counts as a character of its own.
+            const std::size_t length = c < 0x80 ? 1
+                : (c >> 5) == 0x6 ? 2
+                : (c >> 4) == 0xE ? 3
+                : (c >> 3) == 0x1E ? 4
+                : 1;
+            i += length;
+
+            if (c == '\n') {
+                f(newline);
+            } else if (c >= static_cast<unsigned char>(font::first) && c <= static_cast<unsigned char>(font::last)) {
+                f(index(static_cast<char>(c)));
+            } else {
+                f(index('?'));
+            }
+        }
+    }
 
     // The canvas spans the size with y down: (0, 0) at the top-left. An empty
     // size (a minimized window) would divide by zero; nothing shows then anyway.
@@ -381,6 +421,56 @@ namespace tgx {
         }
         // Two triangles: a b c and c d a.
         push_indices(batch, first, {0, 1, 2, 2, 3, 0});
+    }
+
+    auto Canvas::text(Vec2 position, std::string_view text, Color color, float size) noexcept -> void {
+        const float scale = size / static_cast<float>(font::line_height);
+        const BatchState state = state_for(0);
+
+        Vec2 pen = position;
+        for_each_glyph(text, [&](std::size_t glyph_index) noexcept {
+            if (glyph_index == newline) {
+                pen = {position.x, pen.y + size};
+                return;
+            }
+
+            const font::Glyph glyph = font::glyphs[glyph_index];
+            const float width = static_cast<float>(glyph.width) * scale;
+            // A space is all advance and no ink.
+            if (glyph_index != 0) {
+                const float u0 = static_cast<float>(glyph.x) / font::atlas_width;
+                const float u1 = static_cast<float>(glyph.x + glyph.width) / font::atlas_width;
+
+                auto [batch, first] = start(state, 4, 6);
+                batch.push_vertex({pen, {u0, 0.f}, color});
+                batch.push_vertex({pen + Vec2{width, 0.f}, {u1, 0.f}, color});
+                batch.push_vertex({pen + Vec2{width, size}, {u1, 1.f}, color});
+                batch.push_vertex({pen + Vec2{0.f, size}, {u0, 1.f}, color});
+                push_indices(batch, first, {0, 1, 2, 2, 3, 0});
+            }
+            pen.x += width;
+        });
+    }
+
+    auto Canvas::measure_text(std::string_view text, float size) noexcept -> Vec2 {
+        if (text.empty()) {
+            return {};
+        }
+
+        const float scale = size / static_cast<float>(font::line_height);
+        float widest = 0.f;
+        float line = 0.f;
+        float lines = 1.f;
+        for_each_glyph(text, [&](std::size_t glyph_index) noexcept {
+            if (glyph_index == newline) {
+                line = 0.f;
+                lines += 1.f;
+            } else {
+                line += static_cast<float>(font::glyphs[glyph_index].width) * scale;
+                widest = std::max(widest, line);
+            }
+        });
+        return {widest, lines * size};
     }
 
     auto Canvas::quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void {

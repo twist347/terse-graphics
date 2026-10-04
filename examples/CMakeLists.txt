@@ -15,6 +15,7 @@ tgx_add_example(tgx 06_camera)
 tgx_add_example(tgx 07_viewport)
 tgx_add_example(tgx 08_blend)
 tgx_add_example(tgx 09_input)
+tgx_add_example(tgx 10_text)
 
 tgx_add_example(gl 01_triangle)
 tgx_add_example(gl 02_indexed)

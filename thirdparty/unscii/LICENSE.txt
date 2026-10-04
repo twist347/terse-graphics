@@ -1,0 +1,6 @@
+unscii by Viznut, http://viznut.fi/unscii/
+
+From that page: "unscii-16-full" falls under GPL because of how Unifont is
+licensed; the other variants are in the Public Domain.
+
+unscii-16.ttf here is one of the other variants: Public Domain.

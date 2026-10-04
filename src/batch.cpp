@@ -7,6 +7,7 @@
 #include "tgx/gl/version.h"
 
 #include "context.h"
+#include "default_font.h"
 
 #include <glad/gl.h>
 
@@ -18,6 +19,23 @@
 #include <utility>
 
 namespace {
+    // The built-in texture: the default font's glyphs, white on clear, and
+    // the white block shapes sample.
+    [[nodiscard]] auto builtin_atlas() -> tgx::Image {
+        namespace font = tgx::detail::default_font;
+
+        auto image = tgx::Image::create({font::atlas_width, font::atlas_height});
+        for (int y = 0; y < font::atlas_height; ++y) {
+            for (int x = 0; x < font::atlas_width; ++x) {
+                const auto byte = font::bits[static_cast<std::size_t>(y * font::row_bytes + x / 8)];
+                if ((byte & (0x80 >> (x % 8))) != 0) {
+                    image.at(x, y) = tgx::colors::white;
+                }
+            }
+        }
+        return image;
+    }
+
     constexpr const char *vertex_source = TGX_GLSL_VERSION R"(
         layout(location = 0) in vec2 in_position;
         layout(location = 1) in vec2 in_uv;
@@ -88,9 +106,9 @@ namespace tgx::detail {
         vertex_array.set_vertex_buffer(*vertex_buffer);
         vertex_array.set_index_buffer(*index_buffer, gl::IndexType::uint16);
 
-        auto white = Texture::create(Image::create({1, 1}, colors::white));
-        if (!white) {
-            return std::unexpected{white.error()};
+        auto builtin = Texture::create(builtin_atlas(), {.filter = TextureFilter::nearest});
+        if (!builtin) {
+            return std::unexpected{builtin.error()};
         }
 
         return Batch{
@@ -99,7 +117,7 @@ namespace tgx::detail {
             std::move(*vertex_buffer),
             std::move(*index_buffer),
             std::move(vertex_array),
-            std::move(*white),
+            std::move(*builtin),
         };
     }
 
@@ -109,14 +127,14 @@ namespace tgx::detail {
         gl::Buffer vertex_buffer,
         gl::Buffer index_buffer,
         gl::VertexArray vertex_array,
-        Texture white
+        Texture builtin
     )
         : m_shader{std::move(shader)},
           m_u_projection{u_projection},
           m_vertex_buffer{std::move(vertex_buffer)},
           m_index_buffer{std::move(index_buffer)},
           m_vertex_array{std::move(vertex_array)},
-          m_white{std::move(white)} {
+          m_builtin{std::move(builtin)} {
         // Filled up to here and no further: adding a shape never allocates.
         m_vertices.reserve(batch_max_vertices);
         m_indices.reserve(batch_max_indices);
@@ -164,7 +182,7 @@ namespace tgx::detail {
             .count = m_indices.size(),
             .state = {.blend = m_state.blend},
             .viewport = m_state.viewport,
-            .textures = {m_state.texture != 0 ? m_state.texture : m_white.id()},
+            .textures = {m_state.texture != 0 ? m_state.texture : m_builtin.id()},
         });
 
         m_vertices.clear();

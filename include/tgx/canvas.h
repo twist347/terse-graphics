@@ -8,6 +8,7 @@
 #include "tgx/size.h"
 
 #include <cstdint>
+#include <string_view>
 
 namespace tgx {
     class Texture;
@@ -128,7 +129,7 @@ namespace tgx {
         //     layout(location = 1) in vec2 in_uv;
         //     layout(location = 2) in vec4 in_color;      // the shape's color or tint
         //     uniform mat4 u_projection;                  // canvas coordinates to clip space
-        //     uniform sampler2D u_texture;                // optional; white for shapes
+        //     uniform sampler2D u_texture;                // optional; white for shapes, glyphs for text
         //
         // u_texture is its only texture: the canvas fills slot 0 alone, so it
         // may have no other sampler (asserted). Its other uniforms are the
@@ -162,6 +163,19 @@ namespace tgx {
         // The texture is drawn from when the shapes are drawn; if it is
         // updated or destroyed before, they are drawn then.
         auto sprite(const Texture &texture, const Sprite &sprite) noexcept -> void;
+
+        // The built-in font's own size, the height of a line: text drawn at it,
+        // or at a whole multiple of it, keeps its pixels square.
+        static constexpr float default_text_size = 16.f;
+
+        // A line of text, or several split by '\n', its top-left corner at
+        // the position; size is the height of a line. The built-in font is a
+        // monospaced pixel font with printable ASCII: other characters show
+        // as '?'. Drawn in the same draws as the shapes around it.
+        auto text(Vec2 position, std::string_view text, Color color, float size = default_text_size) noexcept -> void;
+
+        // The size text takes when drawn: the widest line by the lines' height.
+        [[nodiscard]] static auto measure_text(std::string_view text, float size = default_text_size) noexcept -> Vec2;
 
         // Draws what has been collected; the same as Device::flush(). Only
         // needed before raw GL calls.

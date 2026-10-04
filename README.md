@@ -16,8 +16,8 @@ Early and moving: the API changes from commit to commit.
   `tgx` and mixes with the `Canvas` in the same frame.
 
 The levels split the headers, not the library: it is one library. The `Device`
-holds the `Canvas`'s batch, so it always makes it (a shader, a 1x1 white
-texture, about 420 KB of buffers), even for a program that draws only with its
+holds the `Canvas`'s batch, so it always makes it (a shader, an 858x16 texture
+with the built-in font, about 420 KB of buffers), even for a program that draws only with its
 own shaders.
 
 ## What there is
@@ -30,8 +30,8 @@ In `tgx`:
   pressed or released this frame, the mouse in window coordinates (and through
   `Canvas::to_world` in the world), the wheel, typed text in UTF-8.
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles, lines,
-  circles, outlines and sprites (parts of textures, mirrored, turned, tinted),
-  under a 2D camera, with a choice of blending. Collected and drawn in
+  circles, outlines, sprites (parts of textures, mirrored, turned, tinted) and
+  text in a built-in pixel font, under a 2D camera, with a choice of blending. Collected and drawn in
   batches, always in the order of the calls.
 - **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
   JPEG, BMP, TGA or GIF, or made in code) and `Texture` made from it, with
@@ -52,7 +52,7 @@ In `tgx::gl`:
 - **Shaders and uniforms**: `gl::Shader` from source, uniforms set through typed
   handles looked up once by name; a shader of your own for the `Canvas`.
 
-Not yet: text, render targets.
+Not yet: fonts of your own (TTF), render targets.
 
 ## Who does what
 
@@ -172,6 +172,19 @@ the order of the calls:
 such as the mouse, and `to_screen(world)` the way back; they go through the
 canvas's viewport and size as well as its camera, so they hold for a minimap
 or a pixel-art canvas too.
+
+Text comes in a built-in monospaced pixel font, [unscii-16](http://viznut.fi/unscii/)
+by Viznut (public domain): 8x16 pixels a character, printable ASCII; other
+characters show as `?`. Its own size is 16, the height of a line; whole
+multiples of it keep the pixels square.
+
+    canvas.text({20, 20}, "Score: 120", tgx::colors::white);
+    canvas.text({20, 60}, "GAME OVER", tgx::colors::red, 48);
+    const tgx::Vec2 extent = tgx::Canvas::measure_text("GAME OVER", 48);   // to center it
+
+The font shares its texture with the shapes, so text and shapes drawn in a row
+are one draw. It is baked into the library by `tools/bake_font.py` from
+`thirdparty/unscii/`.
 
 Shapes in a row with the same texture, camera, blend and shader go out as one
 draw; a change of any of them starts the next. So many sprites from one texture
@@ -341,6 +354,7 @@ e.g. `tgx_01_window`.
 | `07_viewport`   | A minimap: the world again, in a corner, at its own scale.         |
 | `08_blend`      | Alpha and additive blending side by side.                          |
 | `09_input`      | Keyboard and mouse: held keys, presses, the wheel, the mouse in the world. |
+| `10_text`       | Text in the built-in font: sizes, lines, centering, a field to type in. |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|
@@ -355,7 +369,8 @@ e.g. `tgx_01_window`.
 ## Building
 
 CMake 3.25+ and a C++23 compiler. GLFW, glad and stb_image are vendored in
-`thirdparty/`.
+`thirdparty/`, as is the TTF the built-in font is baked from (not built; only
+`tools/bake_font.py`, with Pillow, reads it).
 
     cmake -S . -B build
     cmake --build build

@@ -33,7 +33,8 @@ namespace tgx::detail {
     // By ids rather than by objects: a Texture or a Shader moved elsewhere
     // keeps its id, so the vertices it was added with stay good.
     struct BatchState {
-        // 0 for the white texture: color from the vertices alone.
+        // 0 for the built-in texture: the default font, and white for shapes,
+        // whose color comes from the vertices alone.
         GlId texture{0};
         Blend blend{Blend::alpha};
         // 0 for the built-in shader.
@@ -87,7 +88,7 @@ namespace tgx::detail {
             gl::Buffer vertex_buffer,
             gl::Buffer index_buffer,
             gl::VertexArray vertex_array,
-            Texture white
+            Texture builtin
         );
 
         gl::Shader m_shader;
@@ -96,9 +97,10 @@ namespace tgx::detail {
         gl::Buffer m_vertex_buffer;
         gl::Buffer m_index_buffer;
         gl::VertexArray m_vertex_array;
-        // Shapes sample its one white texel, so they share the shader with
-        // textured drawing and their color comes from the vertices alone.
-        Texture m_white;
+        // The default font's glyphs and a white block. Shapes sample the white,
+        // so they share the shader with textured drawing and their color comes
+        // from the vertices alone; text and shapes in a row are one draw.
+        Texture m_builtin;
 
         std::vector<BatchVertex> m_vertices;
         std::vector<std::uint16_t> m_indices;
