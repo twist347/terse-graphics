@@ -4,6 +4,7 @@
 #include "tgx/image.h"
 
 #include "context.h"
+#include "gl_error_internal.h"
 
 #include <glad/gl.h>
 
@@ -54,9 +55,7 @@ namespace {
             return std::unexpected{tgx::Error::unsupported};
         }
 
-        // See make() in buffer.cpp: only this allocation's errors count.
-        for (int i = 0; i < 16 && glGetError() != GL_NO_ERROR; ++i) {
-        }
+        tgx::detail::drain_gl_errors();
 
         GLuint id = 0;
         glGenTextures(1, &id);
@@ -72,7 +71,7 @@ namespace {
 
         if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
             tgx::detail::delete_texture(id);
-            return std::unexpected{err == GL_OUT_OF_MEMORY ? tgx::Error::out_of_mem : tgx::Error::platform};
+            return std::unexpected{tgx::detail::to_error(err)};
         }
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter(params));

@@ -2,6 +2,8 @@
 
 #include "tgx/assert.h"
 
+#include "gl_error_internal.h"
+
 #include <glad/gl.h>
 
 #include <utility>
@@ -36,12 +38,7 @@ namespace tgx::gl {
         TGX_ASSERT(byte_size > 0);
         TGX_ASSERT(std::in_range<GLsizeiptr>(byte_size));
 
-        // Drain errors left over from earlier calls, so the check below is
-        // about this allocation only. GL keeps one flag per kind of error, so a
-        // few calls empty it; the bound is for a lost context, on which some
-        // drivers report an error on every call.
-        for (int i = 0; i < 16 && glGetError() != GL_NO_ERROR; ++i) {
-        }
+        tgx::detail::drain_gl_errors();
 
         GLuint id = 0;
         glGenBuffers(1, &id);
@@ -49,10 +46,9 @@ namespace tgx::gl {
         glBufferData(edit_target, static_cast<GLsizeiptr>(byte_size), data, to_gl(access));
 
         // Any error leaves the buffer without storage, so none is survivable.
-        // Caller mistakes are asserted above; what is left is the driver.
         if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
             glDeleteBuffers(1, &id);
-            return std::unexpected{err == GL_OUT_OF_MEMORY ? Error::out_of_mem : Error::platform};
+            return std::unexpected{tgx::detail::to_error(err)};
         }
         return id;
     }
