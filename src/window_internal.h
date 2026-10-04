@@ -19,5 +19,6 @@ namespace tgx::detail {
     // As the backend last reported them; asking it instead can be a round
     // trip to the display server (X11).
     [[nodiscard]] auto window_size() noexcept -> Size;
+
     [[nodiscard]] auto framebuffer_size() noexcept -> Size;
 }

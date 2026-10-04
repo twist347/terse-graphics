@@ -14,7 +14,7 @@ namespace tgx {
         std::uint8_t a{255};
 
         // 0xRRGGBBAA, the order colors are written in editors and palettes.
-        [[nodiscard]] static constexpr auto hex(std::uint32_t rgba) noexcept -> Color {
+        [[nodiscard]] static constexpr auto rgba(std::uint32_t rgba) noexcept -> Color {
             return {
                 static_cast<std::uint8_t>((rgba >> 24u) & 0xFFu),
                 static_cast<std::uint8_t>((rgba >> 16u) & 0xFFu),
@@ -25,7 +25,7 @@ namespace tgx {
 
         // 0xRRGGBB, fully opaque.
         [[nodiscard]] static constexpr auto rgb(std::uint32_t rgb) noexcept -> Color {
-            return hex((rgb << 8u) | 0xFFu);
+            return rgba((rgb << 8u) | 0xFFu);
         }
 
         // Hue in degrees around the color wheel (0 red, 120 green, 240 blue,
@@ -84,7 +84,7 @@ namespace tgx {
     [[nodiscard]] constexpr auto lerp(Color a, Color b, float t) noexcept -> Color {
         const float k = std::clamp(t, 0.f, 1.f);
         const auto mix = [k](std::uint8_t from, std::uint8_t to) {
-            const float f = static_cast<float>(from);
+            const auto f = static_cast<float>(from);
             return static_cast<std::uint8_t>(f + (static_cast<float>(to) - f) * k + 0.5f);
         };
         return {mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b), mix(a.a, b.a)};

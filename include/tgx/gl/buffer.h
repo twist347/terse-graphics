@@ -40,7 +40,7 @@ namespace tgx::gl {
     // bytes. T is what the buffer feeds: the vertex struct for vertices,
     // std::uint16_t or std::uint32_t for indices, one buffer for each.
     //
-    // Creating one fails with Error::out_of_mem when the GPU has no room for
+    // Creating one fails with Error::out_of_memory when the GPU has no room for
     // it, Error::platform when the driver fails otherwise.
     //
     // Lives inside the Device: created after it, destroyed before it.

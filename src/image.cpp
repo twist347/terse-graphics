@@ -34,8 +34,7 @@ namespace {
     [[nodiscard]] auto read_file(const std::filesystem::path &path) -> tgx::Result<std::vector<std::byte>> {
         // A directory opens fine on some systems and reports a size that is
         // anything but its contents (LLONG_MAX on ext4).
-        std::error_code err;
-        if (!std::filesystem::is_regular_file(path, err)) {
+        if (std::error_code err; !std::filesystem::is_regular_file(path, err)) {
             return std::unexpected{tgx::Error::io};
         }
 
@@ -93,11 +92,13 @@ namespace tgx {
         int width = 0;
         int height = 0;
         int channels_in_file = 0;
-        const std::unique_ptr<stbi_uc, StbFree> pixels{stbi_load_from_memory(
-            reinterpret_cast<const stbi_uc *>(encoded.data()),
-            static_cast<int>(encoded.size()),
-            &width, &height, &channels_in_file, 4
-        )};
+        const std::unique_ptr<stbi_uc, StbFree> pixels{
+            stbi_load_from_memory(
+                reinterpret_cast<const stbi_uc *>(encoded.data()),
+                static_cast<int>(encoded.size()),
+                &width, &height, &channels_in_file, 4
+            )
+        };
         if (!pixels) {
             return std::unexpected{Error::decode};
         }

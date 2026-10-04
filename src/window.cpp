@@ -77,8 +77,8 @@ namespace tgx {
             // The hints above are a hard requirement: GLFW refuses rather than
             // hand out an older context.
             const Error error = glfwGetError(nullptr) == GLFW_VERSION_UNAVAILABLE
-                ? Error::unsupported
-                : Error::platform;
+                                    ? Error::unsupported
+                                    : Error::platform;
             glfwTerminate();
             return std::unexpected{error};
         }
@@ -120,7 +120,7 @@ namespace tgx {
         glfwPollEvents();
 
         s_window.resized = s_window.size != s_window.polled_size
-            || s_window.framebuffer_size != s_window.polled_framebuffer_size;
+                           || s_window.framebuffer_size != s_window.polled_framebuffer_size;
         s_window.polled_size = s_window.size;
         s_window.polled_framebuffer_size = s_window.framebuffer_size;
     }

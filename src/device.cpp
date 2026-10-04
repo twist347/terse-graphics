@@ -218,7 +218,7 @@ namespace {
         const tgx::gl::VertexArray &vertices
     ) noexcept -> void {
         const auto attributes = vertices.attributes();
-        for (const auto &input : tgx::gl::detail::vertex_inputs(shader)) {
+        for (const auto &input: tgx::gl::detail::vertex_inputs(shader)) {
             for (std::uint32_t slot = 0; slot < input.slots; ++slot) {
                 const std::uint32_t location = input.location + slot;
                 const auto attribute = std::ranges::find(attributes, location, &tgx::gl::VertexAttribute::location);
@@ -242,7 +242,7 @@ namespace {
         const tgx::gl::Shader &shader,
         const tgx::gl::DrawParams &params
     ) noexcept -> void {
-        for (const auto &sampler : tgx::gl::detail::samplers(shader)) {
+        for (const auto &sampler: tgx::gl::detail::samplers(shader)) {
             TGX_ASSERT_MSG(
                 params.textures[sampler.slot],
                 "sampler '{}' reads texture slot {}, which the draw has no texture for",
@@ -569,9 +569,11 @@ namespace tgx {
 
         const bool indexed = vertices.has_index_buffer();
         const std::size_t available = indexed ? vertices.index_count() : vertices.vertex_count();
-        const std::size_t count = params.count != gl::DrawParams::all ? params.count
-            : params.first < available ? available - params.first
-            : 0;
+        const std::size_t count = params.count != gl::DrawParams::all
+                                      ? params.count
+                                      : params.first < available
+                                            ? available - params.first
+                                            : 0;
 
         TGX_ASSERT(std::in_range<GLsizei>(count) && std::in_range<GLint>(params.first));
 

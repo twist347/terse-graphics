@@ -11,7 +11,7 @@ namespace tgx {
         decode,
         compile,
         link,
-        out_of_mem,
+        out_of_memory,
         unsupported,
         platform,
     };
@@ -22,7 +22,7 @@ namespace tgx {
             case Error::decode: return "decode";
             case Error::compile: return "compile";
             case Error::link: return "link";
-            case Error::out_of_mem: return "out of memory";
+            case Error::out_of_memory: return "out of memory";
             case Error::unsupported: return "unsupported";
             case Error::platform: return "platform";
         }

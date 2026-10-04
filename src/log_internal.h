@@ -8,6 +8,7 @@
 
 namespace tgx::detail {
     [[nodiscard]] auto log_enabled(LogLevel level) noexcept -> bool;
+
     auto log_write(LogLevel level, std::string_view message) noexcept -> void;
 
     // Formats into a stack buffer like assert_failed_fmt: no allocation, and the

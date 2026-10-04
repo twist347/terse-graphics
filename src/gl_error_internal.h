@@ -19,6 +19,6 @@ namespace tgx::detail {
     // What an error raised by an allocation means: the driver out of room, or
     // failing otherwise. Caller mistakes are asserted before, so none is left.
     [[nodiscard]] constexpr auto to_error(GLenum err) noexcept -> Error {
-        return err == GL_OUT_OF_MEMORY ? Error::out_of_mem : Error::platform;
+        return err == GL_OUT_OF_MEMORY ? Error::out_of_memory : Error::platform;
     }
 }

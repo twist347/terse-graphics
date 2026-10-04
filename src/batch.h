@@ -79,6 +79,7 @@ namespace tgx::detail {
         // Whether what is collected is drawn with the texture, or with the
         // program of a custom shader.
         [[nodiscard]] auto uses_texture(GlId texture) const noexcept -> bool;
+
         [[nodiscard]] auto uses_shader(GlId program) const noexcept -> bool;
 
     private:

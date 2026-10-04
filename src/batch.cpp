@@ -167,7 +167,7 @@ namespace tgx::detail {
         const bool custom = m_state.program != 0;
         const GlId program = custom ? m_state.program : m_shader.id();
         const std::int32_t u_projection = custom ? m_state.u_projection : m_u_projection;
-        const auto floats = std::bit_cast<std::array<float, 16>>(m_state.transform);
+        const auto floats = std::bit_cast<std::array<float, 16> >(m_state.transform);
         context.use_program(program);
         glUniformMatrix4fv(u_projection, 1, GL_FALSE, floats.data());
 

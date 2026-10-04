@@ -83,6 +83,7 @@ namespace tgx {
         // from the vertices otherwise. Two overloads rather than a default
         // argument, which would need gl::DrawParams complete here.
         auto draw(const gl::Shader &shader, const gl::VertexArray &vertices) noexcept -> void;
+
         auto draw(
             const gl::Shader &shader,
             const gl::VertexArray &vertices,

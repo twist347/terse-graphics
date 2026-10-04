@@ -63,7 +63,7 @@ namespace tgx {
     public:
         // Filled from the image, which must not be empty. Fails with
         // Error::unsupported when a side exceeds what the driver allows,
-        // Error::out_of_mem when the GPU has no room for it, Error::platform
+        // Error::out_of_memory when the GPU has no room for it, Error::platform
         // when the driver fails otherwise.
         [[nodiscard]] static auto create(
             const Image &image,

@@ -119,8 +119,7 @@ namespace {
     }
 
     auto on_key(GLFWwindow *, int code, int, int action, int) noexcept -> void {
-        const tgx::Key key = to_key(code);
-        if (key != tgx::Key::unknown) {
+        if (const tgx::Key key = to_key(code); key != tgx::Key::unknown) {
             set_edge(s_input.keys[static_cast<std::size_t>(key)], action);
         }
     }
@@ -185,10 +184,10 @@ namespace tgx {
     auto detail::begin_input_frame() noexcept -> void {
         // What happened since the poll before is forgotten; what is down
         // stays down.
-        for (std::uint8_t &bits : s_input.keys) {
+        for (std::uint8_t &bits: s_input.keys) {
             bits &= bit_down;
         }
-        for (std::uint8_t &bits : s_input.buttons) {
+        for (std::uint8_t &bits: s_input.buttons) {
             bits &= bit_down;
         }
         s_input.mouse_delta = {};

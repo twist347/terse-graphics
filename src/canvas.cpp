@@ -54,7 +54,7 @@ namespace {
     // Calls f with the index of each character's glyph in the default font,
     // or newline. UTF-8 sequences are one character each: those the font has
     // no glyph for show as '?'.
-    template <typename F>
+    template<typename F>
     auto for_each_glyph(std::string_view text, F f) noexcept -> void {
         constexpr auto index = [](char c) noexcept {
             return static_cast<std::size_t>(c - font::first);
@@ -163,7 +163,7 @@ namespace {
     }
 
     auto push_indices(Batch &batch, std::uint16_t first, std::initializer_list<std::size_t> offsets) noexcept -> void {
-        for (const std::size_t offset : offsets) {
+        for (const std::size_t offset: offsets) {
             batch.push_index(static_cast<std::uint16_t>(first + offset));
         }
     }
@@ -251,7 +251,7 @@ namespace tgx {
 
         // The texture is optional: a shader may ignore it. The batch draws
         // without Device::draw's checks, so the one on its samplers is here.
-        for (const auto &sampler : gl::detail::samplers(*shader)) {
+        for (const auto &sampler: gl::detail::samplers(*shader)) {
             TGX_ASSERT_MSG(
                 sampler.name == "u_texture",
                 "sampler '{}': a canvas shader gets no texture but u_texture",
@@ -402,13 +402,13 @@ namespace tgx {
             Vec2{-sprite.origin.x, height - sprite.origin.y},
         };
         if (sprite.rotation == 0.f) {
-            for (Vec2 &corner : corners) {
+            for (Vec2 &corner: corners) {
                 corner += sprite.position;
             }
         } else {
             const float c = std::cos(sprite.rotation);
             const float s = std::sin(sprite.rotation);
-            for (Vec2 &corner : corners) {
+            for (Vec2 &corner: corners) {
                 corner = Vec2{corner.x * c - corner.y * s, corner.x * s + corner.y * c} + sprite.position;
             }
         }

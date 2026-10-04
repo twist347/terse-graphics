@@ -102,5 +102,6 @@ namespace tgx::detail {
     // shapes were added. So the batch never reads anything later than the
     // calls that filled it.
     auto flush_texture_use(GlId texture) noexcept -> void;
+
     auto flush_shader_use(GlId program) noexcept -> void;
 }

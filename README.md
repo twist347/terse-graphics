@@ -289,7 +289,7 @@ has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
 - **`Result` for failures from outside** (driver, OS, files); **asserts for caller
   mistakes** (`TGX_ASSERT`, controlled by `TGX_ENABLE_ASSERTS`, not `NDEBUG`).
 - **Out of memory: GPU memory is a failure, host memory is fatal.** A buffer or
-  texture the driver has no room for comes back as `Error::out_of_mem`. Host
+  texture the driver has no room for comes back as `Error::out_of_memory`. Host
   memory running out is not reported: the functions that allocate as much as
   their input asks for (`Image::create`, `from_pixels`, `load`, `decode`,
   `Texture::load`, `gl::Shader::from_source`) may throw `std::bad_alloc`, and everywhere else,
