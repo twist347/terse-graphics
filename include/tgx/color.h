@@ -64,8 +64,12 @@ namespace tgx {
         inline constexpr Color green{0, 255, 0, 255};
         inline constexpr Color blue{0, 0, 255, 255};
         inline constexpr Color yellow{255, 255, 0, 255};
+        inline constexpr Color orange{255, 165, 0, 255};
+        inline constexpr Color brown{165, 42, 42, 255};
         inline constexpr Color cyan{0, 255, 255, 255};
         inline constexpr Color magenta{255, 0, 255, 255};
+        inline constexpr Color purple{128, 0, 128, 255};
+        inline constexpr Color pink{255, 192, 203, 255};
         inline constexpr Color gray{128, 128, 128, 255};
         inline constexpr Color light_gray{192, 192, 192, 255};
         inline constexpr Color dark_gray{64, 64, 64, 255};

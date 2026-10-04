@@ -43,6 +43,12 @@ namespace tgx {
         float width{0.f};
         float height{0.f};
 
+        [[nodiscard]] constexpr auto right() const noexcept -> float { return x + width; }
+
+        [[nodiscard]] constexpr auto bottom() const noexcept -> float { return y + height; }
+
+        [[nodiscard]] constexpr auto center() const noexcept -> Vec2 { return {x + width / 2.f, y + height / 2.f}; }
+
         [[nodiscard]] constexpr auto operator==(const Rect &) const noexcept -> bool = default;
     };
 
@@ -89,6 +95,7 @@ namespace tgx {
     constexpr auto operator+=(Vec2 &a, Vec2 b) noexcept -> Vec2 & { return a = a + b; }
     constexpr auto operator-=(Vec2 &a, Vec2 b) noexcept -> Vec2 & { return a = a - b; }
     constexpr auto operator*=(Vec2 &v, float s) noexcept -> Vec2 & { return v = v * s; }
+    constexpr auto operator/=(Vec2 &v, float s) noexcept -> Vec2 & { return v = v / s; }
 
     [[nodiscard]] constexpr auto dot(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.x + a.y * b.y; }
     // The z of the 3D cross product: positive when b turns clockwise from a on
@@ -98,6 +105,11 @@ namespace tgx {
     [[nodiscard]] inline auto length(Vec2 v) noexcept -> float { return std::sqrt(dot(v, v)); }
     // A zero vector has no direction; normalizing one gives NaNs.
     [[nodiscard]] inline auto normalize(Vec2 v) noexcept -> Vec2 { return v / length(v); }
+
+    [[nodiscard]] inline auto distance(Vec2 a, Vec2 b) noexcept -> float { return length(b - a); }
+
+    // a at t = 0, b at t = 1, on along the line beyond them.
+    [[nodiscard]] constexpr auto lerp(Vec2 a, Vec2 b, float t) noexcept -> Vec2 { return a + (b - a) * t; }
 
     // Vec3
 
@@ -117,6 +129,7 @@ namespace tgx {
     constexpr auto operator+=(Vec3 &a, Vec3 b) noexcept -> Vec3 & { return a = a + b; }
     constexpr auto operator-=(Vec3 &a, Vec3 b) noexcept -> Vec3 & { return a = a - b; }
     constexpr auto operator*=(Vec3 &v, float s) noexcept -> Vec3 & { return v = v * s; }
+    constexpr auto operator/=(Vec3 &v, float s) noexcept -> Vec3 & { return v = v / s; }
 
     [[nodiscard]] constexpr auto dot(Vec3 a, Vec3 b) noexcept -> float { return a.x * b.x + a.y * b.y + a.z * b.z; }
 
@@ -129,15 +142,43 @@ namespace tgx {
     // A zero vector has no direction; normalizing one gives NaNs.
     [[nodiscard]] inline auto normalize(Vec3 v) noexcept -> Vec3 { return v / length(v); }
 
+    [[nodiscard]] inline auto distance(Vec3 a, Vec3 b) noexcept -> float { return length(b - a); }
+
+    // a at t = 0, b at t = 1, on along the line beyond them.
+    [[nodiscard]] constexpr auto lerp(Vec3 a, Vec3 b, float t) noexcept -> Vec3 { return a + (b - a) * t; }
+
     // Vec4
 
     [[nodiscard]] constexpr auto operator+(Vec4 a, Vec4 b) noexcept -> Vec4 {
         return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
     }
 
+    [[nodiscard]] constexpr auto operator-(Vec4 a, Vec4 b) noexcept -> Vec4 {
+        return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
+    }
+
+    [[nodiscard]] constexpr auto operator-(Vec4 v) noexcept -> Vec4 { return {-v.x, -v.y, -v.z, -v.w}; }
+
     [[nodiscard]] constexpr auto operator*(Vec4 v, float s) noexcept -> Vec4 {
         return {v.x * s, v.y * s, v.z * s, v.w * s};
     }
+
+    [[nodiscard]] constexpr auto operator*(float s, Vec4 v) noexcept -> Vec4 { return v * s; }
+
+    [[nodiscard]] constexpr auto operator/(Vec4 v, float s) noexcept -> Vec4 {
+        return {v.x / s, v.y / s, v.z / s, v.w / s};
+    }
+
+    constexpr auto operator+=(Vec4 &a, Vec4 b) noexcept -> Vec4 & { return a = a + b; }
+    constexpr auto operator-=(Vec4 &a, Vec4 b) noexcept -> Vec4 & { return a = a - b; }
+    constexpr auto operator*=(Vec4 &v, float s) noexcept -> Vec4 & { return v = v * s; }
+    constexpr auto operator/=(Vec4 &v, float s) noexcept -> Vec4 & { return v = v / s; }
+
+    [[nodiscard]] constexpr auto dot(Vec4 a, Vec4 b) noexcept -> float {
+        return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    }
+
+    [[nodiscard]] constexpr auto lerp(Vec4 a, Vec4 b, float t) noexcept -> Vec4 { return a + (b - a) * t; }
 
     // Mat4
 

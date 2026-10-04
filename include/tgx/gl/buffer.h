@@ -37,7 +37,8 @@ namespace tgx::gl {
 
     // A GPU buffer of Ts, whose size is fixed at creation and whose contents
     // may change only when created as dynamic. Sizes and offsets count Ts, not
-    // bytes; raw bytes are a Buffer<std::byte>.
+    // bytes. T is what the buffer feeds: the vertex struct for vertices,
+    // std::uint16_t or std::uint32_t for indices, one buffer for each.
     //
     // Lives inside the Device: created after it, destroyed before it.
     template<BufferElement T>

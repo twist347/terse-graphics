@@ -20,8 +20,8 @@ namespace tgx {
     // Its left and top edges are inside, its right and bottom edges outside,
     // so a point on the line between two tiles is in exactly one of them.
     [[nodiscard]] constexpr auto contains(Rect rect, Vec2 point) noexcept -> bool {
-        return point.x >= rect.x && point.x < rect.x + rect.width
-            && point.y >= rect.y && point.y < rect.y + rect.height;
+        return point.x >= rect.x && point.x < rect.right()
+               && point.y >= rect.y && point.y < rect.bottom();
     }
 
     // The edge counts as inside.
@@ -49,8 +49,8 @@ namespace tgx {
     // Shapes that only touch, edge to edge, do not overlap: two tiles side by
     // side are not in each other.
     [[nodiscard]] constexpr auto overlaps(Rect a, Rect b) noexcept -> bool {
-        return a.x < b.x + b.width && b.x < a.x + a.width
-            && a.y < b.y + b.height && b.y < a.y + a.height;
+        return a.x < b.right() && b.x < a.right()
+               && a.y < b.bottom() && b.y < a.bottom();
     }
 
     [[nodiscard]] constexpr auto overlaps(Circle a, Circle b) noexcept -> bool {
@@ -62,8 +62,8 @@ namespace tgx {
     [[nodiscard]] constexpr auto overlaps(Rect rect, Circle circle) noexcept -> bool {
         // The rect's point nearest the circle's center.
         const Vec2 nearest{
-            std::clamp(circle.center.x, rect.x, rect.x + rect.width),
-            std::clamp(circle.center.y, rect.y, rect.y + rect.height),
+            std::clamp(circle.center.x, rect.x, rect.right()),
+            std::clamp(circle.center.y, rect.y, rect.bottom()),
         };
         const Vec2 d = circle.center - nearest;
         return dot(d, d) < circle.radius * circle.radius;
@@ -79,8 +79,8 @@ namespace tgx {
     [[nodiscard]] constexpr auto intersection(Rect a, Rect b) noexcept -> Rect {
         const float left = std::max(a.x, b.x);
         const float top = std::max(a.y, b.y);
-        const float right = std::min(a.x + a.width, b.x + b.width);
-        const float bottom = std::min(a.y + a.height, b.y + b.height);
+        const float right = std::min(a.right(), b.right());
+        const float bottom = std::min(a.bottom(), b.bottom());
         if (right <= left || bottom <= top) {
             return {};
         }

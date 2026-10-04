@@ -125,8 +125,8 @@ namespace {
         const float sy = static_cast<float>(framebuffer.height) / static_cast<float>(window.height);
         const auto left = static_cast<int>(std::lround(rect.x * sx));
         const auto top = static_cast<int>(std::lround(rect.y * sy));
-        const auto right = static_cast<int>(std::lround((rect.x + rect.width) * sx));
-        const auto bottom = static_cast<int>(std::lround((rect.y + rect.height) * sy));
+        const auto right = static_cast<int>(std::lround(rect.right() * sx));
+        const auto bottom = static_cast<int>(std::lround(rect.bottom() * sy));
         return {left, top, right - left, bottom - top};
     }
 
@@ -292,11 +292,7 @@ namespace tgx {
     }
 
     auto Canvas::rect(Rect rect, Color color) noexcept -> void {
-        const float left = rect.x;
-        const float top = rect.y;
-        const float right = rect.x + rect.width;
-        const float bottom = rect.y + rect.height;
-        quad({left, top}, {right, top}, {right, bottom}, {left, bottom}, color);
+        quad({rect.x, rect.y}, {rect.right(), rect.y}, {rect.right(), rect.bottom()}, {rect.x, rect.bottom()}, color);
     }
 
     auto Canvas::rect_lines(Rect rect, Color color, float thickness) noexcept -> void {
@@ -309,9 +305,9 @@ namespace tgx {
         // Top and bottom full width, the sides between them, so no corner is
         // covered twice: a see-through frame stays even.
         this->rect({rect.x, rect.y, rect.width, t}, color);
-        this->rect({rect.x, rect.y + rect.height - t, rect.width, t}, color);
+        this->rect({rect.x, rect.bottom() - t, rect.width, t}, color);
         this->rect({rect.x, rect.y + t, t, rect.height - 2.f * t}, color);
-        this->rect({rect.x + rect.width - t, rect.y + t, t, rect.height - 2.f * t}, color);
+        this->rect({rect.right() - t, rect.y + t, t, rect.height - 2.f * t}, color);
     }
 
     auto Canvas::triangle(Vec2 a, Vec2 b, Vec2 c, Color color) noexcept -> void {
@@ -484,7 +480,7 @@ namespace tgx {
     auto Canvas::fps(Vec2 position, float size) noexcept -> void {
         const float value = detail::context().clock.fps;
         const Color color = value >= 30.f ? colors::green
-            : value >= 15.f ? Color::rgb(0xFFA500)
+            : value >= 15.f ? colors::orange
             : colors::red;
 
         // Formatted on the stack: nothing allocated every frame.
