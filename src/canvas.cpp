@@ -152,6 +152,35 @@ namespace {
         );
     }
 
+    // Where two lines of a strip meet at a corner: the points both share on
+    // either side, plus along the first line's perpendicular, minus the
+    // other way. Not mitered when the corner is too sharp for that, or turns
+    // straight back: the lines then end square at it.
+    struct Joint {
+        tgx::Vec2 plus;
+        tgx::Vec2 minus;
+        bool mitered;
+    };
+
+    // How far a mitered corner may reach out from the line's middle, in
+    // halves of its thickness: SVG's default miter limit of 4 thicknesses
+    // from tip to tip.
+    constexpr float miter_limit = 4.f;
+
+    [[nodiscard]] auto joint(tgx::Vec2 at, tgx::Vec2 in, tgx::Vec2 out, float half) noexcept -> Joint {
+        const tgx::Vec2 sum = tgx::perpendicular(in) + tgx::perpendicular(out);
+        if (tgx::dot(sum, sum) < 1e-6f) {
+            return {at, at, false};
+        }
+        const tgx::Vec2 miter = tgx::normalize(sum);
+        // Projected onto the line's own side, the miter reaches half out.
+        const float reach = half / tgx::dot(miter, tgx::perpendicular(out));
+        if (reach > half * miter_limit) {
+            return {at, at, false};
+        }
+        return {at + miter * reach, at - miter * reach, true};
+    }
+
     [[nodiscard]] auto segments_for(float pixel_radius) noexcept -> std::size_t {
         if (pixel_radius <= circle_tolerance) {
             return min_segments;
@@ -297,12 +326,43 @@ namespace tgx {
         this->rect({rect.right() - t, rect.y + t, t, rect.height - 2.f * t}, color);
     }
 
+    auto Canvas::rect_gradient(Rect rect, Color top, Color bottom) noexcept -> void {
+        rect_gradient(rect, top, top, bottom, bottom);
+    }
+
+    auto Canvas::rect_gradient(
+        Rect rect,
+        Color top_left,
+        Color top_right,
+        Color bottom_right,
+        Color bottom_left
+    ) noexcept -> void {
+        const std::array<Vec2, 4> corners{
+            Vec2{rect.x, rect.y},
+            Vec2{rect.right(), rect.y},
+            Vec2{rect.right(), rect.bottom()},
+            Vec2{rect.x, rect.bottom()},
+        };
+        quad(corners, {top_left, top_right, bottom_right, bottom_left});
+    }
+
     auto Canvas::triangle(Vec2 a, Vec2 b, Vec2 c, Color color) noexcept -> void {
+        triangle_gradient(a, b, c, color, color, color);
+    }
+
+    auto Canvas::triangle_gradient(
+        Vec2 a,
+        Vec2 b,
+        Vec2 c,
+        Color color_a,
+        Color color_b,
+        Color color_c
+    ) noexcept -> void {
         auto [batch, first] = start(state_for(0), 3, 3);
 
-        batch.push_vertex({a, white_uv, color});
-        batch.push_vertex({b, white_uv, color});
-        batch.push_vertex({c, white_uv, color});
+        batch.push_vertex({a, white_uv, color_a});
+        batch.push_vertex({b, white_uv, color_b});
+        batch.push_vertex({c, white_uv, color_c});
         push_indices(batch, first, {0, 1, 2});
     }
 
@@ -317,7 +377,70 @@ namespace tgx {
         quad(a + side, b + side, b - side, a - side, color);
     }
 
+    auto Canvas::line_strip(std::span<const Vec2> points, Color color, float thickness) noexcept -> void {
+        const float half = thickness / 2.f;
+        if (half <= 0.f) {
+            return;
+        }
+
+        // A point that repeats the one before has no direction: skipped.
+        const auto next_distinct = [&](std::size_t i) noexcept {
+            std::size_t j = i + 1;
+            while (j < points.size() && points[j] == points[i]) {
+                ++j;
+            }
+            return j;
+        };
+
+        std::size_t a = 0;
+        std::size_t b = next_distinct(a);
+        Vec2 previous{};
+        bool has_previous = false;
+        while (b < points.size()) {
+            const std::size_t c = next_distinct(b);
+            const Vec2 direction = normalize(points[b] - points[a]);
+            const Vec2 side = perpendicular(direction) * half;
+
+            // Its start: where the joint before left it, or square.
+            Joint start{points[a] + side, points[a] - side, true};
+            if (has_previous) {
+                start = joint(points[a], previous, direction, half);
+                if (!start.mitered) {
+                    start = {points[a] + side, points[a] - side, true};
+                }
+            }
+
+            // Its end: shared with the next line when the corner is mitered;
+            // square otherwise, with the corner's outside filled in.
+            Joint end{points[b] + side, points[b] - side, true};
+            if (c < points.size()) {
+                const Vec2 next = normalize(points[c] - points[b]);
+                const Joint corner = joint(points[b], direction, next, half);
+                if (corner.mitered) {
+                    end = corner;
+                } else {
+                    const Vec2 next_side = perpendicular(next) * half;
+                    // The outside is where the lines' edges part: the left
+                    // when the path turns clockwise on screen.
+                    const float outside = cross(direction, next) > 0.f ? 1.f : -1.f;
+                    triangle(points[b], points[b] + side * outside, points[b] + next_side * outside, color);
+                }
+            }
+
+            quad(start.plus, end.plus, end.minus, start.minus, color);
+
+            previous = direction;
+            has_previous = true;
+            a = b;
+            b = c;
+        }
+    }
+
     auto Canvas::circle(Vec2 center, float radius, Color color) noexcept -> void {
+        circle_gradient(center, radius, color, color);
+    }
+
+    auto Canvas::circle_gradient(Vec2 center, float radius, Color inner, Color outer) noexcept -> void {
         if (radius <= 0.f) {
             return;
         }
@@ -328,9 +451,9 @@ namespace tgx {
         auto [batch, first] = start(state, n + 1, n * 3);
 
         // A fan around the center, vertex first.
-        batch.push_vertex({center, white_uv, color});
+        batch.push_vertex({center, white_uv, inner});
         for (std::size_t i = 0; i < n; ++i) {
-            batch.push_vertex({center + rim_point(i, n) * radius, white_uv, color});
+            batch.push_vertex({center + rim_point(i, n) * radius, white_uv, outer});
         }
         for (std::size_t i = 0; i < n; ++i) {
             push_indices(batch, first, {0, 1 + i, 1 + (i + 1) % n});
@@ -515,12 +638,15 @@ namespace tgx {
     }
 
     auto Canvas::quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void {
+        quad({a, b, c, d}, {color, color, color, color});
+    }
+
+    auto Canvas::quad(const std::array<Vec2, 4> &corners, const std::array<Color, 4> &colors) noexcept -> void {
         auto [batch, first] = start(state_for(0), 4, 6);
 
-        batch.push_vertex({a, white_uv, color});
-        batch.push_vertex({b, white_uv, color});
-        batch.push_vertex({c, white_uv, color});
-        batch.push_vertex({d, white_uv, color});
+        for (std::size_t i = 0; i < 4; ++i) {
+            batch.push_vertex({corners[i], white_uv, colors[i]});
+        }
         // Two triangles: a b c and c d a.
         push_indices(batch, first, {0, 1, 2, 2, 3, 0});
     }

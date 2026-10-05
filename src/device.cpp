@@ -250,6 +250,16 @@ namespace tgx {
         detail::context().flush();
     }
 
+    auto Device::read() -> Image {
+        Image image = detail::context().read({});
+        // The window's alpha is whatever blending left in it; what shows is
+        // opaque.
+        for (Color &pixel: image.pixels()) {
+            pixel.a = 255;
+        }
+        return image;
+    }
+
     auto Device::present() noexcept -> void {
         detail::Context &context = detail::context();
         context.flush();

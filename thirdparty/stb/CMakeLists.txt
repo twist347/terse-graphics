@@ -15,3 +15,9 @@ target_compile_definitions(stb_image PUBLIC
         STBI_ONLY_TGA
         STBI_ONLY_GIF
 )
+
+# stb_image_write v1.16, the copy GLFW ships in deps/: PNGs for Image::save.
+# Written to memory, and to the file by the caller, as stb_image's reading.
+add_library(stb_image_write STATIC src/stb_image_write.c)
+target_include_directories(stb_image_write SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(stb_image_write PUBLIC STBI_WRITE_NO_STDIO)

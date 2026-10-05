@@ -96,3 +96,19 @@ TEST_CASE("ortho as 2D drawing uses it") {
     CHECK(near(m * tgx::Vec4{320, 180, 0, 1}, {1, -1, 0, 1}));
     CHECK(near(m * tgx::Vec4{160, 90, 0, 1}, {0, 0, 0, 1}));
 }
+
+TEST_CASE("fit keeps the proportions, in the middle") {
+    // 16:9 into a square: full width, bars above and below.
+    CHECK(tgx::fit({320, 180}, {640, 640}) == tgx::Rect{0, 140, 640, 360});
+    // Taller area than wide content needs: bars at the sides.
+    CHECK(tgx::fit({100, 100}, {300, 200}) == tgx::Rect{50, 0, 200, 200});
+    CHECK(tgx::fit({}, {100, 100}) == tgx::Rect{});
+}
+
+TEST_CASE("fit_whole scales by a whole factor") {
+    CHECK(tgx::fit_whole({320, 180}, {1366, 768}) == tgx::Rect{43, 24, 1280, 720});
+    CHECK(tgx::fit_whole({320, 180}, {1280, 720}) == tgx::Rect{0, 0, 1280, 720});
+    // Smaller than the content: still once, overflowing.
+    CHECK(tgx::fit_whole({320, 180}, {200, 100}).width == 320.f);
+    CHECK(tgx::fit_whole({320, 180}, {0, 0}) == tgx::Rect{});
+}

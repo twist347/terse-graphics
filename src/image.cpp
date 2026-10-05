@@ -5,6 +5,7 @@
 #include "file.h"
 
 #include <stb/stb_image.h>
+#include <stb/stb_image_write.h>
 
 #include <cstddef>
 #include <cstring>
@@ -78,5 +79,23 @@ namespace tgx {
         std::vector<Color> colors(pixel_count(size));
         std::memcpy(colors.data(), pixels.get(), colors.size() * sizeof(Color));
         return Image{size, std::move(colors)};
+    }
+
+    auto Image::save(const std::filesystem::path &path) const -> Result<void> {
+        TGX_ASSERT_MSG(!empty(), "saving an empty image");
+
+        // Encoded into memory, then written as the bytes of the file, so the
+        // path goes through the same stream as reading does.
+        std::vector<std::byte> png;
+        const auto append = [](void *context, void *data, int size) {
+            auto &out = *static_cast<std::vector<std::byte> *>(context);
+            const auto *bytes = static_cast<const std::byte *>(data);
+            out.insert(out.end(), bytes, bytes + size);
+        };
+        const int stride = m_size.width * static_cast<int>(sizeof(Color));
+        if (stbi_write_png_to_func(append, &png, m_size.width, m_size.height, 4, m_pixels.data(), stride) == 0) {
+            return std::unexpected{Error::io};
+        }
+        return detail::write_file(path, png);
     }
 }

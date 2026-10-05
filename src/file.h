@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <span>
 #include <vector>
 
 namespace tgx::detail {
@@ -11,4 +12,8 @@ namespace tgx::detail {
     // Read through a stream rather than stdio, which cannot open non-ASCII
     // paths on Windows; what loads assets (Image, Sound) decodes from this.
     [[nodiscard]] auto read_file(const std::filesystem::path &path) -> Result<std::vector<std::byte>>;
+
+    // The bytes as the whole file, made or replaced; Error::io if it cannot
+    // be written through.
+    [[nodiscard]] auto write_file(const std::filesystem::path &path, std::span<const std::byte> bytes) -> Result<void>;
 }

@@ -31,4 +31,15 @@ namespace tgx {
         }
         return bytes;
     }
+
+    auto detail::write_file(const std::filesystem::path &path, std::span<const std::byte> bytes) -> Result<void> {
+        std::ofstream file{path, std::ios::binary | std::ios::trunc};
+        if (!file) {
+            return std::unexpected{Error::io};
+        }
+        if (!file.write(reinterpret_cast<const char *>(bytes.data()), static_cast<std::streamsize>(bytes.size()))) {
+            return std::unexpected{Error::io};
+        }
+        return {};
+    }
 }

@@ -7,7 +7,9 @@
 #include "tgx/math.h"
 #include "tgx/render_target.h"
 
+#include <array>
 #include <cstdint>
+#include <span>
 #include <string_view>
 
 namespace tgx {
@@ -157,14 +159,42 @@ namespace tgx {
         // A frame thickness wide, inside the rectangle's edges.
         auto rect_lines(Rect rect, Color color, float thickness = 1.f) noexcept -> void;
 
+        // The color going from top to bottom: a sky, a fade to black.
+        auto rect_gradient(Rect rect, Color top, Color bottom) noexcept -> void;
+
+        // A color for each corner, blended between them, clockwise from the
+        // top-left; left to right is (left, right, right, left).
+        auto rect_gradient(
+            Rect rect,
+            Color top_left,
+            Color top_right,
+            Color bottom_right,
+            Color bottom_left
+        ) noexcept -> void;
+
         auto triangle(Vec2 a, Vec2 b, Vec2 c, Color color) noexcept -> void;
+
+        // A color for each corner, blended between them: any shape made of
+        // triangles can be shaded so.
+        auto triangle_gradient(Vec2 a, Vec2 b, Vec2 c, Color color_a, Color color_b, Color color_c) noexcept -> void;
 
         // A thickness wide band from a to b, square ends flush with them.
         auto line(Vec2 a, Vec2 b, Color color, float thickness = 1.f) noexcept -> void;
 
+        // Lines from one point to the next, thickness wide, their corners
+        // joined without a gap; where they turn back sharply the corner is
+        // cut off rather than drawn as a long spike. The two ends are square,
+        // as line()'s: ending at the first point again closes the shape, but
+        // leaves that one corner unjoined.
+        auto line_strip(std::span<const Vec2> points, Color color, float thickness = 1.f) noexcept -> void;
+
         // As many segments as keep the edge within a quarter pixel of a true
         // circle, so small ones stay cheap and big ones round.
         auto circle(Vec2 center, float radius, Color color) noexcept -> void;
+
+        // inner at the center, blended out to outer at the edge: a glow, a
+        // light, a soft shadow (outer see-through).
+        auto circle_gradient(Vec2 center, float radius, Color inner, Color outer) noexcept -> void;
 
         // A ring thickness wide, inside the circle's edge.
         auto circle_lines(Vec2 center, float radius, Color color, float thickness = 1.f) noexcept -> void;
@@ -202,6 +232,9 @@ namespace tgx {
         [[nodiscard]] auto state_for(GlId texture) noexcept -> detail::BatchState;
 
         auto quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void;
+
+        // The same with a color for each corner, blended between them.
+        auto quad(const std::array<Vec2, 4> &corners, const std::array<Color, 4> &colors) noexcept -> void;
 
         // What the canvas draws into.
         [[nodiscard]] auto surface() const noexcept -> detail::Surface;

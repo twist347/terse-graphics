@@ -63,3 +63,23 @@ TEST_CASE("Image::load failures") {
     REQUIRE_FALSE(directory.has_value());
     CHECK(directory.error() == tgx::Error::io);
 }
+
+TEST_CASE("Image::save writes what Image::load reads back") {
+    tgx::Image image = tgx::Image::create({3, 2}, tgx::colors::transparent);
+    image.at(0, 0) = tgx::colors::red;
+    image.at(2, 1) = tgx::Color{10, 20, 30, 128};
+
+    const std::filesystem::path path = std::filesystem::temp_directory_path() / "tgx_tests_save.png";
+    REQUIRE(image.save(path).has_value());
+    const auto back = tgx::Image::load(path);
+    std::filesystem::remove(path);
+
+    REQUIRE(back.has_value());
+    CHECK(back->size() == image.size());
+    CHECK(back->at(0, 0) == tgx::colors::red);
+    CHECK(back->at(2, 1) == tgx::Color{10, 20, 30, 128});
+
+    const auto nowhere = image.save("there/is/no/such/folder/image.png");
+    REQUIRE_FALSE(nowhere.has_value());
+    CHECK(nowhere.error() == tgx::Error::io);
+}

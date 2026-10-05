@@ -4,7 +4,6 @@
 
 #include "tgx/tgx.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <print>
@@ -35,16 +34,8 @@ int main() {
         app->poll_events();
 
         // The largest whole scale that fits the window, in the middle of it.
-        const tgx::Size window = screen.size();
-        const int scale = std::max(1, std::min(window.width / resolution.width, window.height / resolution.height));
-        const tgx::Vec2 size{
-            static_cast<float>(resolution.width * scale),
-            static_cast<float>(resolution.height * scale),
-        };
-        const tgx::Vec2 position{
-            std::floor((static_cast<float>(window.width) - size.x) / 2),
-            std::floor((static_cast<float>(window.height) - size.y) / 2),
-        };
+        const tgx::Rect picture = tgx::fit_whole(resolution, screen.size());
+        const tgx::Vec2 position{picture.x, picture.y};
 
         world.clear(tgx::Color::rgb(0x305080));
         world.rect({0, 140, 320, 40}, tgx::colors::brown);
@@ -53,14 +44,15 @@ int main() {
         world.line(tgx::Vec2{160, 100} - turn, tgx::Vec2{160, 100} + turn, tgx::colors::white, 3);
 
         // The mouse in the target's pixels: the window point, less where the
-        // picture starts, divided by how much it is scaled up.
-        const tgx::Vec2 mouse = (app->input().mouse() - position) / static_cast<float>(scale);
+        // picture starts, scaled down as the picture is scaled up.
+        const float to_pixels = picture.width > 0 ? static_cast<float>(resolution.width) / picture.width : 0;
+        const tgx::Vec2 mouse = (app->input().mouse() - position) * to_pixels;
         world.rect({std::floor(mouse.x), std::floor(mouse.y), 1, 1}, tgx::colors::red);
 
         // The target as one sprite; the world's shapes are drawn into it
         // first, as they came first.
         screen.clear(tgx::colors::black);
-        screen.sprite(pixels->texture(), {.position = position, .size = size});
+        screen.sprite(pixels->texture(), {.position = position, .size = {picture.width, picture.height}});
 
         screen.fps({10, 10});
 

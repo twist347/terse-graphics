@@ -5,7 +5,7 @@
 // splashes on the road; street lamps and a passing car light it up.
 //
 // The mouse carries a lantern; Space calls lightning, which also comes on its
-// own now and then.
+// own now and then; F12 saves a screenshot.
 
 #include "tgx/gl.h"
 
@@ -15,7 +15,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <print>
-#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,15 +26,8 @@ namespace {
     // Where the street begins.
     constexpr float road_y = 160.f;
 
-    std::mt19937 rng{20261005};
-
-    [[nodiscard]] auto random(float lo, float hi) -> float {
-        return std::uniform_real_distribution<float>{lo, hi}(rng);
-    }
-
-    [[nodiscard]] auto chance(float p) -> bool {
-        return random(0.f, 1.f) < p;
-    }
+    // Seeded: the same city on every run and every platform.
+    tgx::Random rng{20261005};
 
     // The scanlines and the vignette, on top of the canvas's own drawing: one
     // scanline per row of the target's pixels, darker where a row meets the
@@ -115,17 +107,17 @@ namespace {
         Layer layer{{}, speed, wall, window, width * 2.f};
         for (float x = 0.f; x < layer.span;) {
             // The last one ends where the next copy of the band begins.
-            const float w = std::min(std::round(random(18.f, 46.f)), layer.span - x);
-            const float h = std::round(random(min_height, max_height));
+            const float w = std::min(std::round(rng.next_float(18.f, 46.f)), layer.span - x);
+            const float h = std::round(rng.next_float(min_height, max_height));
             Building building{{x, road_y - h, w, h}, {}};
             // Windows of 2x3 pixels in a grid, inset from the walls.
             for (float wy = road_y - h + 4.f; wy < road_y - 6.f; wy += 6.f) {
                 for (float wx = x + 3.f; wx + 2.f < x + w - 2.f; wx += 5.f) {
-                    building.windows.push_back({{wx, wy, 2.f, 3.f}, chance(lit)});
+                    building.windows.push_back({{wx, wy, 2.f, 3.f}, rng.chance(lit)});
                 }
             }
             layer.buildings.push_back(std::move(building));
-            x += w + std::round(random(0.f, 6.f));
+            x += w + std::round(rng.next_float(0.f, 6.f));
         }
         return layer;
     }
@@ -148,16 +140,15 @@ namespace {
 
     // A jagged path from the sky down to a roof.
     [[nodiscard]] auto make_bolt() -> std::vector<tgx::Vec2> {
-        std::vector<tgx::Vec2> bolt{{random(40.f, width - 40.f), 0.f}};
+        std::vector<tgx::Vec2> bolt{{rng.next_float(40.f, width - 40.f), 0.f}};
         while (bolt.back().y < road_y - 60.f) {
             const tgx::Vec2 last = bolt.back();
-            bolt.push_back({last.x + random(-9.f, 9.f), last.y + random(6.f, 14.f)});
+            bolt.push_back({last.x + rng.next_float(-9.f, 9.f), last.y + rng.next_float(6.f, 14.f)});
         }
         return bolt;
     }
 
-    // The sky from deep blue at the top to a city glow at the horizon, one
-    // row of pixels at a time.
+    // The sky from deep blue at the top to a city glow at the horizon.
     [[nodiscard]] auto sky_at(float y, float flash) -> tgx::Color {
         const tgx::Color sky = tgx::lerp(tgx::Color::rgb(0x0b1026), tgx::Color::rgb(0x3a2f5c), y / road_y);
         return tgx::lerp(sky, tgx::Color::rgb(0x9aa6d6), flash);
@@ -193,7 +184,7 @@ namespace {
         canvas.rect({x - 2.f, road_y - 27.f, 5.f, 1.f}, warm);
 
         light.triangle({x - 1.f, road_y - 26.f}, {x - 10.f, road_y}, {x + 11.f, road_y}, warm.fade(0.07f));
-        light.circle({x + 0.5f, road_y - 26.f}, 6.f, warm.fade(0.18f));
+        light.circle_gradient({x + 0.5f, road_y - 26.f}, 8.f, warm.fade(0.3f), warm.fade(0.f));
         light.rect({x - 2.f, road_y + 1.f, 5.f, 12.f}, warm.fade(0.18f));
     }
 
@@ -257,19 +248,19 @@ int main() {
 
     std::vector<tgx::Vec2> stars(90);
     for (tgx::Vec2 &star: stars) {
-        star = {std::round(random(0.f, width)), std::round(random(0.f, 90.f))};
+        star = {std::round(rng.next_float(0.f, width)), std::round(rng.next_float(0.f, 90.f))};
     }
 
     std::vector<Drop> drops(800);
     for (Drop &drop: drops) {
-        drop = {{random(0.f, width + 60.f), random(-height, road_y)}, random(160.f, 240.f)};
+        drop = {rng.point_in({0.f, -height, width + 60.f, height + road_y}), rng.next_float(160.f, 240.f)};
     }
     std::vector<Splash> splashes;
     // Falling a little to the left, as in a wind.
     const tgx::Vec2 rain_direction = tgx::normalize(tgx::Vec2{-0.25f, 1.f});
 
     Lightning lightning;
-    float next_strike = random(4.f, 9.f);
+    float next_strike = rng.next_float(4.f, 9.f);
     float car_x = width + 40.f;
     float scroll = 0.f;
     float time = 0.f;
@@ -283,25 +274,24 @@ int main() {
         scroll += 12.f * dt;
 
         // The picture scaled up by a whole factor, in the middle of the window.
-        const tgx::Size window = screen.size();
-        const int scale = std::max(1, std::min(window.width / resolution.width, window.height / resolution.height));
-        const tgx::Vec2 size{width * static_cast<float>(scale), height * static_cast<float>(scale)};
-        const tgx::Vec2 position{
-            std::floor((static_cast<float>(window.width) - size.x) / 2.f),
-            std::floor((static_cast<float>(window.height) - size.y) / 2.f),
-        };
-        const tgx::Vec2 mouse = (app->input().mouse() - position) / static_cast<float>(scale);
+        const tgx::Rect picture = tgx::fit_whole(resolution, screen.size());
+        const tgx::Vec2 position{picture.x, picture.y};
+        const tgx::Vec2 size{picture.width, picture.height};
+        // A minimized window has no picture to point into.
+        const float to_pixels = picture.width > 0.f ? width / picture.width : 0.f;
+        const tgx::Vec2 mouse = (app->input().mouse() - position) * to_pixels;
 
         // Rain: drops fall along the wind and splash where they meet the road.
         for (Drop &drop: drops) {
             drop.position += rain_direction * drop.speed * dt;
-            if (drop.position.y >= road_y + random(0.f, 18.f)) {
-                if (splashes.size() < 600 && chance(0.6f)) {
+            if (drop.position.y >= road_y + rng.next_float(0.f, 18.f)) {
+                if (splashes.size() < 600 && rng.chance(0.6f)) {
                     for (int i = 0; i < 2; ++i) {
-                        splashes.push_back({drop.position, {random(-18.f, 18.f), random(-40.f, -20.f)}, 0.3f});
+                        const tgx::Vec2 velocity = rng.point_in({-18.f, -40.f, 36.f, 20.f});
+                        splashes.push_back({drop.position, velocity, 0.3f});
                     }
                 }
-                drop.position = {random(0.f, width + 60.f), random(-20.f, -2.f)};
+                drop.position = rng.point_in({0.f, -20.f, width + 60.f, 18.f});
             }
         }
         for (Splash &splash: splashes) {
@@ -315,7 +305,7 @@ int main() {
         for (Layer &layer: layers) {
             for (Building &building: layer.buildings) {
                 for (Window &w: building.windows) {
-                    if (chance(0.02f * dt)) {
+                    if (rng.chance(0.02f * dt)) {
                         w.lit = !w.lit;
                     }
                 }
@@ -324,7 +314,7 @@ int main() {
 
         if (app->input().pressed(tgx::Key::space) || time > next_strike) {
             lightning = {make_bolt(), 0.35f};
-            next_strike = time + random(6.f, 14.f);
+            next_strike = time + rng.next_float(6.f, 14.f);
         }
         lightning.left = std::max(lightning.left - dt, 0.f);
         // Two flickers, bright then fading.
@@ -334,26 +324,23 @@ int main() {
 
         car_x -= 45.f * dt;
         if (car_x < -90.f) {
-            car_x = width + random(60.f, 300.f);
+            car_x = width + rng.next_float(60.f, 300.f);
         }
 
         // The world, into the target.
-        for (float y = 0.f; y < road_y; y += 1.f) {
-            world.rect({0.f, y, width, 1.f}, sky_at(y, flash * 0.6f));
-        }
+        world.rect_gradient({0.f, 0.f, width, road_y}, sky_at(0.f, flash * 0.6f), sky_at(road_y, flash * 0.6f));
         for (std::size_t i = 0; i < stars.size(); ++i) {
             const float twinkle = 0.5f + 0.5f * std::sin(time * 2.f + static_cast<float>(i) * 1.7f);
             world.rect({stars[i].x, stars[i].y, 1.f, 1.f}, tgx::colors::white.fade(0.3f + 0.5f * twinkle));
         }
         world.circle({262.f, 34.f}, 11.f, tgx::Color::rgb(0xf3ecd2));
         world.circle({257.f, 31.f}, 10.f, sky_at(31.f, flash * 0.6f));
-        light.circle({262.f, 34.f}, 22.f, tgx::Color::rgb(0xf3ecd2).fade(0.05f));
+        const tgx::Color moonlight = tgx::Color::rgb(0xf3ecd2);
+        light.circle_gradient({262.f, 34.f}, 26.f, moonlight.fade(0.12f), moonlight.fade(0.f));
 
         if (lightning.left > 0.f && flash > 0.5f) {
-            for (std::size_t i = 1; i < lightning.bolt.size(); ++i) {
-                light.line(lightning.bolt[i - 1], lightning.bolt[i], tgx::Color::rgb(0x9fb4ff).fade(0.5f), 3.f);
-                world.line(lightning.bolt[i - 1], lightning.bolt[i], tgx::colors::white, 1.f);
-            }
+            light.line_strip(lightning.bolt, tgx::Color::rgb(0x9fb4ff).fade(0.5f), 3.f);
+            world.line_strip(lightning.bolt, tgx::colors::white, 1.f);
         }
 
         draw_layer(world, layers[0], scroll, time);
@@ -381,9 +368,8 @@ int main() {
         }
 
         // The lantern: a warm glow, brighter towards the middle.
-        for (const float radius: {28.f, 18.f, 10.f, 5.f}) {
-            light.circle(mouse, radius, tgx::Color::rgb(0xffb35c).fade(0.06f));
-        }
+        const tgx::Color lantern = tgx::Color::rgb(0xffb35c);
+        light.circle_gradient(mouse, 28.f, lantern.fade(0.28f), lantern.fade(0.f));
         if (flash > 0.f) {
             light.rect({0.f, 0.f, width, height}, tgx::Color::rgb(0x9fb4ff).fade(0.25f * flash));
         }
@@ -395,11 +381,17 @@ int main() {
         screen.text(position + tgx::Vec2{16.f, 40.f}, "NIGHT CITY", tgx::colors::white.fade(0.85f), 32.f);
         screen.text(
             position + tgx::Vec2{16.f, size.y - 32.f},
-            "mouse: lantern   space: lightning",
+            "mouse: lantern   space: lightning   f12: screenshot",
             tgx::colors::light_gray.fade(0.7f)
         );
 
         screen.fps({10, 10});
+
+        // The frame as it is now, before it goes to the display.
+        if (app->input().pressed(tgx::Key::f12)) {
+            const auto saved = app->device().read().save("night_city.png");
+            std::println("screenshot: {}", saved ? "night_city.png" : tgx::to_str(saved.error()));
+        }
 
         app->swap_buffers();
     }

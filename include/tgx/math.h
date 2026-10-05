@@ -98,6 +98,45 @@ namespace tgx {
     static_assert(std::is_standard_layout_v<Mat4> && std::is_trivially_copyable_v<Mat4>);
     static_assert(std::is_standard_layout_v<Rect> && std::is_trivially_copyable_v<Rect>);
 
+    // Where content of one size shows inside an area of another, as large as
+    // it fits with its proportions kept and in the middle, bars left over on
+    // two sides: a fixed-size picture in a window of any shape. Empty when
+    // either is.
+    //
+    // A point p of the area is at (p - {r.x, r.y}) * content.width / r.width
+    // (and the same down) in the content.
+    [[nodiscard]] constexpr auto fit(Size content, Size area) noexcept -> Rect {
+        if (content.empty() || area.empty()) {
+            return {};
+        }
+        const float sx = static_cast<float>(area.width) / static_cast<float>(content.width);
+        const float sy = static_cast<float>(area.height) / static_cast<float>(content.height);
+        const float scale = sx < sy ? sx : sy;
+        const float w = static_cast<float>(content.width) * scale;
+        const float h = static_cast<float>(content.height) * scale;
+        return {(static_cast<float>(area.width) - w) / 2.f, (static_cast<float>(area.height) - h) / 2.f, w, h};
+    }
+
+    // The same, scaled by the largest whole factor that fits (at least 1)
+    // and at a whole position, so every pixel of pixel art stays a square of
+    // the same size: 320x180 in 1366x768 is 1280x720 at (43, 24).
+    [[nodiscard]] constexpr auto fit_whole(Size content, Size area) noexcept -> Rect {
+        if (content.empty() || area.empty()) {
+            return {};
+        }
+        const int sx = area.width / content.width;
+        const int sy = area.height / content.height;
+        const int scale = sx < sy ? (sx > 1 ? sx : 1) : (sy > 1 ? sy : 1);
+        const int w = content.width * scale;
+        const int h = content.height * scale;
+        return {
+            static_cast<float>((area.width - w) / 2),
+            static_cast<float>((area.height - h) / 2),
+            static_cast<float>(w),
+            static_cast<float>(h),
+        };
+    }
+
     [[nodiscard]] constexpr auto radians(float degrees) noexcept -> float {
         return degrees * (std::numbers::pi_v<float> / 180.f);
     }

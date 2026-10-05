@@ -19,6 +19,7 @@
 #include "tgx/input.h"
 #include "tgx/log.h"
 #include "tgx/math.h"
+#include "tgx/random.h"
 #include "tgx/render_target.h"
 #include "tgx/texture.h"
 #include "tgx/window.h"

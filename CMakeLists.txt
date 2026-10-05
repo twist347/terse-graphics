@@ -48,7 +48,7 @@ target_include_directories(tgx
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(tgx PRIVATE glad glfw miniaudio stb_image)
+target_link_libraries(tgx PRIVATE glad glfw miniaudio stb_image stb_image_write)
 target_compile_definitions(tgx PRIVATE GLFW_INCLUDE_NONE)
 
 # Public headers hold inline code and defaults that depend on this, so the

@@ -278,6 +278,31 @@ namespace tgx {
         glDrawElements(mode, count, to_gl(*call.index_type), start);
     }
 
+    auto detail::Context::read(const Target &target) -> Image {
+        flush();
+
+        const Size size = surface_of(target).pixels;
+        Image image = Image::create(size);
+        if (image.empty()) {
+            return image;
+        }
+        bind_framebuffer(target.framebuffer);
+        // Rows of 4-byte pixels are always 4-byte aligned, GL's default pack
+        // alignment.
+        glReadPixels(0, 0, size.width, size.height, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels().data());
+
+        const auto pixels = image.pixels();
+        const auto width = static_cast<std::size_t>(size.width);
+        for (std::size_t top = 0, bottom = static_cast<std::size_t>(size.height) - 1; top < bottom; ++top, --bottom) {
+            std::swap_ranges(
+                pixels.begin() + static_cast<std::ptrdiff_t>(top * width),
+                pixels.begin() + static_cast<std::ptrdiff_t>((top + 1) * width),
+                pixels.begin() + static_cast<std::ptrdiff_t>(bottom * width)
+            );
+        }
+        return image;
+    }
+
     auto detail::Context::bind_framebuffer(GlId next) noexcept -> void {
         if (next != framebuffer) {
             glBindFramebuffer(GL_FRAMEBUFFER, next);

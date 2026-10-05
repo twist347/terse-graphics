@@ -2,6 +2,7 @@
 
 #include "tgx/color.h"
 #include "tgx/handle.h"
+#include "tgx/image.h"
 #include "tgx/math.h"
 #include "tgx/render_target.h"
 
@@ -109,6 +110,10 @@ namespace tgx::detail {
         // Neither draws the batch first nor checks anything: the callers do
         // what they need of both.
         auto draw(const DrawCall &call) noexcept -> void;
+
+        // Draws the batch first, then the target's pixels back on the CPU,
+        // rows top to bottom as in any Image (GL hands them bottom up).
+        [[nodiscard]] auto read(const Target &target) -> Image;
 
         // Makes the framebuffer the one drawn into unless it already is.
         auto bind_framebuffer(GlId framebuffer) noexcept -> void;

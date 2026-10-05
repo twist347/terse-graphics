@@ -10,6 +10,7 @@ add_executable(tgx_tests_cpu
         error.cpp
         image.cpp
         math.cpp
+        random.cpp
         text.cpp
 )
 target_link_libraries(tgx_tests_cpu PRIVATE tgx::tgx doctest)

@@ -3,6 +3,7 @@
 #include "tgx/clock.h"
 #include "tgx/color.h"
 #include "tgx/error.h"
+#include "tgx/image.h"
 
 #include <cstdint>
 #include <optional>
@@ -66,6 +67,17 @@ namespace tgx {
 
         // Draws what the Canvas has collected.
         auto flush() noexcept -> void;
+
+        // What has been drawn into the window this frame, back on the CPU,
+        // rows top to bottom: a screenshot, opaque as the window shows it.
+        // Read before present(), which hands the frame to the display and
+        // leaves the next one to be drawn anew. Draws what is waiting first
+        // and waits for the GPU to finish: not for every frame.
+        //
+        //     if (input.pressed(tgx::Key::f12)) {
+        //         const auto saved = app->device().read().save("screenshot.png");
+        //     }
+        [[nodiscard]] auto read() -> Image;
 
         // Draws what the Canvas has collected and shows the frame in the
         // window, waiting for the display if the window has vsync on
