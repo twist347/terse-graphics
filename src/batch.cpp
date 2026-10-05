@@ -117,25 +117,6 @@ namespace tgx::detail {
         };
     }
 
-    Batch::Batch(
-        gl::Shader shader,
-        std::int32_t u_projection,
-        gl::Buffer<BatchVertex> vertex_buffer,
-        gl::Buffer<std::uint16_t> index_buffer,
-        gl::VertexArray vertex_array,
-        Texture builtin
-    )
-        : m_shader{std::move(shader)},
-          m_u_projection{u_projection},
-          m_vertex_buffer{std::move(vertex_buffer)},
-          m_index_buffer{std::move(index_buffer)},
-          m_vertex_array{std::move(vertex_array)},
-          m_builtin{std::move(builtin)} {
-        // Filled up to here and no further: adding a shape never allocates.
-        m_vertices.reserve(batch_max_vertices);
-        m_indices.reserve(batch_max_indices);
-    }
-
     auto Batch::reserve(
         Context &context,
         const BatchState &state,
@@ -196,5 +177,24 @@ namespace tgx::detail {
 
     auto Batch::uses_target(GlId framebuffer) const noexcept -> bool {
         return !m_indices.empty() && m_state.target.framebuffer == framebuffer;
+    }
+
+    Batch::Batch(
+        gl::Shader shader,
+        std::int32_t u_projection,
+        gl::Buffer<BatchVertex> vertex_buffer,
+        gl::Buffer<std::uint16_t> index_buffer,
+        gl::VertexArray vertex_array,
+        Texture builtin
+    )
+        : m_shader{std::move(shader)},
+          m_u_projection{u_projection},
+          m_vertex_buffer{std::move(vertex_buffer)},
+          m_index_buffer{std::move(index_buffer)},
+          m_vertex_array{std::move(vertex_array)},
+          m_builtin{std::move(builtin)} {
+        // Filled up to here and no further: adding a shape never allocates.
+        m_vertices.reserve(batch_max_vertices);
+        m_indices.reserve(batch_max_indices);
     }
 }

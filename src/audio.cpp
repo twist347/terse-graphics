@@ -218,13 +218,6 @@ namespace tgx {
         return Sound{std::vector<float>(samples.begin(), samples.end()), channels, sample_rate};
     }
 
-    Sound::Sound(std::vector<float> samples, int channels, int sample_rate) noexcept
-        : m_samples{std::move(samples)},
-          m_channels{channels},
-          m_sample_rate{sample_rate},
-          m_id{s_next_sound_id.fetch_add(1, std::memory_order_relaxed)} {
-    }
-
     Sound::Sound(Sound &&other) noexcept
         : m_samples{std::move(other.m_samples)},
           m_channels{other.m_channels},
@@ -248,18 +241,25 @@ namespace tgx {
         release();
     }
 
-    auto Sound::release() noexcept -> void {
-        // Its voices read its samples: they stop before the samples go.
-        stop_voices(m_id);
-        m_id = 0;
-    }
-
     auto Sound::duration() const noexcept -> double {
         if (m_channels == 0 || m_sample_rate == 0) {
             return 0.0;
         }
         const auto frames = m_samples.size() / static_cast<std::size_t>(m_channels);
         return static_cast<double>(frames) / static_cast<double>(m_sample_rate);
+    }
+
+    Sound::Sound(std::vector<float> samples, int channels, int sample_rate) noexcept
+        : m_samples{std::move(samples)},
+          m_channels{channels},
+          m_sample_rate{sample_rate},
+          m_id{s_next_sound_id.fetch_add(1, std::memory_order_relaxed)} {
+    }
+
+    auto Sound::release() noexcept -> void {
+        // Its voices read its samples: they stop before the samples go.
+        stop_voices(m_id);
+        m_id = 0;
     }
 
     // Music
@@ -292,9 +292,6 @@ namespace tgx {
         }
         stream->length = *length;
         return Music{std::move(stream)};
-    }
-
-    Music::Music(std::unique_ptr<detail::MusicStream> stream) noexcept : m_stream{std::move(stream)} {
     }
 
     Music::Music(Music &&) noexcept = default;
@@ -356,6 +353,9 @@ namespace tgx {
         return m_stream ? m_stream->length : 0.0;
     }
 
+    Music::Music(std::unique_ptr<detail::MusicStream> stream) noexcept : m_stream{std::move(stream)} {
+    }
+
     // Audio
 
     auto Audio::create() noexcept -> Audio {
@@ -393,22 +393,6 @@ namespace tgx {
 
     Audio::~Audio() {
         release();
-    }
-
-    auto Audio::release() noexcept -> void {
-        if (!m_owned) {
-            return;
-        }
-        if (s_audio) {
-            for (Voice &voice: s_audio->voices) {
-                if (voice.owner != 0) {
-                    free_voice(voice);
-                }
-            }
-            ma_engine_uninit(&s_audio->engine);
-            s_audio.reset();
-        }
-        m_owned = false;
     }
 
     auto Audio::active() const noexcept -> bool {
@@ -469,5 +453,21 @@ namespace tgx {
 
     auto Audio::volume() const noexcept -> float {
         return s_volume;
+    }
+
+    auto Audio::release() noexcept -> void {
+        if (!m_owned) {
+            return;
+        }
+        if (s_audio) {
+            for (Voice &voice: s_audio->voices) {
+                if (voice.owner != 0) {
+                    free_voice(voice);
+                }
+            }
+            ma_engine_uninit(&s_audio->engine);
+            s_audio.reset();
+        }
+        m_owned = false;
     }
 }

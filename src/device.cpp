@@ -226,16 +226,24 @@ namespace tgx {
         release();
     }
 
-    auto Device::release() noexcept -> void {
-        if (m_owned) {
-            // Its gl resources go while GL is still usable, and while the
-            // context is still whole for them to unbind from. What it still
-            // holds is dropped: the frame it was for is over.
-            detail::Context &context = detail::context();
-            context.batch.reset();
-            context = {};
-            m_owned = false;
-        }
+    auto Device::clear(const ClearParams &params) noexcept -> void {
+        const detail::Target target = detail::target_of(params.target);
+        // GL clears what is not there without a word.
+        TGX_ASSERT_MSG(
+            !params.depth || target.depth,
+            "clearing the depth of a render target made without one"
+        );
+        TGX_ASSERT_MSG(
+            !params.stencil || target.framebuffer == 0,
+            "clearing the stencil of a render target, which has none"
+        );
+
+        detail::context().clear({
+            .target = target,
+            .color = params.color,
+            .depth = params.depth,
+            .stencil = params.stencil,
+        });
     }
 
     auto Device::flush() noexcept -> void {
@@ -256,26 +264,6 @@ namespace tgx {
 
     auto Device::restart_clock() noexcept -> void {
         detail::context().clock.restart();
-    }
-
-    auto Device::clear(const ClearParams &params) noexcept -> void {
-        const detail::Target target = detail::target_of(params.target);
-        // GL clears what is not there without a word.
-        TGX_ASSERT_MSG(
-            !params.depth || target.depth,
-            "clearing the depth of a render target made without one"
-        );
-        TGX_ASSERT_MSG(
-            !params.stencil || target.framebuffer == 0,
-            "clearing the stencil of a render target, which has none"
-        );
-
-        detail::context().clear({
-            .target = target,
-            .color = params.color,
-            .depth = params.depth,
-            .stencil = params.stencil,
-        });
     }
 
     auto Device::draw(const gl::Shader &shader, const gl::VertexArray &vertices) noexcept -> void {
@@ -352,5 +340,17 @@ namespace tgx {
             }
         }
         detail::context().draw(call);
+    }
+
+    auto Device::release() noexcept -> void {
+        if (m_owned) {
+            // Its gl resources go while GL is still usable, and while the
+            // context is still whole for them to unbind from. What it still
+            // holds is dropped: the frame it was for is over.
+            detail::Context &context = detail::context();
+            context.batch.reset();
+            context = {};
+            m_owned = false;
+        }
     }
 }

@@ -105,6 +105,12 @@ namespace tgx {
         });
     }
 
+    auto Texture::load(const std::filesystem::path &path, const TextureParams &params) -> Result<Texture> {
+        return Image::load(path).and_then([&](const Image &image) {
+            return create(image, params);
+        });
+    }
+
     auto Texture::create(
         Size size,
         const TextureParams &params
@@ -116,21 +122,6 @@ namespace tgx {
 
         return make(size, nullptr, params).transform([&](GLuint id) {
             return Texture{id, size, params, false};
-        });
-    }
-
-    auto Texture::create_for_target(
-        Size size,
-        const TextureParams &params
-    ) noexcept -> Result<Texture> {
-        return make(size, nullptr, params).transform([&](GLuint id) {
-            return Texture{id, size, params, true};
-        });
-    }
-
-    auto Texture::load(const std::filesystem::path &path, const TextureParams &params) -> Result<Texture> {
-        return Image::load(path).and_then([&](const Image &image) {
-            return create(image, params);
         });
     }
 
@@ -160,5 +151,14 @@ namespace tgx {
         if (m_params.mipmaps) {
             glGenerateMipmap(GL_TEXTURE_2D);
         }
+    }
+
+    auto Texture::create_for_target(
+        Size size,
+        const TextureParams &params
+    ) noexcept -> Result<Texture> {
+        return make(size, nullptr, params).transform([&](GLuint id) {
+            return Texture{id, size, params, true};
+        });
     }
 }

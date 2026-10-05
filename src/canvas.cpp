@@ -196,10 +196,6 @@ namespace tgx {
         return Canvas{size};
     }
 
-    Canvas::Canvas(Size size) noexcept : m_size{size} {
-        refit();
-    }
-
     auto Canvas::set_size(Size size) noexcept -> void {
         m_size = size;
         refit();
@@ -255,15 +251,6 @@ namespace tgx {
         };
     }
 
-    auto Canvas::surface() const noexcept -> detail::Surface {
-        return detail::surface_of(m_target);
-    }
-
-    auto Canvas::refit() noexcept -> void {
-        m_transform_size = size();
-        m_transform = projection_for(m_transform_size) * m_camera.matrix();
-    }
-
     auto Canvas::set_shader(gl::Shader *shader) noexcept -> void {
         m_program = shader ? shader->id() : 0;
         m_u_projection = -1;
@@ -289,24 +276,6 @@ namespace tgx {
 
     auto Canvas::clear(Color color) noexcept -> void {
         detail::context().clear({.target = m_target, .color = color});
-    }
-
-    auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
-        // A canvas that follows the window notices a resize here, at its first
-        // shape after it.
-        const Surface surface = this->surface();
-        if (span_of(m_size, m_viewport, surface) != m_transform_size) {
-            refit();
-        }
-        return {
-            .target = m_target,
-            .texture = texture,
-            .blend = m_blend,
-            .program = m_program,
-            .u_projection = m_u_projection,
-            .transform = m_transform,
-            .viewport = pixel_viewport(m_viewport, surface),
-        };
     }
 
     auto Canvas::rect(Rect rect, Color color) noexcept -> void {
@@ -523,6 +492,28 @@ namespace tgx {
         text(position, std::string_view{buffer.data(), length}, color, size);
     }
 
+    Canvas::Canvas(Size size) noexcept : m_size{size} {
+        refit();
+    }
+
+    auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
+        // A canvas that follows the window notices a resize here, at its first
+        // shape after it.
+        const Surface surface = this->surface();
+        if (span_of(m_size, m_viewport, surface) != m_transform_size) {
+            refit();
+        }
+        return {
+            .target = m_target,
+            .texture = texture,
+            .blend = m_blend,
+            .program = m_program,
+            .u_projection = m_u_projection,
+            .transform = m_transform,
+            .viewport = pixel_viewport(m_viewport, surface),
+        };
+    }
+
     auto Canvas::quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void {
         auto [batch, first] = start(state_for(0), 4, 6);
 
@@ -532,5 +523,14 @@ namespace tgx {
         batch.push_vertex({d, white_uv, color});
         // Two triangles: a b c and c d a.
         push_indices(batch, first, {0, 1, 2, 2, 3, 0});
+    }
+
+    auto Canvas::surface() const noexcept -> detail::Surface {
+        return detail::surface_of(m_target);
+    }
+
+    auto Canvas::refit() noexcept -> void {
+        m_transform_size = size();
+        m_transform = projection_for(m_transform_size) * m_camera.matrix();
     }
 }

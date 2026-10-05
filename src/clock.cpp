@@ -4,6 +4,22 @@
 #include "context.h"
 
 namespace tgx {
+    auto Clock::delta() const noexcept -> float {
+        return detail::context().clock.delta;
+    }
+
+    auto Clock::elapsed() const noexcept -> double {
+        return detail::context().clock.elapsed;
+    }
+
+    auto Clock::fps() const noexcept -> float {
+        return detail::context().clock.fps;
+    }
+
+    auto Clock::fps_updated() const noexcept -> bool {
+        return detail::context().clock.fps_updated;
+    }
+
     auto detail::FrameClock::tick() noexcept -> void {
         const auto now = SteadyClock::now();
         if (!started) {
@@ -36,21 +52,5 @@ namespace tgx {
         last = now;
         fps_start = now;
         fps_frames = 0;
-    }
-
-    auto Clock::delta() const noexcept -> float {
-        return detail::context().clock.delta;
-    }
-
-    auto Clock::elapsed() const noexcept -> double {
-        return detail::context().clock.elapsed;
-    }
-
-    auto Clock::fps() const noexcept -> float {
-        return detail::context().clock.fps;
-    }
-
-    auto Clock::fps_updated() const noexcept -> bool {
-        return detail::context().clock.fps_updated;
     }
 }

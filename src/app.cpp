@@ -17,13 +17,6 @@ namespace tgx {
         return App{std::move(*window), std::move(*device), Canvas::create(), Audio::create()};
     }
 
-    App::App(Window window, Device device, Canvas canvas, Audio audio) noexcept
-        : m_window{std::move(window)},
-          m_device{std::move(device)},
-          m_canvas{canvas},
-          m_audio{std::move(audio)} {
-    }
-
     auto App::should_close() const noexcept -> bool {
         return m_window.should_close();
     }
@@ -34,5 +27,12 @@ namespace tgx {
 
     auto App::swap_buffers() noexcept -> void {
         m_device.present();
+    }
+
+    App::App(Window window, Device device, Canvas canvas, Audio audio) noexcept
+        : m_window{std::move(window)},
+          m_device{std::move(device)},
+          m_canvas{canvas},
+          m_audio{std::move(audio)} {
     }
 }

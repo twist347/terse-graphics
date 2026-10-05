@@ -157,10 +157,6 @@ namespace {
 }
 
 namespace tgx {
-    auto detail::context() noexcept -> Context & {
-        return s_context;
-    }
-
     auto detail::surface_of(const Target &target) noexcept -> Surface {
         if (target.framebuffer == 0) {
             return {framebuffer_size(), window_size()};
@@ -168,22 +164,26 @@ namespace tgx {
         return {target.size, target.size};
     }
 
-    auto detail::flush_texture_use(GlId texture) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_texture(texture)) {
-            s_context.batch->flush(s_context);
-        }
-    }
+    auto detail::Context::reset() noexcept -> void {
+        *this = {};
 
-    auto detail::flush_shader_use(GlId program) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_shader(program)) {
-            s_context.batch->flush(s_context);
-        }
-    }
+        glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_CULL_FACE);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glActiveTexture(GL_TEXTURE0);
+        glUseProgram(0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        apply_clear_color(clear_color);
+        apply_clear_depth(clear_depth);
+        glClearStencil(clear_stencil);
 
-    auto detail::flush_target_use(GlId framebuffer) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_target(framebuffer)) {
-            s_context.batch->flush(s_context);
-        }
+        // Set rather than assumed, like the rest: draws only change the
+        // viewport when theirs differs from this. The whole framebuffer is the
+        // same from either corner.
+        gl_viewport = surface_of({}).viewport();
+        glViewport(0, 0, gl_viewport.width, gl_viewport.height);
     }
 
     auto detail::Context::flush() noexcept -> void {
@@ -321,25 +321,25 @@ namespace tgx {
         std::ranges::replace(textures, texture, GLuint{0});
     }
 
-    auto detail::Context::reset() noexcept -> void {
-        *this = {};
+    auto detail::context() noexcept -> Context & {
+        return s_context;
+    }
 
-        glDisable(GL_BLEND);
-        glDisable(GL_DEPTH_TEST);
-        glDepthMask(GL_TRUE);
-        glDisable(GL_CULL_FACE);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glActiveTexture(GL_TEXTURE0);
-        glUseProgram(0);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        apply_clear_color(clear_color);
-        apply_clear_depth(clear_depth);
-        glClearStencil(clear_stencil);
+    auto detail::flush_texture_use(GlId texture) noexcept -> void {
+        if (s_context.batch && s_context.batch->uses_texture(texture)) {
+            s_context.batch->flush(s_context);
+        }
+    }
 
-        // Set rather than assumed, like the rest: draws only change the
-        // viewport when theirs differs from this. The whole framebuffer is the
-        // same from either corner.
-        gl_viewport = surface_of({}).viewport();
-        glViewport(0, 0, gl_viewport.width, gl_viewport.height);
+    auto detail::flush_shader_use(GlId program) noexcept -> void {
+        if (s_context.batch && s_context.batch->uses_shader(program)) {
+            s_context.batch->flush(s_context);
+        }
+    }
+
+    auto detail::flush_target_use(GlId framebuffer) noexcept -> void {
+        if (s_context.batch && s_context.batch->uses_target(framebuffer)) {
+            s_context.batch->flush(s_context);
+        }
     }
 }

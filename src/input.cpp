@@ -164,37 +164,6 @@ namespace {
 }
 
 namespace tgx {
-    auto detail::attach_input(GLFWwindow *handle) noexcept -> void {
-        s_input = {};
-
-        // Where the mouse already is, so the first move is not a jump from
-        // the corner.
-        double x = 0.0;
-        double y = 0.0;
-        glfwGetCursorPos(handle, &x, &y);
-        s_input.mouse = {static_cast<float>(x), static_cast<float>(y)};
-
-        glfwSetKeyCallback(handle, on_key);
-        glfwSetMouseButtonCallback(handle, on_mouse_button);
-        glfwSetCursorPosCallback(handle, on_cursor);
-        glfwSetScrollCallback(handle, on_scroll);
-        glfwSetCharCallback(handle, on_char);
-    }
-
-    auto detail::begin_input_frame() noexcept -> void {
-        // What happened since the poll before is forgotten; what is down
-        // stays down.
-        for (std::uint8_t &bits: s_input.keys) {
-            bits &= bit_down;
-        }
-        for (std::uint8_t &bits: s_input.buttons) {
-            bits &= bit_down;
-        }
-        s_input.mouse_delta = {};
-        s_input.wheel = {};
-        s_input.text.clear();
-    }
-
     auto Input::down(Key key) const noexcept -> bool {
         return (s_input.keys[static_cast<std::size_t>(key)] & bit_down) != 0;
     }
@@ -237,5 +206,36 @@ namespace tgx {
 
     auto Input::text() const noexcept -> std::string_view {
         return s_input.text;
+    }
+
+    auto detail::attach_input(GLFWwindow *handle) noexcept -> void {
+        s_input = {};
+
+        // Where the mouse already is, so the first move is not a jump from
+        // the corner.
+        double x = 0.0;
+        double y = 0.0;
+        glfwGetCursorPos(handle, &x, &y);
+        s_input.mouse = {static_cast<float>(x), static_cast<float>(y)};
+
+        glfwSetKeyCallback(handle, on_key);
+        glfwSetMouseButtonCallback(handle, on_mouse_button);
+        glfwSetCursorPosCallback(handle, on_cursor);
+        glfwSetScrollCallback(handle, on_scroll);
+        glfwSetCharCallback(handle, on_char);
+    }
+
+    auto detail::begin_input_frame() noexcept -> void {
+        // What happened since the poll before is forgotten; what is down
+        // stays down.
+        for (std::uint8_t &bits: s_input.keys) {
+            bits &= bit_down;
+        }
+        for (std::uint8_t &bits: s_input.buttons) {
+            bits &= bit_down;
+        }
+        s_input.mouse_delta = {};
+        s_input.wheel = {};
+        s_input.text.clear();
     }
 }

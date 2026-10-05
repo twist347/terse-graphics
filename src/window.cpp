@@ -173,10 +173,6 @@ namespace tgx {
         return Window{};
     }
 
-    auto detail::gl_loader() noexcept -> GlLoader {
-        return glfwGetProcAddress;
-    }
-
     auto Window::operator=(Window &&other) noexcept -> Window & {
         if (this == &other) {
             return *this;
@@ -200,6 +196,10 @@ namespace tgx {
         s_window.polled_framebuffer_size = s_window.framebuffer_size;
     }
 
+    auto Window::resized() const noexcept -> bool {
+        return s_window.resized;
+    }
+
     auto Window::input() const noexcept -> const Input & {
         static const Input input;
         return input;
@@ -219,10 +219,6 @@ namespace tgx {
 
     auto Window::request_close() noexcept -> void {
         glfwSetWindowShouldClose(s_window.handle, GLFW_TRUE);
-    }
-
-    auto detail::swap_buffers() noexcept -> void {
-        glfwSwapBuffers(s_window.handle);
     }
 
     auto Window::set_title(const char *title) noexcept -> void {
@@ -275,18 +271,6 @@ namespace tgx {
         return s_window.fullscreen;
     }
 
-    auto Window::resized() const noexcept -> bool {
-        return s_window.resized;
-    }
-
-    auto detail::window_size() noexcept -> Size {
-        return s_window.size;
-    }
-
-    auto detail::framebuffer_size() noexcept -> Size {
-        return s_window.framebuffer_size;
-    }
-
     auto Window::size() const noexcept -> Size {
         return s_window.size;
     }
@@ -306,5 +290,21 @@ namespace tgx {
             s_window = {};
             m_owned = false;
         }
+    }
+
+    auto detail::gl_loader() noexcept -> GlLoader {
+        return glfwGetProcAddress;
+    }
+
+    auto detail::swap_buffers() noexcept -> void {
+        glfwSwapBuffers(s_window.handle);
+    }
+
+    auto detail::window_size() noexcept -> Size {
+        return s_window.size;
+    }
+
+    auto detail::framebuffer_size() noexcept -> Size {
+        return s_window.framebuffer_size;
     }
 }
