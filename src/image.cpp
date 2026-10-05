@@ -2,16 +2,15 @@
 
 #include "tgx/assert.h"
 
+#include "file.h"
+
 #include <stb/stb_image.h>
 
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
-#include <fstream>
-#include <ios>
 #include <memory>
 #include <span>
-#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -29,34 +28,6 @@ namespace {
             stbi_image_free(pixels);
         }
     };
-
-    // The whole file, or nothing if it cannot be opened or read through.
-    [[nodiscard]] auto read_file(const std::filesystem::path &path) -> tgx::Result<std::vector<std::byte>> {
-        // A directory opens fine on some systems and reports a size that is
-        // anything but its contents (LLONG_MAX on ext4).
-        if (std::error_code err; !std::filesystem::is_regular_file(path, err)) {
-            return std::unexpected{tgx::Error::io};
-        }
-
-        std::ifstream file{path, std::ios::binary | std::ios::ate};
-        if (!file) {
-            return std::unexpected{tgx::Error::io};
-        }
-
-        // Opened at the end, so the position is the size; -1 for a stream that
-        // cannot tell.
-        const std::streamoff size = file.tellg();
-        if (size < 0) {
-            return std::unexpected{tgx::Error::io};
-        }
-
-        std::vector<std::byte> bytes(static_cast<std::size_t>(size));
-        file.seekg(0);
-        if (!file.read(reinterpret_cast<char *>(bytes.data()), static_cast<std::streamsize>(size))) {
-            return std::unexpected{tgx::Error::io};
-        }
-        return bytes;
-    }
 }
 
 namespace tgx {
@@ -75,7 +46,7 @@ namespace tgx {
     }
 
     auto Image::load(const std::filesystem::path &path) -> Result<Image> {
-        return read_file(path).and_then([](const std::vector<std::byte> &bytes) {
+        return detail::read_file(path).and_then([](const std::vector<std::byte> &bytes) {
             return decode(bytes);
         });
     }

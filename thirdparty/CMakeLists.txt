@@ -1,5 +1,6 @@
 add_subdirectory(doctest)
 add_subdirectory(glad)
+add_subdirectory(miniaudio)
 add_subdirectory(stb)
 
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)

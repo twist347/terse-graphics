@@ -1,0 +1,34 @@
+#include "file.h"
+
+#include <fstream>
+#include <ios>
+#include <system_error>
+
+namespace tgx {
+    auto detail::read_file(const std::filesystem::path &path) -> Result<std::vector<std::byte>> {
+        // A directory opens fine on some systems and reports a size that is
+        // anything but its contents (LLONG_MAX on ext4).
+        if (std::error_code err; !std::filesystem::is_regular_file(path, err)) {
+            return std::unexpected{Error::io};
+        }
+
+        std::ifstream file{path, std::ios::binary | std::ios::ate};
+        if (!file) {
+            return std::unexpected{Error::io};
+        }
+
+        // Opened at the end, so the position is the size; -1 for a stream that
+        // cannot tell.
+        const std::streamoff size = file.tellg();
+        if (size < 0) {
+            return std::unexpected{Error::io};
+        }
+
+        std::vector<std::byte> bytes(static_cast<std::size_t>(size));
+        file.seekg(0);
+        if (!file.read(reinterpret_cast<char *>(bytes.data()), static_cast<std::streamsize>(size))) {
+            return std::unexpected{Error::io};
+        }
+        return bytes;
+    }
+}

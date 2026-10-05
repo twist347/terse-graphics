@@ -41,6 +41,10 @@ In `tgx`:
 - **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
   JPEG, BMP, TGA or GIF, or made in code) and `Texture` made from it, with
   nearest or linear filtering, wrapping, optional mipmaps and partial updates.
+- **Audio**: `Sound`s held in memory and played at once, many at a time, with
+  volume, pan and pitch; `Music` streamed from its file, with play, pause,
+  seek and looping. WAV, OGG Vorbis, MP3 and FLAC, or samples made in code.
+  Without an output device it stays silent and everything else works.
 - **Render targets**: `RenderTarget`, a texture to draw into instead of the
   window, with the Canvas or a draw of your own; then drawn like any texture
   (pixel art scaled up, a whole frame through a shader) or read back into an
@@ -69,12 +73,14 @@ Not yet: fonts of your own (TTF).
 
 | Object        | Owns                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
-| `App`         | The simple way in: creates the `Window`, `Device` and `Canvas` in the right order as one call that fails as one, owns them, tears them down in reverse, and gives the frame loop in three words (`should_close`, `poll_events`, `swap_buffers`). |
+| `App`         | The simple way in: creates the `Window`, `Device`, `Canvas` and `Audio` in the right order as one call that fails as one (the audio never fails it), owns them, tears them down in reverse, and gives the frame loop in three words (`should_close`, `poll_events`, `swap_buffers`). |
 | `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it) and whether it changed, title, vsync, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
 | `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames and timing them (`Clock`), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
 | `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how and where to draw (size, viewport, target, camera, blend, shader): a plain value to copy. |
 | `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
 | `RenderTarget`| A texture to draw into instead of the window, with the GL framebuffer that makes it one and an optional depth buffer. The `Canvas` (`set_target`) and `Device::draw`/`clear` (`target`) draw into it; `read()` brings it back as an `Image`. |
+| `Audio`       | The sound output (miniaudio's engine on the system's default device): plays `Sound`s, mixes them with `Music`, the overall volume. Silent, and saying so in the log, when there is no device. |
+| `Sound`, `Music` | A sound decoded whole into memory, played as often as asked; a piece streamed from its file. `Sound`s need no `Audio` to load; `Music` lives inside it, as GPU resources live inside the `Device`. |
 | `gl::*`       | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA), but never where a draw would read it. |
 
 GPU resources (`Texture`, `RenderTarget`, `gl::*`) are created without naming the `Device`, but
@@ -106,6 +112,29 @@ chain, and each step fails on its own:
 
 Frames are shown with `device->present()`, which also draws the last of the
 `Canvas` shapes; `App::swap_buffers` calls it.
+
+## Audio
+
+`app->audio()` plays short sounds, many at once, each from its start:
+
+    auto jump = tgx::Sound::load("jump.ogg");   // Error::io or Error::decode on failure
+    app->audio().play(*jump);
+    app->audio().play(*jump, {.volume = 0.5f, .pan = -0.8f, .pitch = 1.2f});
+
+A `Sound` is decoded whole into memory when loaded, or made from samples in
+code (`Sound::from_samples`). Up to 64 plays sound at once; past that the one
+playing longest is cut off. Destroying a sound stops what of it still plays.
+
+Music streams from its file while it plays, and needs nothing called every
+frame:
+
+    auto music = tgx::Music::load("theme.ogg");
+    music->set_looping(true);
+    music->play();                     // pause(), stop(), seek(seconds), position(), length()
+
+Without an output device (no sound card, a machine with no display) the audio
+stays silent, says so once in the log, and `audio().active()` is false;
+sounds and music still load, so a game runs the same.
 
 ## Canvas
 
@@ -363,6 +392,8 @@ asserts on, tgx stops at the call instead:
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
 - a pixel outside an `Image`;
+- a sound made of samples that do not split into its channels, or of more
+  than 254 of them; a sound played at a pitch of 0 or less;
 - a canvas shader without `u_projection`, or with a sampler other than
   `u_texture`.
 
@@ -409,6 +440,7 @@ e.g. `tgx_01_window`.
 | `10_text`       | Text in the built-in font: sizes, lines, centering, a field to type in. |
 | `11_collision`  | Collision checks: a point in a shape, shapes overlapping, the part rects share. |
 | `12_pixel_art`  | A render target: the world at 320x180, scaled up into sharp square pixels. |
+| `13_audio`      | Notes made in code, played at five pitches and panned; music streamed from a file. |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|
@@ -423,8 +455,9 @@ e.g. `tgx_01_window`.
 
 ## Building
 
-CMake 3.25+ and a C++23 compiler. GLFW, glad and stb_image are vendored in
-`thirdparty/`, as are doctest (for the tests only) and the TTF the built-in font is baked from (not built; only
+CMake 3.25+ and a C++23 compiler. GLFW, glad, stb_image, miniaudio and
+stb_vorbis are vendored in `thirdparty/`, as are doctest (for the tests only)
+and the TTF the built-in font is baked from (not built; only
 `tools/bake_font.py`, with Pillow, reads it).
 
     cmake -S . -B build
@@ -446,7 +479,8 @@ zlib (see `LICENSE`): use it in anything, closed or commercial, and change it;
 a game built with it owes no notice. Only source copies keep the notice, and
 changed ones say so.
 
-The vendored code ships under its own terms: GLFW under zlib, stb_image and
-the unscii font in the public domain, doctest under MIT (tests only, never in
-a game). glad's generated loader is WTFPL or CC0, with parts taken from the
-Khronos registry under Apache-2.0.
+The vendored code ships under its own terms: GLFW under zlib, stb_image,
+stb_vorbis and the unscii font in the public domain, miniaudio in the public
+domain (or MIT-0), doctest under MIT (tests only, never in a game). glad's
+generated loader is WTFPL or CC0, with parts taken from the Khronos registry
+under Apache-2.0.

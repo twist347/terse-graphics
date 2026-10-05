@@ -18,6 +18,7 @@ tgx_add_example(tgx 09_input)
 tgx_add_example(tgx 10_text)
 tgx_add_example(tgx 11_collision)
 tgx_add_example(tgx 12_pixel_art)
+tgx_add_example(tgx 13_audio)
 
 tgx_add_example(gl 01_triangle)
 tgx_add_example(gl 02_indexed)

@@ -6,6 +6,7 @@
 
 #include "tgx/app.h"
 #include "tgx/assert.h"
+#include "tgx/audio.h"
 #include "tgx/blend.h"
 #include "tgx/camera.h"
 #include "tgx/canvas.h"

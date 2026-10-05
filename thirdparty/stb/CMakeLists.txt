@@ -1,4 +1,5 @@
 # stb_image v2.30, https://github.com/nothings/stb
+# stb_vorbis v1.22 sits next to it, built into the miniaudio target.
 add_library(stb_image STATIC src/stb_image.c)
 target_include_directories(stb_image SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # Public, so the implementation and whoever includes the header agree. Files

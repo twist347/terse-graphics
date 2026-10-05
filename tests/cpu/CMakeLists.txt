@@ -1,7 +1,9 @@
-# Math, colors, collisions, the camera, images, measuring text: nothing here
-# opens a window, so it runs anywhere, CI without a display included.
+# Math, colors, collisions, the camera, images, sounds, measuring text:
+# nothing here opens a window or an audio output, so it runs anywhere, CI
+# without a display or a sound card included.
 add_executable(tgx_tests_cpu
         main.cpp
+        audio.cpp
         camera.cpp
         collision.cpp
         color.cpp

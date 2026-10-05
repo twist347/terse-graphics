@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tgx/audio.h"
 #include "tgx/canvas.h"
 #include "tgx/clock.h"
 #include "tgx/device.h"
@@ -8,16 +9,17 @@
 #include "tgx/window.h"
 
 namespace tgx {
-    // The simple way in: creates the window, the device and a canvas in the
-    // right order, failing as one call, owns them, tears them down in the
-    // reverse order, and gives the frame loop in three words. The layers
-    // underneath stay public for anything this does not cover.
+    // The simple way in: creates the window, the device, a canvas and the
+    // audio in the right order, failing as one call, owns them, tears them
+    // down in the reverse order, and gives the frame loop in three words.
+    // The audio never fails it: without an output device it stays silent.
+    // The layers underneath stay public for anything this does not cover.
     //
     // App's own methods are the frame loop (should_close, poll_events,
     // swap_buffers). Everything else belongs to a part and is reached through
     // it: app->window().resized(), app->input(), app->canvas(),
-    // app->clock(), ... New features come as new parts, not as more methods
-    // here.
+    // app->clock(), app->audio(), ... New features come as new parts, not as
+    // more methods here.
     class App {
     public:
         [[nodiscard]] static auto create(const WindowParams &params = {}) noexcept -> Result<App>;
@@ -53,13 +55,16 @@ namespace tgx {
         [[nodiscard]] auto device() noexcept -> Device & { return m_device; }
         [[nodiscard]] auto canvas() noexcept -> Canvas & { return m_canvas; }
         [[nodiscard]] auto clock() const noexcept -> const Clock & { return m_device.clock(); }
+        [[nodiscard]] auto audio() noexcept -> Audio & { return m_audio; }
 
     private:
-        App(Window window, Device device, Canvas canvas) noexcept;
+        App(Window window, Device device, Canvas canvas, Audio audio) noexcept;
 
-        // Declaration order is teardown order reversed: canvas, device, window.
+        // Declaration order is teardown order reversed: audio, canvas,
+        // device, window.
         Window m_window;
         Device m_device;
         Canvas m_canvas;
+        Audio m_audio;
     };
 }

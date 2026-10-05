@@ -1,0 +1,10 @@
+/* miniaudio's implementation, with Vorbis decoding from stb_vorbis: its
+   declarations go before miniaudio's implementation, its own after. */
+#define STB_VORBIS_HEADER_ONLY
+#include <stb/stb_vorbis.c>
+
+#define MINIAUDIO_IMPLEMENTATION
+#include <miniaudio/miniaudio.h>
+
+#undef STB_VORBIS_HEADER_ONLY
+#include <stb/stb_vorbis.c>

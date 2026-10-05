@@ -16,11 +16,13 @@ add_subdirectory(thirdparty)
 set(TGX_SOURCES
         src/app.cpp
         src/assert.cpp
+        src/audio.cpp
         src/batch.cpp
         src/canvas.cpp
         src/clock.cpp
         src/context.cpp
         src/device.cpp
+        src/file.cpp
         src/image.cpp
         src/input.cpp
         src/log.cpp
@@ -46,7 +48,7 @@ target_include_directories(tgx
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(tgx PRIVATE glad glfw stb_image)
+target_link_libraries(tgx PRIVATE glad glfw miniaudio stb_image)
 target_compile_definitions(tgx PRIVATE GLFW_INCLUDE_NONE)
 
 # Public headers hold inline code and defaults that depend on this, so the
