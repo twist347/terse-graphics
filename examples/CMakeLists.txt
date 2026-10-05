@@ -1,4 +1,5 @@
-# Each example builds as <level>_<name>, e.g. tgx_01_window, gl_01_triangle.
+# Each example builds as <folder>_<name>, e.g. tgx_01_window, gl_01_triangle,
+# scenes_01_night_city.
 function(tgx_add_example level name)
     set(target ${level}_${name})
     add_executable(${target} ${level}/${name}.cpp)
@@ -28,3 +29,5 @@ tgx_add_example(gl 05_blend)
 tgx_add_example(gl 06_cube)
 tgx_add_example(gl 07_canvas_shader)
 tgx_add_example(gl 08_post_process)
+
+tgx_add_example(scenes 01_night_city)

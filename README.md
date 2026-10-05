@@ -7,6 +7,11 @@ Linux (NVIDIA, Mesa) and macOS; Windows is a target but has not been tried yet.
 
 Early and moving: the API changes from commit to commit.
 
+![Rain over a city in pixel art, drawn with tgx](docs/night_city.png)
+
+*`examples/scenes/01_night_city`: a 320x180 render target, parallax, additive
+light and a scanline shader, all made in code.*
+
 ## Two levels
 
 - **`tgx`** (`#include "tgx/tgx.h"`): a window, a loop and 2D drawing on the
@@ -457,6 +462,13 @@ e.g. `tgx_01_window`.
 | `06_cube`          | 3D: perspective, a camera, depth test and back-face culling.    |
 | `07_canvas_shader` | The `Canvas` drawing through a shader of your own.              |
 | `08_post_process`  | A render target with depth, then the whole frame through a shader. |
+
+Scenes put many parts together, for the look of it rather than one idea at a
+time; everything in them is made in code, no files needed.
+
+| `examples/scenes/` | Shows                                                          |
+|--------------------|----------------------------------------------------------------|
+| `01_night_city`    | Rain over a city in pixel art: a 320x180 target, three layers of parallax, additive light from lamps, a car and a lantern on the mouse, lightning on Space, all through a scanline shader. |
 
 ## Building
 
