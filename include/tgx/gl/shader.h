@@ -82,6 +82,16 @@ namespace tgx::gl {
                            || std::same_as<T, Color>
                            || std::same_as<T, TextureSlot>;
 
+    template<UniformValue T>
+    class Uniform;
+
+    namespace detail {
+        // Where the uniform is, -1 for nowhere: for tgx's own draws, which
+        // write it straight to GL rather than through Shader::set.
+        template<UniformValue T>
+        [[nodiscard]] constexpr auto location(Uniform<T> uniform) noexcept -> std::int32_t;
+    }
+
     // A uniform of one Shader, looked up by name once and then set with values
     // of T. A default-constructed one refers to nothing.
     template<UniformValue T>
@@ -92,6 +102,9 @@ namespace tgx::gl {
     private:
         friend class Shader;
 
+        template<UniformValue U>
+        friend constexpr auto detail::location(Uniform<U> uniform) noexcept -> std::int32_t;
+
         Uniform(GlId program, std::int32_t location) noexcept : m_program{program}, m_location{location} {
         }
 
@@ -100,6 +113,11 @@ namespace tgx::gl {
         // -1 when the uniform was not found: setting it does nothing.
         std::int32_t m_location{-1};
     };
+
+    template<UniformValue T>
+    constexpr auto detail::location(Uniform<T> uniform) noexcept -> std::int32_t {
+        return uniform.m_location;
+    }
 
     // A linked GPU program: a vertex and a fragment stage. Sources carry their
     // own #version line; TGX_GLSL_VERSION (tgx/gl/version.h) is the one that

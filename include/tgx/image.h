@@ -3,7 +3,7 @@
 #include "tgx/assert.h"
 #include "tgx/color.h"
 #include "tgx/error.h"
-#include "tgx/size.h"
+#include "tgx/math.h"
 
 #include <cstddef>
 #include <filesystem>

@@ -142,7 +142,7 @@ order of the calls: the `Device` collects them and draws them before any draw
 or clear of its own and before presenting the frame.
 Nothing the shapes use is read later than the calls that made them: a texture
 updated or destroyed, or a uniform of the canvas shader set, has the
-shapes waiting on it drawn first. `canvas.flush()` is only needed before raw
+shapes waiting on it drawn first. `device.flush()` is only needed before raw
 GL calls.
 
 Textures load from image files in one call; `Image` is for pixels made in code

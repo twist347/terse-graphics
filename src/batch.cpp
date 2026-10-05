@@ -81,7 +81,7 @@ namespace tgx::detail {
             TGX_ASSERT_MSG(false, "the 2D batch shader failed: {}", shader.error());
             return std::unexpected{Error::platform};
         }
-        const std::int32_t u_projection = projection_location(*shader);
+        const std::int32_t u_projection = gl::detail::location(shader->uniform<Mat4>("u_projection"));
         shader->set(shader->uniform<gl::TextureSlot>("u_texture"), {0});
 
         auto vertex_buffer = gl::Buffer<BatchVertex>::create(batch_max_vertices, gl::BufferAccess::dynamic);
@@ -191,9 +191,5 @@ namespace tgx::detail {
 
     auto Batch::uses_shader(GlId program) const noexcept -> bool {
         return !m_indices.empty() && m_state.program == program;
-    }
-
-    auto projection_location(const gl::Shader &shader) noexcept -> std::int32_t {
-        return glGetUniformLocation(shader.id(), "u_projection");
     }
 }

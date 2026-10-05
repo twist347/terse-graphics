@@ -65,6 +65,11 @@ namespace tgx::detail {
         // deletes, which optional does not promise.
         std::unique_ptr<Batch> batch;
 
+        // Starts afresh on a context just made current: forgets everything
+        // and puts GL where a fresh Context says it is, as a GL context can
+        // outlive a Device and keep what the last one set. Leaves no batch.
+        auto reset() noexcept -> void;
+
         // Draws what the batch has collected, if anything.
         auto flush() noexcept -> void;
 

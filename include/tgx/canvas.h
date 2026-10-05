@@ -5,7 +5,6 @@
 #include "tgx/color.h"
 #include "tgx/handle.h"
 #include "tgx/math.h"
-#include "tgx/size.h"
 
 #include <cstdint>
 #include <string_view>
@@ -184,10 +183,6 @@ namespace tgx {
         // its top-left corner at the position: green at 30 or more, orange at
         // 15 or more, red below.
         auto fps(Vec2 position, float size = default_text_size) noexcept -> void;
-
-        // Draws what has been collected; the same as Device::flush(). Only
-        // needed before raw GL calls.
-        auto flush() noexcept -> void;
 
     private:
         explicit Canvas(Size size) noexcept;

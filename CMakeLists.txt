@@ -18,6 +18,7 @@ set(TGX_SOURCES
         src/batch.cpp
         src/canvas.cpp
         src/clock.cpp
+        src/context.cpp
         src/device.cpp
         src/image.cpp
         src/input.cpp

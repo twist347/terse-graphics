@@ -10,6 +10,7 @@ namespace tgx {
     // they go to the GPU byte for byte, and glm values convert with std::bit_cast.
     // The operations follow glm's conventions too: right-handed, depth -1..1,
     // angles in radians. Only what the library and its examples need so far.
+    // Next to them, the sizes and rectangles windows and 2D drawing measure in.
 
     struct Vec2 {
         float x{0.f};
@@ -33,6 +34,24 @@ namespace tgx {
         float w{0.f};
 
         [[nodiscard]] constexpr auto operator==(const Vec4 &) const noexcept -> bool = default;
+    };
+
+    // Width and height in pixels. Signed, like the windowing and GL APIs these
+    // come from and go to.
+    struct Size {
+        int width{0};
+        int height{0};
+
+        // Nothing to draw into, e.g. the framebuffer of a minimized window.
+        [[nodiscard]] constexpr auto empty() const noexcept -> bool { return width <= 0 || height <= 0; }
+
+        // Width over height. 1 for an empty size, so a minimized window does not
+        // put inf or NaN into a projection.
+        [[nodiscard]] constexpr auto aspect() const noexcept -> float {
+            return empty() ? 1.f : static_cast<float>(width) / static_cast<float>(height);
+        }
+
+        [[nodiscard]] constexpr auto operator==(const Size &) const noexcept -> bool = default;
     };
 
     // An axis-aligned rectangle: its top-left corner and size, in 2D drawing's

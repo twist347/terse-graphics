@@ -244,10 +244,9 @@ namespace tgx {
             return;
         }
 
-        // The projection is the one uniform the canvas needs: looked up through
-        // the shader first to assert it exists and is a mat4.
-        (void) shader->uniform<Mat4>("u_projection");
-        m_u_projection = detail::projection_location(*shader);
+        // The projection is the one uniform the canvas needs; the lookup
+        // asserts it exists and is a mat4.
+        m_u_projection = gl::detail::location(shader->uniform<Mat4>("u_projection"));
 
         // The texture is optional: a shader may ignore it. The batch draws
         // without Device::draw's checks, so the one on its samplers is here.
@@ -263,10 +262,6 @@ namespace tgx {
 
     auto Canvas::clear(Color color) noexcept -> void {
         detail::context().clear({.color = color});
-    }
-
-    auto Canvas::flush() noexcept -> void {
-        detail::context().flush();
     }
 
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {

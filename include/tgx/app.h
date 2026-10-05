@@ -48,6 +48,7 @@ namespace tgx {
         auto swap_buffers() noexcept -> void;
 
         [[nodiscard]] auto window() noexcept -> Window & { return m_window; }
+        [[nodiscard]] auto window() const noexcept -> const Window & { return m_window; }
         [[nodiscard]] auto input() const noexcept -> const Input & { return m_window.input(); }
         [[nodiscard]] auto device() noexcept -> Device & { return m_device; }
         [[nodiscard]] auto canvas() noexcept -> Canvas & { return m_canvas; }

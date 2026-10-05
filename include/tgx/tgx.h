@@ -18,6 +18,5 @@
 #include "tgx/input.h"
 #include "tgx/log.h"
 #include "tgx/math.h"
-#include "tgx/size.h"
 #include "tgx/texture.h"
 #include "tgx/window.h"

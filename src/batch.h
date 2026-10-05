@@ -108,10 +108,6 @@ namespace tgx::detail {
         BatchState m_state{};
     };
 
-    // The location of the shader's u_projection, for BatchState: looked up
-    // once, when the Canvas is given the shader. -1 if it has none.
-    [[nodiscard]] auto projection_location(const gl::Shader &shader) noexcept -> std::int32_t;
-
     // Per draw. Indices are 16-bit, so vertices stay below 65536. A circle
     // takes about 3 indices per vertex, the most of any shape.
     inline constexpr std::size_t batch_max_vertices = 16384;

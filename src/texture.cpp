@@ -4,7 +4,7 @@
 #include "tgx/image.h"
 
 #include "context.h"
-#include "gl_error_internal.h"
+#include "gl_error.h"
 
 #include <glad/gl.h>
 
