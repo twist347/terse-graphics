@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(terse-graphics LANGUAGES C CXX)
 
 option(TGX_BUILD_EXAMPLES "Build tgx examples" ON)
+option(TGX_BUILD_TESTS "Build tgx tests" ON)
 set(TGX_ASSERTS "" CACHE STRING "tgx asserts: ON, OFF, or empty to follow the build type")
 set_property(CACHE TGX_ASSERTS PROPERTY STRINGS "" ON OFF)
 
@@ -70,4 +71,9 @@ target_compile_options(tgx PRIVATE ${TGX_WARNINGS})
 
 if (TGX_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif ()
+
+if (TGX_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
 endif ()

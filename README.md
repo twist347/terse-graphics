@@ -424,13 +424,17 @@ e.g. `tgx_01_window`.
 ## Building
 
 CMake 3.25+ and a C++23 compiler. GLFW, glad and stb_image are vendored in
-`thirdparty/`, as is the TTF the built-in font is baked from (not built; only
+`thirdparty/`, as are doctest (for the tests only) and the TTF the built-in font is baked from (not built; only
 `tools/bake_font.py`, with Pillow, reads it).
 
     cmake -S . -B build
     cmake --build build
 
-Examples are built by default; turn them off with `-DTGX_BUILD_EXAMPLES=OFF`.
+Examples and tests are built by default; turn them off with
+`-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. The tests cover what
+needs no window (math, colors, collisions, the camera, images, measuring
+text) and run with `ctest --test-dir build` (`-L cpu` for only those that
+need no display).
 Asserts follow the build type (off where CMake defines `NDEBUG`); force them
 with `-DTGX_ASSERTS=ON` or `OFF`. The setting reaches everything that links
 `tgx::tgx`, so the library and the app always agree.
