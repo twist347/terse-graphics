@@ -36,7 +36,12 @@ static_assert(
 namespace {
     using tgx::gl::detail::ComponentKind;
 
-    [[nodiscard]] constexpr auto to_component_kind(tgx::gl::VertexFormat format) noexcept -> ComponentKind {
+    // This and the three after it serve the asserts in Device::draw alone:
+    // with asserts off nothing calls them, and [[maybe_unused]] says that is
+    // meant.
+    [[maybe_unused, nodiscard]] constexpr auto to_component_kind(
+        tgx::gl::VertexFormat format
+    ) noexcept -> ComponentKind {
         using enum tgx::gl::VertexFormat;
         switch (format) {
             case uint32: return ComponentKind::uint;
@@ -50,7 +55,7 @@ namespace {
         return ComponentKind::floating;
     }
 
-    [[nodiscard]] constexpr auto to_str(ComponentKind kind) noexcept -> const char * {
+    [[maybe_unused, nodiscard]] constexpr auto to_str(ComponentKind kind) noexcept -> const char * {
         switch (kind) {
             case ComponentKind::floating: return "float";
             case ComponentKind::sint: return "int";
@@ -63,7 +68,7 @@ namespace {
     // reads integers into a float input or the other way round as garbage;
     // neither is reported. A different component count is fine: GL pads the
     // missing ones with 0, 0, 1.
-    auto check_vertex_inputs(
+    [[maybe_unused]] auto check_vertex_inputs(
         const tgx::gl::Shader &shader,
         const tgx::gl::VertexArray &vertices
     ) noexcept -> void {
@@ -88,7 +93,7 @@ namespace {
 
     // A sampler reads its slot whether or not the draw put a texture there, and
     // gets whatever an earlier draw left, or black. Neither is reported.
-    auto check_textures(
+    [[maybe_unused]] auto check_textures(
         const tgx::gl::Shader &shader,
         const tgx::gl::DrawParams &params
     ) noexcept -> void {

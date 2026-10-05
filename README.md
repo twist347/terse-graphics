@@ -1,5 +1,7 @@
 # terse-graphics (tgx)
 
+[![CI](https://github.com/twist347/terse-graphics/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/terse-graphics/actions/workflows/ci.yml)
+
 A small 2D-first graphics library on top of OpenGL 3.3 core, C++23. Tested on
 Linux (NVIDIA, Mesa) and macOS; Windows is a target but has not been tried yet.
 

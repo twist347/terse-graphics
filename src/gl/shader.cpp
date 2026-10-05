@@ -177,7 +177,9 @@ namespace {
         return samplers;
     }
 
-    [[nodiscard]] auto collect_vertex_inputs(GLuint program) -> std::vector<VertexInput> {
+    // For the vertex input assert in Device::draw only: unused with asserts
+    // off.
+    [[maybe_unused, nodiscard]] auto collect_vertex_inputs(GLuint program) -> std::vector<VertexInput> {
         GLint count = 0;
         GLint max_length = 0;
         glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
@@ -207,8 +209,9 @@ namespace {
         return inputs;
     }
 
-    // GLSL spelling of a uniform type, for assert messages.
-    [[nodiscard]] constexpr auto glsl_name(GLenum type) noexcept -> const char * {
+    // GLSL spelling of a uniform type, for assert messages: unused with
+    // asserts off.
+    [[maybe_unused, nodiscard]] constexpr auto glsl_name(GLenum type) noexcept -> const char * {
         switch (type) {
             case GL_FLOAT: return "float";
             case GL_FLOAT_VEC2: return "vec2";
