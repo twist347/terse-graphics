@@ -439,3 +439,14 @@ Asserts follow the build type (off where CMake defines `NDEBUG`); force them
 with `-DTGX_ASSERTS=ON` or `OFF`. The setting reaches everything that links
 `tgx::tgx`, so the library and the app always agree.
 In another CMake project: `add_subdirectory(terse-graphics)` and link `tgx::tgx`.
+
+## License
+
+zlib (see `LICENSE`): use it in anything, closed or commercial, and change it;
+a game built with it owes no notice. Only source copies keep the notice, and
+changed ones say so.
+
+The vendored code ships under its own terms: GLFW under zlib, stb_image and
+the unscii font in the public domain, doctest under MIT (tests only, never in
+a game). glad's generated loader is WTFPL or CC0, with parts taken from the
+Khronos registry under Apache-2.0.
