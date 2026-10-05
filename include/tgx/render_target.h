@@ -93,7 +93,7 @@ namespace tgx::detail {
         GlId framebuffer{0};
         GlId texture{0};
         Size size{};
-        // The window always has one.
+        // The window is created with one (Window::create asks for it).
         bool depth{true};
 
         [[nodiscard]] constexpr auto operator==(const Target &) const noexcept -> bool = default;

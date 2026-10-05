@@ -62,6 +62,11 @@ namespace tgx {
         }
 
         glfwDefaultWindowHints();
+        // Draws into the window may test depth and clear stencil (Device
+        // asserts only render targets): asked for rather than left to GLFW's
+        // defaults.
+        glfwWindowHint(GLFW_DEPTH_BITS, 24);
+        glfwWindowHint(GLFW_STENCIL_BITS, 8);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, gl::version_major);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, gl::version_minor);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
