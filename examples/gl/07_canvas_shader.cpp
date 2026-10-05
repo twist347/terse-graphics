@@ -79,7 +79,7 @@ int main() {
         draw_shapes(canvas, 100);
         draw_shapes(gray, 700);
 
-        app->canvas().fps({10, 10});
+        canvas.fps({10, 10});
 
         app->swap_buffers();
     }

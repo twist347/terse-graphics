@@ -67,7 +67,7 @@ int main() {
         canvas.rect({field.x + 8 + typed_extent.x + 2, field.y + 6, 2, 28}, tgx::colors::yellow);
         canvas.text({40, 490}, "Type here; Backspace erases.", tgx::colors::gray);
 
-        app->canvas().fps({10, 10});
+        canvas.fps({10, 10});
 
         app->swap_buffers();
     }

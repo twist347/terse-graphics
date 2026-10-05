@@ -36,6 +36,10 @@ namespace tgx {
     //     ... draw the world ...
     //     app->canvas().sprite(pixels.texture(), {.size = {1280, 720}});
     //
+    // Its see-through parts hold premultiplied colors, as Blend::alpha leaves
+    // them: draw it with Blend::premultiplied, or a half see-through white
+    // comes out a quarter grey. Opaque parts look the same either way.
+    //
     // Lives inside the Device: created after it, destroyed before it. Shapes
     // still waiting to be drawn into it are drawn first when it goes.
     class RenderTarget {
@@ -56,7 +60,8 @@ namespace tgx {
 
         // Its pixels back on the CPU, rows top to bottom like any Image. Draws
         // what is waiting first, and waits for the GPU to finish: for a
-        // screenshot or a test, not every frame.
+        // screenshot or a test, not every frame. See-through pixels come
+        // premultiplied, unlike those of a loaded image.
         [[nodiscard]] auto read() const -> Image;
 
     private:

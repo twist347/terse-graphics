@@ -34,7 +34,7 @@ int main() {
         canvas.clear(tgx::colors::dark_gray);
         canvas.rect({x, 300, side, side}, tgx::colors::yellow);
 
-        app->canvas().fps({10, 10});
+        canvas.fps({10, 10});
 
         app->swap_buffers();
     }

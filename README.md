@@ -152,7 +152,17 @@ square, even along a turning line.
 
     app->canvas().sprite(pixels->texture(), {.position = pos, .size = {960, 540}});
 
-`pixels->read()` gives its contents back as an `Image`, rows top to bottom.
+A target's see-through parts hold premultiplied colors, as `Blend::alpha`
+leaves them; one cleared to `colors::transparent` is drawn with a canvas set
+to `Blend::premultiplied`, or its half see-through parts come out darker.
+Opaque parts look the same either way.
+
+    tgx::Canvas overlay = app->canvas();
+    overlay.set_blend(tgx::Blend::premultiplied);
+    overlay.sprite(layer->texture(), {});
+
+`pixels->read()` gives its contents back as an `Image`, rows top to bottom
+(see-through pixels premultiplied).
 Its texture's rows run bottom to top, as GL draws (`Texture::bottom_up()`):
 sprites come out the right way up anyway, a shader of your own reads `v = 0`
 as its bottom.

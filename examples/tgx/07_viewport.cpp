@@ -68,7 +68,7 @@ int main() {
         // A frame around the minimap, in window coordinates.
         screen.rect_lines(minimap_area, tgx::colors::white, 2);
 
-        app->canvas().fps({10, 10});
+        screen.fps({10, 10});
 
         app->swap_buffers();
     }

@@ -73,7 +73,7 @@ int main() {
         canvas.circle_lines(cursor.center, cursor.radius, tgx::colors::white, 2);
         canvas.text({20, 40}, "Move the mouse over the shapes; click a rect to mark it.", tgx::colors::white);
 
-        app->canvas().fps({10, 10});
+        canvas.fps({10, 10});
 
         app->swap_buffers();
     }

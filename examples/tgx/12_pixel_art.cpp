@@ -62,7 +62,7 @@ int main() {
         screen.clear(tgx::colors::black);
         screen.sprite(pixels->texture(), {.position = position, .size = size});
 
-        app->canvas().fps({10, 10});
+        screen.fps({10, 10});
 
         app->swap_buffers();
     }

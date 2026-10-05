@@ -59,7 +59,7 @@ int main() {
         screen.rect({20, 40, 300, 20}, tgx::colors::gray);
         screen.rect({20, 40, 300 * player.x / world_width, 20}, tgx::colors::yellow);
 
-        app->canvas().fps({10, 10});
+        screen.fps({10, 10});
 
         app->swap_buffers();
     }

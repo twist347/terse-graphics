@@ -73,7 +73,7 @@ int main() {
         world.rect({player.x - 20, player.y - 20, 40, 40}, tgx::colors::yellow);
         world.circle_lines(mouse, 16, tgx::colors::white, 2);
 
-        app->canvas().fps({10, 10});
+        screen.fps({10, 10});
 
         app->swap_buffers();
     }

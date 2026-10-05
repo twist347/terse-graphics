@@ -45,7 +45,7 @@ int main() {
         // Stretched to 320x320.
         canvas.sprite(*texture, {.position = {200, 100}, .size = {320, 320}});
 
-        app->canvas().fps({10, 10});
+        canvas.fps({10, 10});
 
         app->swap_buffers();
     }
