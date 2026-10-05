@@ -66,6 +66,17 @@ namespace tgx {
         // no tearing, and frames paced by it. Starts as WindowParams::vsync.
         auto set_vsync(bool enabled) noexcept -> void;
 
+        // Covers a whole monitor, without a border, at the resolution the
+        // monitor already has (its video mode is left alone), or goes back to
+        // the size and place the window had. The monitor is the one the
+        // window is most on; on Wayland, which keeps window positions to
+        // itself, the primary one. The sizes change as on any resize
+        // (resized(), size()): the Canvas follows, render targets are yours
+        // to remake.
+        auto set_fullscreen(bool fullscreen) noexcept -> void;
+
+        [[nodiscard]] auto fullscreen() const noexcept -> bool;
+
         // In screen coordinates, the units the OS lays windows out in and the
         // Canvas draws in. The same as framebuffer_size() unless the display
         // scales, e.g. half of it on a Retina screen. Both sizes are as of the

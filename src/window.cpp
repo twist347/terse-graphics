@@ -10,6 +10,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
 #include <utility>
 
 namespace {
@@ -26,6 +27,14 @@ namespace {
         tgx::Size polled_size{};
         tgx::Size polled_framebuffer_size{};
         bool resized{false};
+        // Set again after leaving or entering fullscreen: some drivers reset
+        // the swap interval when the window changes monitor.
+        bool vsync{true};
+        bool fullscreen{false};
+        // Where the window was and how big, to go back to from fullscreen.
+        int windowed_x{0};
+        int windowed_y{0};
+        tgx::Size windowed_size{};
     };
 
     WindowState s_window;
@@ -44,6 +53,48 @@ namespace {
 
     auto set_swap_interval(bool vsync) noexcept -> void {
         glfwSwapInterval(vsync ? 1 : 0);
+    }
+
+    // Wayland lets no client know or set where its window is: asking makes
+    // GLFW report an error.
+    [[nodiscard]] auto positions_known() noexcept -> bool {
+        return glfwGetPlatform() != GLFW_PLATFORM_WAYLAND;
+    }
+
+    // The monitor the window covers the most of, the primary one when that
+    // cannot be told.
+    [[nodiscard]] auto monitor_of_window() noexcept -> GLFWmonitor * {
+        GLFWmonitor *best = glfwGetPrimaryMonitor();
+        if (!positions_known()) {
+            return best;
+        }
+
+        int x = 0;
+        int y = 0;
+        glfwGetWindowPos(s_window.handle, &x, &y);
+        const tgx::Size size = s_window.size;
+
+        int count = 0;
+        GLFWmonitor **monitors = glfwGetMonitors(&count);
+        long best_area = 0;
+        for (int i = 0; i < count; ++i) {
+            int mx = 0;
+            int my = 0;
+            glfwGetMonitorPos(monitors[i], &mx, &my);
+            const GLFWvidmode *mode = glfwGetVideoMode(monitors[i]);
+            if (!mode) {
+                continue;
+            }
+            // Monitor positions and video modes are in screen coordinates,
+            // like the window's.
+            const long w = std::max(0, std::min(x + size.width, mx + mode->width) - std::max(x, mx));
+            const long h = std::max(0, std::min(y + size.height, my + mode->height) - std::max(y, my));
+            if (w * h > best_area) {
+                best_area = w * h;
+                best = monitors[i];
+            }
+        }
+        return best;
     }
 
     auto on_glfw_error(int code, const char *desc) noexcept -> void {
@@ -74,6 +125,9 @@ namespace tgx {
         // profiles have no deprecated functions left to remove anyway.
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, params.debug_context ? GLFW_TRUE : GLFW_FALSE);
+        // A fullscreen window would otherwise minimize when it loses focus:
+        // alt-tab out of a game would hide it.
+        glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
 
         GLFWwindow *handle = glfwCreateWindow(
             params.width, params.height, params.title, nullptr, nullptr
@@ -92,6 +146,7 @@ namespace tgx {
         set_swap_interval(params.vsync);
 
         s_window.handle = handle;
+        s_window.vsync = params.vsync;
         refresh_sizes();
         // The sizes it starts with are not a resize.
         s_window.polled_size = s_window.size;
@@ -154,7 +209,47 @@ namespace tgx {
     }
 
     auto Window::set_vsync(bool enabled) noexcept -> void {
+        s_window.vsync = enabled;
         set_swap_interval(enabled);
+    }
+
+    auto Window::set_fullscreen(bool fullscreen) noexcept -> void {
+        if (fullscreen == s_window.fullscreen) {
+            return;
+        }
+
+        if (fullscreen) {
+            if (positions_known()) {
+                glfwGetWindowPos(s_window.handle, &s_window.windowed_x, &s_window.windowed_y);
+            }
+            s_window.windowed_size = s_window.size;
+
+            GLFWmonitor *monitor = monitor_of_window();
+            const GLFWvidmode *mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+            if (!mode) {
+                return;
+            }
+            // The monitor's own mode: GLFW then switches nothing, the window
+            // only loses its border and covers it.
+            glfwSetWindowMonitor(s_window.handle, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        } else {
+            // On Wayland the position is ignored: the compositor places it.
+            glfwSetWindowMonitor(
+                s_window.handle,
+                nullptr,
+                s_window.windowed_x,
+                s_window.windowed_y,
+                s_window.windowed_size.width,
+                s_window.windowed_size.height,
+                GLFW_DONT_CARE
+            );
+        }
+        s_window.fullscreen = fullscreen;
+        set_swap_interval(s_window.vsync);
+    }
+
+    auto Window::fullscreen() const noexcept -> bool {
+        return s_window.fullscreen;
     }
 
     auto Window::resized() const noexcept -> bool {
