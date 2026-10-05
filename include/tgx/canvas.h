@@ -18,6 +18,7 @@ namespace tgx {
 
     namespace detail {
         struct BatchState;
+        struct Surface;
     }
 
     // A texture, or a part of one, put on the canvas. Only the position is
@@ -191,6 +192,9 @@ namespace tgx {
         [[nodiscard]] auto state_for(GlId texture) noexcept -> detail::BatchState;
 
         auto quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void;
+
+        // What the canvas draws into.
+        [[nodiscard]] auto surface() const noexcept -> detail::Surface;
 
         // Remakes the transform for the size the canvas has now.
         auto refit() noexcept -> void;

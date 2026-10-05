@@ -10,7 +10,6 @@
 #include "batch.h"
 #include "context.h"
 #include "default_font.h"
-#include "window_internal.h"
 
 #include <algorithm>
 #include <array>
@@ -27,6 +26,7 @@ namespace {
     using tgx::detail::Batch;
     using tgx::detail::BatchState;
     using tgx::detail::BatchVertex;
+    using tgx::detail::Surface;
 
     // Segments for a circle: enough that no edge strays more than a quarter
     // unit from the true circle, as large as it shows on screen.
@@ -100,34 +100,43 @@ namespace {
         return rect.width > 0.f && rect.height > 0.f;
     }
 
-    // The part of the window a canvas covers, in its screen coordinates: the
-    // viewport, or all of it.
-    [[nodiscard]] auto covered(tgx::Rect viewport) noexcept -> tgx::Rect {
+    // The part of the surface a canvas covers, in its units: the viewport, or
+    // all of it.
+    [[nodiscard]] auto covered(tgx::Rect viewport, const Surface &surface) noexcept -> tgx::Rect {
         if (has_area(viewport)) {
             return viewport;
         }
-        const tgx::Size window = tgx::detail::window_size();
-        return {0.f, 0.f, static_cast<float>(window.width), static_cast<float>(window.height)};
+        return {0.f, 0.f, static_cast<float>(surface.units.width), static_cast<float>(surface.units.height)};
     }
 
-    // The part of the framebuffer a canvas covers, in pixels: its viewport,
-    // from screen coordinates, or all of it.
-    [[nodiscard]] auto pixel_viewport(tgx::Rect rect) noexcept -> tgx::gl::Viewport {
-        const tgx::Size window = tgx::detail::window_size();
-        const tgx::Size framebuffer = tgx::detail::framebuffer_size();
-        if (!has_area(rect) || window.empty()) {
-            return {0, 0, framebuffer.width, framebuffer.height};
+    // The part of the surface a canvas covers, in pixels: its viewport, from
+    // units, or all of it.
+    [[nodiscard]] auto pixel_viewport(tgx::Rect rect, const Surface &surface) noexcept -> tgx::gl::Viewport {
+        if (!has_area(rect) || surface.units.empty()) {
+            return surface.viewport();
         }
 
         // Edges rounded rather than sizes, so canvases side by side meet
         // without a gap or an overlap.
-        const float sx = static_cast<float>(framebuffer.width) / static_cast<float>(window.width);
-        const float sy = static_cast<float>(framebuffer.height) / static_cast<float>(window.height);
+        const float sx = static_cast<float>(surface.pixels.width) / static_cast<float>(surface.units.width);
+        const float sy = static_cast<float>(surface.pixels.height) / static_cast<float>(surface.units.height);
         const auto left = static_cast<int>(std::lround(rect.x * sx));
         const auto top = static_cast<int>(std::lround(rect.y * sy));
         const auto right = static_cast<int>(std::lround(rect.right() * sx));
         const auto bottom = static_cast<int>(std::lround(rect.bottom() * sy));
         return {left, top, right - left, bottom - top};
+    }
+
+    // The area a canvas's coordinates span: its own size, else the size of
+    // what it covers, its viewport or the whole surface.
+    [[nodiscard]] auto span_of(tgx::Size size, tgx::Rect viewport, const Surface &surface) noexcept -> tgx::Size {
+        if (!size.empty()) {
+            return size;
+        }
+        if (has_area(viewport)) {
+            return {static_cast<int>(std::lround(viewport.width)), static_cast<int>(std::lround(viewport.height))};
+        }
+        return surface.units;
     }
 
     [[nodiscard]] auto segments_for(float screen_radius) noexcept -> std::size_t {
@@ -184,13 +193,7 @@ namespace tgx {
     }
 
     auto Canvas::size() const noexcept -> Size {
-        if (!m_size.empty()) {
-            return m_size;
-        }
-        if (has_area(m_viewport)) {
-            return {static_cast<int>(std::lround(m_viewport.width)), static_cast<int>(std::lround(m_viewport.height))};
-        }
-        return detail::window_size();
+        return span_of(m_size, m_viewport, surface());
     }
 
     auto Canvas::set_viewport(Rect rect) noexcept -> void {
@@ -206,8 +209,9 @@ namespace tgx {
     }
 
     auto Canvas::to_world(Vec2 window_point) const noexcept -> Vec2 {
-        const Rect area = covered(m_viewport);
-        const Size span = size();
+        const Surface surface = this->surface();
+        const Rect area = covered(m_viewport, surface);
+        const Size span = span_of(m_size, m_viewport, surface);
         // A minimized window covers nothing to map from.
         if (!has_area(area) || span.empty()) {
             return m_camera.to_world(window_point);
@@ -220,8 +224,9 @@ namespace tgx {
     }
 
     auto Canvas::to_screen(Vec2 world) const noexcept -> Vec2 {
-        const Rect area = covered(m_viewport);
-        const Size span = size();
+        const Surface surface = this->surface();
+        const Rect area = covered(m_viewport, surface);
+        const Size span = span_of(m_size, m_viewport, surface);
         const Vec2 canvas_point = m_camera.to_screen(world);
         if (!has_area(area) || span.empty()) {
             return canvas_point;
@@ -230,6 +235,11 @@ namespace tgx {
             canvas_point.x * area.width / static_cast<float>(span.width) + area.x,
             canvas_point.y * area.height / static_cast<float>(span.height) + area.y,
         };
+    }
+
+    auto Canvas::surface() const noexcept -> detail::Surface {
+        // The window, until a canvas can be given a render target.
+        return detail::surface_of({});
     }
 
     auto Canvas::refit() noexcept -> void {
@@ -267,7 +277,8 @@ namespace tgx {
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
         // A canvas that follows the window notices a resize here, at its first
         // shape after it.
-        if (size() != m_transform_size) {
+        const Surface surface = this->surface();
+        if (span_of(m_size, m_viewport, surface) != m_transform_size) {
             refit();
         }
         return {
@@ -276,7 +287,7 @@ namespace tgx {
             .program = m_shader ? m_shader->id() : 0,
             .u_projection = m_u_projection,
             .transform = m_transform,
-            .viewport = pixel_viewport(m_viewport),
+            .viewport = pixel_viewport(m_viewport, surface),
         };
     }
 

@@ -293,7 +293,10 @@ namespace tgx {
             indexed ? "indices" : "vertices", params.first, params.first + count, available
         );
 
+        // The window, until draws can name a render target.
+        const detail::Target target{};
         detail::DrawCall call{
+            .target = target,
             .program = shader.id(),
             .vertex_array = vertices.id(),
             .index_type = indexed ? std::optional{vertices.index_type()} : std::nullopt,
@@ -301,7 +304,7 @@ namespace tgx {
             .count = count,
             .primitive = params.primitive,
             .state = params.state,
-            .viewport = params.viewport.value_or(detail::full_viewport()),
+            .viewport = params.viewport.value_or(detail::surface_of(target).viewport()),
         };
         for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
             if (const Texture *texture = params.textures[slot]) {

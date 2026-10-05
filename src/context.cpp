@@ -161,9 +161,11 @@ namespace tgx {
         return s_context;
     }
 
-    auto detail::full_viewport() noexcept -> gl::Viewport {
-        const Size size = framebuffer_size();
-        return {0, 0, size.width, size.height};
+    auto detail::surface_of(const Target &target) noexcept -> Surface {
+        if (target.framebuffer == 0) {
+            return {framebuffer_size(), window_size()};
+        }
+        return {target.size, target.size};
     }
 
     auto detail::flush_texture_use(GlId texture) noexcept -> void {
@@ -229,12 +231,12 @@ namespace tgx {
             return;
         }
 
-        // Turned here, against the framebuffer as it is when drawn into, not
-        // when the draw was asked for: a rectangle from the top-left stays at
-        // the top-left even if the window was resized in between.
+        // Turned here, against the target as it is when drawn into, not when
+        // the draw was asked for: a rectangle from the top-left stays at the
+        // top-left even if the window was resized in between.
         const gl::Viewport flipped{
             call.viewport.x,
-            framebuffer_size().height - call.viewport.y - call.viewport.height,
+            surface_of(call.target).pixels.height - call.viewport.y - call.viewport.height,
             call.viewport.width,
             call.viewport.height,
         };
@@ -314,7 +316,7 @@ namespace tgx {
         // Set rather than assumed, like the rest: draws only change the
         // viewport when theirs differs from this. The whole framebuffer is the
         // same from either corner.
-        gl_viewport = full_viewport();
+        gl_viewport = surface_of({}).viewport();
         glViewport(0, 0, gl_viewport.width, gl_viewport.height);
     }
 }

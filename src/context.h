@@ -3,6 +3,7 @@
 #include "tgx/color.h"
 #include "tgx/device.h"
 #include "tgx/handle.h"
+#include "tgx/math.h"
 
 #include "tgx/gl/draw.h"
 #include "tgx/gl/texture_slot.h"
@@ -19,8 +20,36 @@
 namespace tgx::detail {
     class Batch;
 
+    // What a draw goes into, by id: framebuffer 0 is the window. A render
+    // target's size is fixed, so it travels with the id; the window's is read
+    // when it is drawn into, as it can change in between.
+    struct Target {
+        GlId framebuffer{0};
+        Size size{};
+
+        [[nodiscard]] constexpr auto operator==(const Target &) const noexcept -> bool = default;
+    };
+
+    // The two sizes of what is drawn into. The only place that tells the
+    // window from a render target: everything else measures through this.
+    struct Surface {
+        // What viewports are measured in.
+        Size pixels{};
+        // What a canvas over all of it spans: the window's screen
+        // coordinates, which differ from its pixels on a scaling display.
+        Size units{};
+
+        // All of it, in pixels.
+        [[nodiscard]] constexpr auto viewport() const noexcept -> gl::Viewport {
+            return {0, 0, pixels.width, pixels.height};
+        }
+    };
+
+    [[nodiscard]] auto surface_of(const Target &target) noexcept -> Surface;
+
     // One draw, by ids: what Device::draw and the batch both come down to.
     struct DrawCall {
+        Target target{};
         GlId program{0};
         GlId vertex_array{0};
         // Empty to draw straight from the vertices.
@@ -31,8 +60,8 @@ namespace tgx::detail {
         gl::Primitive primitive{gl::Primitive::triangles};
         gl::RenderState state{};
         // From the top-left, as tgx counts; turned for GL as it is drawn,
-        // against the framebuffer it is drawn into, the way GL itself takes
-        // a viewport.
+        // against the target as it is then, the way GL itself takes a
+        // viewport.
         gl::Viewport viewport{};
         // By slot; 0 leaves the slot as it is.
         std::array<GlId, gl::max_texture_slots> textures{};
@@ -98,9 +127,6 @@ namespace tgx::detail {
     };
 
     [[nodiscard]] auto context() noexcept -> Context &;
-
-    // The whole framebuffer, where a draw goes unless it says otherwise.
-    [[nodiscard]] auto full_viewport() noexcept -> gl::Viewport;
 
     // For a texture or a program about to change or go: if the batch is to be
     // drawn with it, that happens now, while it is still as it was when the
