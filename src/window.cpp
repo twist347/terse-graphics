@@ -27,6 +27,8 @@ namespace {
         tgx::Size polled_size{};
         tgx::Size polled_framebuffer_size{};
         bool resized{false};
+        bool focused{false};
+        bool minimized{false};
         // Set again after leaving or entering fullscreen: some drivers reset
         // the swap interval when the window changes monitor.
         bool vsync{true};
@@ -49,6 +51,14 @@ namespace {
 
     auto on_resize(GLFWwindow *, int, int) noexcept -> void {
         refresh_sizes();
+    }
+
+    auto on_focus(GLFWwindow *, int focused) noexcept -> void {
+        s_window.focused = focused == GLFW_TRUE;
+    }
+
+    auto on_minimize(GLFWwindow *, int minimized) noexcept -> void {
+        s_window.minimized = minimized == GLFW_TRUE;
     }
 
     auto set_swap_interval(bool vsync) noexcept -> void {
@@ -153,6 +163,11 @@ namespace tgx {
         s_window.polled_framebuffer_size = s_window.framebuffer_size;
         glfwSetWindowSizeCallback(handle, on_resize);
         glfwSetFramebufferSizeCallback(handle, on_resize);
+        // As it starts; the callbacks keep both up to date from here.
+        s_window.focused = glfwGetWindowAttrib(handle, GLFW_FOCUSED) == GLFW_TRUE;
+        s_window.minimized = glfwGetWindowAttrib(handle, GLFW_ICONIFIED) == GLFW_TRUE;
+        glfwSetWindowFocusCallback(handle, on_focus);
+        glfwSetWindowIconifyCallback(handle, on_minimize);
 
         detail::attach_input(handle);
         return Window{};
@@ -188,6 +203,14 @@ namespace tgx {
     auto Window::input() const noexcept -> const Input & {
         static const Input input;
         return input;
+    }
+
+    auto Window::focused() const noexcept -> bool {
+        return s_window.focused;
+    }
+
+    auto Window::minimized() const noexcept -> bool {
+        return s_window.minimized;
     }
 
     auto Window::should_close() const noexcept -> bool {

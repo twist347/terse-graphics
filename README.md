@@ -26,7 +26,8 @@ In `tgx`:
 
 - **Window and loop**: `App` with a GLFW-shaped loop; borderless fullscreen
   on the monitor the window is on (`window().set_fullscreen(true)`); resizes
-  noted as events are polled (`window().resized()`), frames timed as they are
+  noted as events are polled (`window().resized()`), as are focus and being
+  minimized (`focused()`, `minimized()`, to pause on); frames timed as they are
   presented (`clock()`: delta, elapsed, fps), and `canvas.fps(pos)` to show
   them.
 - **Input**: keyboard and mouse as of the last poll: keys and buttons held,
@@ -76,7 +77,7 @@ Not yet: fonts of your own (TTF).
 | Object        | Owns                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
 | `App`         | The simple way in: creates the `Window`, `Device`, `Canvas` and `Audio` in the right order as one call that fails as one (the audio never fails it), owns them, tears them down in reverse, and gives the frame loop in three words (`should_close`, `poll_events`, `swap_buffers`). |
-| `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it) and whether it changed, title, vsync, fullscreen, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
+| `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it) and whether it changed, focus, being minimized, title, vsync, fullscreen, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
 | `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames and timing them (`Clock`), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
 | `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how and where to draw (size, viewport, target, camera, blend, shader): a plain value to copy. |
 | `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |

@@ -55,6 +55,17 @@ namespace tgx {
 
         [[nodiscard]] auto input() const noexcept -> const Input &;
 
+        // Whether keyboard input goes to the window: false once the player
+        // switches to another, the usual sign to pause a game. Keys and
+        // buttons held when it loses focus are let go, so none stays down.
+        // As of the last poll_events().
+        [[nodiscard]] auto focused() const noexcept -> bool;
+
+        // Whether it is minimized to the taskbar or the dock. Always false on
+        // Wayland, which does not tell a window it was minimized: focused()
+        // is what to pause on there, and works everywhere.
+        [[nodiscard]] auto minimized() const noexcept -> bool;
+
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
         auto request_close() noexcept -> void;
