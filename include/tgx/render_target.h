@@ -55,6 +55,10 @@ namespace tgx {
 
         [[nodiscard]] auto size() const noexcept -> Size { return m_texture.size(); }
 
+        // Whether it was made with a depth buffer (RenderTargetParams::depth):
+        // what a draw with a depth test, or a clear of depth, needs.
+        [[nodiscard]] auto has_depth() const noexcept -> bool { return static_cast<bool>(m_depth); }
+
         // The GL framebuffer: the way out to raw GL.
         [[nodiscard]] auto id() const noexcept -> GlId { return m_framebuffer.get(); }
 
@@ -82,12 +86,15 @@ namespace tgx {
 namespace tgx::detail {
     // What a draw goes into, by id: framebuffer 0 is the window. A render
     // target's size is fixed, so it travels with the id; the window's is read
-    // when it is drawn into, as it can change in between. The texture is
-    // there to catch a draw reading what it writes.
+    // when it is drawn into, as it can change in between. The texture and
+    // the depth are there for asserts: a draw reading what it writes, a depth
+    // test with nothing to test against.
     struct Target {
         GlId framebuffer{0};
         GlId texture{0};
         Size size{};
+        // The window always has one.
+        bool depth{true};
 
         [[nodiscard]] constexpr auto operator==(const Target &) const noexcept -> bool = default;
     };
@@ -97,6 +104,6 @@ namespace tgx::detail {
         if (!target) {
             return {};
         }
-        return {target->id(), target->texture().id(), target->size()};
+        return {target->id(), target->texture().id(), target->size(), target->has_depth()};
     }
 }

@@ -26,9 +26,10 @@ namespace tgx {
             return rotate((world - target) * zoom, rotation) + offset;
         }
 
-        // The world point under a point of the canvas. For a point of the
-        // window, such as the mouse, Canvas::to_world: it also knows where the
-        // canvas lies in the window and how it is stretched.
+        // The world point under a point of the canvas. For a point of what
+        // the canvas draws into, such as the mouse in the window,
+        // Canvas::to_world: it also knows where the canvas lies in it and how
+        // it is stretched.
         [[nodiscard]] auto to_world(Vec2 point) const noexcept -> Vec2 {
             return rotate(point - offset, -rotation) / zoom + target;
         }

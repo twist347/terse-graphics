@@ -58,8 +58,8 @@ namespace tgx {
     // Shapes are collected by the Device, which draws them before anything
     // else of its own (a draw, a clear) and when the frame is presented, so
     // the picture follows the order of the calls. Shapes in a row with the
-    // same texture, camera, blend and shader go out as one draw; a change of
-    // any of them starts another.
+    // same target, viewport, size, camera, texture, blend and shader go out
+    // as one draw; a change of any of them starts another.
     //
     // Holds no GPU resources of its own, only how to draw: a plain value, to
     // copy for each way of drawing rather than to switch back and forth. All
@@ -98,7 +98,7 @@ namespace tgx {
 
         // What it draws into: a render target, or nullptr (the default) for
         // the window. Its id and size are taken now, so the target may move
-        // afterwards, but it must outlive the shapes drawn into it.
+        // afterwards, but it must exist whenever the canvas draws into it.
         //
         //     tgx::Canvas world = app->canvas();
         //     world.set_target(&pixels);   // its coordinates span the target's pixels
@@ -127,9 +127,10 @@ namespace tgx {
         [[nodiscard]] auto blend() const noexcept -> Blend { return m_blend; }
 
         // The way out to custom GL: draws what comes after with this shader
-        // instead of the built-in one; nullptr goes back to it. The shader is
-        // borrowed: it must outlive being set here, not only the shapes drawn
-        // with it. While set, its u_projection and u_texture are the canvas's
+        // instead of the built-in one; nullptr goes back to it. Its id is
+        // taken now, as set_target() does, so the shader may move afterwards,
+        // but it must exist whenever the canvas draws with it. While set, its
+        // u_projection and u_texture are the canvas's
         // (u_projection is written on every draw, u_texture here), so do not
         // share it with draws of your own.
         //
@@ -147,8 +148,6 @@ namespace tgx {
         // setting a uniform later, or destroying the shader, draws them first.
         auto set_shader(gl::Shader *shader) noexcept -> void;
 
-        [[nodiscard]] auto shader() const noexcept -> gl::Shader * { return m_shader; }
-
         // Fills all of what it draws into with the color, as the first thing
         // of a frame usually; all of it even for a canvas with a viewport.
         auto clear(Color color) noexcept -> void;
@@ -163,7 +162,7 @@ namespace tgx {
         // A thickness wide band from a to b, square ends flush with them.
         auto line(Vec2 a, Vec2 b, Color color, float thickness = 1.f) noexcept -> void;
 
-        // As many segments as keep the edge within a quarter unit of a true
+        // As many segments as keep the edge within a quarter pixel of a true
         // circle, so small ones stay cheap and big ones round.
         auto circle(Vec2 center, float radius, Color color) noexcept -> void;
 
@@ -215,8 +214,8 @@ namespace tgx {
         detail::Target m_target{};
         Camera2D m_camera{};
         Blend m_blend{Blend::alpha};
-        // nullptr for the built-in one.
-        gl::Shader *m_shader{nullptr};
+        // The program of the shader set, 0 for the built-in one.
+        GlId m_program{0};
         // The location of its u_projection, looked up when it was set.
         std::int32_t m_u_projection{-1};
         // From canvas coordinates to clip space, for the camera and the size

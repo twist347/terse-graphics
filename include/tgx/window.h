@@ -72,7 +72,7 @@ namespace tgx {
         // last events polled.
         [[nodiscard]] auto size() const noexcept -> Size;
 
-        // In pixels: what a draw covers unless told otherwise.
+        // In pixels: what a draw into the window covers unless told otherwise.
         [[nodiscard]] auto framebuffer_size() const noexcept -> Size;
 
         [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow *;

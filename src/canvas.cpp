@@ -29,7 +29,7 @@ namespace {
     using tgx::detail::Surface;
 
     // Segments for a circle: enough that no edge strays more than a quarter
-    // unit from the true circle, as large as it shows on screen.
+    // pixel from the true circle, at the size it shows in pixels.
     constexpr float circle_tolerance = 0.25f;
     constexpr std::size_t min_segments = 8;
     constexpr std::size_t max_segments = 1024;
@@ -139,14 +139,27 @@ namespace {
         return surface.units;
     }
 
-    [[nodiscard]] auto segments_for(float screen_radius) noexcept -> std::size_t {
-        if (screen_radius <= circle_tolerance) {
+    // How many pixels one unit of the canvas covers, along the axis it is
+    // stretched most: a canvas of its own size stretched over more pixels,
+    // or a scaling display, shows its circles bigger than their radius.
+    [[nodiscard]] auto pixels_per_unit(const tgx::gl::Viewport &pixels, tgx::Size span) noexcept -> float {
+        if (span.empty()) {
+            return 1.f;
+        }
+        return std::max(
+            static_cast<float>(pixels.width) / static_cast<float>(span.width),
+            static_cast<float>(pixels.height) / static_cast<float>(span.height)
+        );
+    }
+
+    [[nodiscard]] auto segments_for(float pixel_radius) noexcept -> std::size_t {
+        if (pixel_radius <= circle_tolerance) {
             return min_segments;
         }
         // An edge of a circle split into n strays r * (1 - cos(pi / n)) from it.
         // A huge radius rounds the cosine to 1 and n to infinity, which no
         // cast survives: clamped while still a float.
-        const float n = std::numbers::pi_v<float> / std::acos(1.f - circle_tolerance / screen_radius);
+        const float n = std::numbers::pi_v<float> / std::acos(1.f - circle_tolerance / pixel_radius);
         if (!(n < static_cast<float>(max_segments))) {
             return max_segments;
         }
@@ -252,7 +265,7 @@ namespace tgx {
     }
 
     auto Canvas::set_shader(gl::Shader *shader) noexcept -> void {
-        m_shader = shader;
+        m_program = shader ? shader->id() : 0;
         m_u_projection = -1;
         if (!shader) {
             return;
@@ -275,7 +288,7 @@ namespace tgx {
     }
 
     auto Canvas::clear(Color color) noexcept -> void {
-        detail::context().clear(m_target, {.color = color});
+        detail::context().clear({.target = m_target, .color = color});
     }
 
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
@@ -289,7 +302,7 @@ namespace tgx {
             .target = m_target,
             .texture = texture,
             .blend = m_blend,
-            .program = m_shader ? m_shader->id() : 0,
+            .program = m_program,
             .u_projection = m_u_projection,
             .transform = m_transform,
             .viewport = pixel_viewport(m_viewport, surface),
@@ -340,8 +353,10 @@ namespace tgx {
             return;
         }
 
-        const std::size_t n = segments_for(radius * std::abs(m_camera.zoom));
-        auto [batch, first] = start(state_for(0), n + 1, n * 3);
+        const BatchState state = state_for(0);
+        const float pixel_radius = radius * std::abs(m_camera.zoom) * pixels_per_unit(state.viewport, m_transform_size);
+        const std::size_t n = segments_for(pixel_radius);
+        auto [batch, first] = start(state, n + 1, n * 3);
 
         // A fan around the center, vertex first.
         batch.push_vertex({center, white_uv, color});
@@ -364,8 +379,10 @@ namespace tgx {
         }
 
         const float inner = radius - thickness;
-        const std::size_t n = segments_for(radius * std::abs(m_camera.zoom));
-        auto [batch, first] = start(state_for(0), n * 2, n * 6);
+        const BatchState state = state_for(0);
+        const float pixel_radius = radius * std::abs(m_camera.zoom) * pixels_per_unit(state.viewport, m_transform_size);
+        const std::size_t n = segments_for(pixel_radius);
+        auto [batch, first] = start(state, n * 2, n * 6);
 
         // Outer and inner rim points in pairs; each pair and the next make a
         // quad of the ring.

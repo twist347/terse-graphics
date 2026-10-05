@@ -192,28 +192,28 @@ namespace tgx {
         }
     }
 
-    auto detail::Context::clear(const Target &target, const ClearParams &params) noexcept -> void {
+    auto detail::Context::clear(const ClearCall &call) noexcept -> void {
         flush();
 
         GLbitfield bits = 0;
 
-        if (params.color) {
-            if (*params.color != clear_color) {
-                clear_color = *params.color;
+        if (call.color) {
+            if (*call.color != clear_color) {
+                clear_color = *call.color;
                 apply_clear_color(clear_color);
             }
             bits |= GL_COLOR_BUFFER_BIT;
         }
-        if (params.depth) {
-            if (*params.depth != clear_depth) {
-                clear_depth = *params.depth;
+        if (call.depth) {
+            if (*call.depth != clear_depth) {
+                clear_depth = *call.depth;
                 apply_clear_depth(clear_depth);
             }
             bits |= GL_DEPTH_BUFFER_BIT;
         }
-        if (params.stencil) {
-            if (*params.stencil != clear_stencil) {
-                clear_stencil = *params.stencil;
+        if (call.stencil) {
+            if (*call.stencil != clear_stencil) {
+                clear_stencil = *call.stencil;
                 glClearStencil(clear_stencil);
             }
             bits |= GL_STENCIL_BUFFER_BIT;
@@ -230,7 +230,7 @@ namespace tgx {
             state.depth_write = true;
         }
         // The whole of it: glClear ignores the viewport.
-        bind_framebuffer(target.framebuffer);
+        bind_framebuffer(call.target.framebuffer);
         glClear(bits);
     }
 

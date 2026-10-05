@@ -254,7 +254,23 @@ namespace tgx {
     }
 
     auto Device::clear(const ClearParams &params) noexcept -> void {
-        detail::context().clear(detail::target_of(params.target), params);
+        const detail::Target target = detail::target_of(params.target);
+        // GL clears what is not there without a word.
+        TGX_ASSERT_MSG(
+            !params.depth || target.depth,
+            "clearing the depth of a render target made without one"
+        );
+        TGX_ASSERT_MSG(
+            !params.stencil || target.framebuffer == 0,
+            "clearing the stencil of a render target, which has none"
+        );
+
+        detail::context().clear({
+            .target = target,
+            .color = params.color,
+            .depth = params.depth,
+            .stencil = params.stencil,
+        });
     }
 
     auto Device::draw(const gl::Shader &shader, const gl::VertexArray &vertices) noexcept -> void {
@@ -295,6 +311,19 @@ namespace tgx {
         );
 
         const detail::Target target = detail::target_of(params.target);
+        // Without a depth buffer every fragment passes the test, which GL
+        // does not report.
+        TGX_ASSERT_MSG(
+            params.state.depth == gl::Depth::none || target.depth,
+            "a depth test drawing into a render target made without depth"
+        );
+        // GL refuses a negative size and draws nothing, without a word unless
+        // on a debug context.
+        TGX_ASSERT_MSG(
+            !params.viewport || (params.viewport->width >= 0 && params.viewport->height >= 0),
+            "viewport of size {}x{}",
+            params.viewport ? params.viewport->width : 0, params.viewport ? params.viewport->height : 0
+        );
         detail::DrawCall call{
             .target = target,
             .program = shader.id(),

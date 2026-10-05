@@ -72,11 +72,12 @@ Not yet: fonts of your own (TTF).
 | `App`         | The simple way in: creates the `Window`, `Device` and `Canvas` in the right order as one call that fails as one, owns them, tears them down in reverse, and gives the frame loop in three words (`should_close`, `poll_events`, `swap_buffers`). |
 | `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it) and whether it changed, title, vsync, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
 | `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames and timing them (`Clock`), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
-| `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how to draw (size, camera, blend, shader): a plain value to copy. |
+| `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how and where to draw (size, viewport, target, camera, blend, shader): a plain value to copy. |
 | `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
+| `RenderTarget`| A texture to draw into instead of the window, with the GL framebuffer that makes it one and an optional depth buffer. The `Canvas` (`set_target`) and `Device::draw`/`clear` (`target`) draw into it; `read()` brings it back as an `Image`. |
 | `gl::*`       | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA), but never where a draw would read it. |
 
-GPU resources (`Texture`, `gl::*`) are created without naming the `Device`, but
+GPU resources (`Texture`, `RenderTarget`, `gl::*`) are created without naming the `Device`, but
 only while it exists, and destroyed before it. Declare them after the `App`.
 
 `App` creates everything in one call. Its frame loop has the shape of a plain
@@ -110,7 +111,8 @@ Frames are shown with `device->present()`, which also draws the last of the
 
 The quick way to draw in 2D: no shaders, buffers or vertex arrays. Coordinates
 are the window's screen coordinates, (0, 0) at the top-left, y down; on a
-scaling display (Retina) things keep their size.
+scaling display (Retina) things keep their size. A canvas drawing into a render
+target instead counts in its pixels (see below).
 
     auto &canvas = app->canvas();
     while (!app->should_close()) {
@@ -209,10 +211,10 @@ the order of the calls:
     tgx::Canvas glow = app->canvas();
     glow.set_blend(tgx::Blend::additive);   // Blend::alpha by default
 
-`canvas.to_world(point)` gives the world point under a point of the window,
-such as the mouse, and `to_screen(world)` the way back; they go through the
-canvas's viewport and size as well as its camera, so they hold for a minimap
-or a pixel-art canvas too.
+`canvas.to_world(point)` gives the world point under a point of what the
+canvas draws into (for the window, such as the mouse), and `to_screen(world)`
+the way back; they go through the canvas's viewport and size as well as its
+camera, so they hold for a minimap or a stretched canvas too.
 
 Text comes in a built-in monospaced pixel font, [unscii-16](http://viznut.fi/unscii/)
 by Viznut (public domain): 8x16 pixels a character, printable ASCII; other
@@ -229,8 +231,8 @@ The font shares its texture with the shapes, so text and shapes drawn in a row
 are one draw. It is baked into the library by `tools/bake_font.py` from
 `thirdparty/unscii/`.
 
-Shapes in a row with the same texture, camera, blend and shader go out as one
-draw; a change of any of them starts the next. So many sprites from one texture
+Shapes in a row with the same target, viewport, size, camera, texture, blend
+and shader go out as one draw; a change of any of them starts the next. So many sprites from one texture
 (an atlas) cost one draw. A texture updated or destroyed while its sprites wait
 has them drawn first; moving one changes nothing.
 
@@ -310,12 +312,15 @@ has `none`, `less` and `less_equal`, plus `depth_write`; `Cull` has `none`,
 
 - **Only `Device` binds for drawing.** Resources have no `bind()`. They may bind
   themselves to be edited, so `Device` assumes nothing about what they leave
-  bound; it only skips what it set itself and knows to be current (the program,
-  the textures in their slots, the render state).
+  bound; it only skips what it set itself and knows to be current (the
+  framebuffer, the program, the textures in their slots, the render state).
 - **A resource is an object; `Device` is how and with what we draw right now.**
 - **Everything counts from the top-left, y down**: image rows, texture
   coordinates, the `Canvas`, `gl::Viewport`. Where GL counts from the
-  bottom-left (the viewport), tgx turns it around inside.
+  bottom-left (the viewport), tgx turns it around inside. The one exception
+  is a render target's texture, whose rows run bottom to top as GL draws them
+  (`Texture::bottom_up()`): sprites and `read()` turn it around, a shader of
+  your own reads `v = 0` as its bottom.
 - **`tgx` needs no `gl` for normal use.** GL types, enums and concepts live in
   `tgx::gl`. The few ways out to GL from `tgx` (`Texture::id()`,
   `Canvas::set_shader`) are marked as such.
@@ -352,6 +357,9 @@ asserts on, tgx stops at the call instead:
 - a sampler reading a texture slot the draw put no texture in, or a slot out of
   range;
 - a draw or a sprite reading the texture of the render target it draws into;
+- a depth test, or a clear of depth or stencil, on a render target made
+  without them;
+- a viewport of negative size;
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
 - a pixel outside an `Image`;
@@ -411,6 +419,7 @@ e.g. `tgx_01_window`.
 | `05_blend`         | Render state per draw: the same squares without and with blending. |
 | `06_cube`          | 3D: perspective, a camera, depth test and back-face culling.    |
 | `07_canvas_shader` | The `Canvas` drawing through a shader of your own.              |
+| `08_post_process`  | A render target with depth, then the whole frame through a shader. |
 
 ## Building
 

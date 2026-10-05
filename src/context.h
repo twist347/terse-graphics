@@ -1,7 +1,6 @@
 #pragma once
 
 #include "tgx/color.h"
-#include "tgx/device.h"
 #include "tgx/handle.h"
 #include "tgx/math.h"
 #include "tgx/render_target.h"
@@ -37,6 +36,15 @@ namespace tgx::detail {
     };
 
     [[nodiscard]] auto surface_of(const Target &target) noexcept -> Surface;
+
+    // One clear, by ids: what Device::clear and Canvas::clear come down to.
+    // What is left empty stays as it is.
+    struct ClearCall {
+        Target target{};
+        std::optional<Color> color{};
+        std::optional<float> depth{};
+        std::optional<std::int32_t> stencil{};
+    };
 
     // One draw, by ids: what Device::draw and the batch both come down to.
     struct DrawCall {
@@ -95,9 +103,8 @@ namespace tgx::detail {
         // Draws what the batch has collected, if anything.
         auto flush() noexcept -> void;
 
-        // Draws the batch first. Clears the target; params.target is the
-        // caller's to turn into it.
-        auto clear(const Target &target, const ClearParams &params) noexcept -> void;
+        // Draws the batch first. Clears all of the target.
+        auto clear(const ClearCall &call) noexcept -> void;
 
         // Neither draws the batch first nor checks anything: the callers do
         // what they need of both.
