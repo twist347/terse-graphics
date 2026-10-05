@@ -201,6 +201,11 @@ namespace tgx {
         refit();
     }
 
+    auto Canvas::set_target(const RenderTarget *target) noexcept -> void {
+        m_target = detail::target_of(target);
+        refit();
+    }
+
     auto Canvas::set_camera(const Camera2D &camera) noexcept -> void {
         TGX_ASSERT_MSG(camera.zoom != 0.f, "a camera with zoom 0 shows nothing and cannot map back");
 
@@ -208,17 +213,17 @@ namespace tgx {
         refit();
     }
 
-    auto Canvas::to_world(Vec2 window_point) const noexcept -> Vec2 {
+    auto Canvas::to_world(Vec2 point) const noexcept -> Vec2 {
         const Surface surface = this->surface();
         const Rect area = covered(m_viewport, surface);
         const Size span = span_of(m_size, m_viewport, surface);
         // A minimized window covers nothing to map from.
         if (!has_area(area) || span.empty()) {
-            return m_camera.to_world(window_point);
+            return m_camera.to_world(point);
         }
         const Vec2 canvas_point{
-            (window_point.x - area.x) * static_cast<float>(span.width) / area.width,
-            (window_point.y - area.y) * static_cast<float>(span.height) / area.height,
+            (point.x - area.x) * static_cast<float>(span.width) / area.width,
+            (point.y - area.y) * static_cast<float>(span.height) / area.height,
         };
         return m_camera.to_world(canvas_point);
     }
@@ -238,8 +243,7 @@ namespace tgx {
     }
 
     auto Canvas::surface() const noexcept -> detail::Surface {
-        // The window, until a canvas can be given a render target.
-        return detail::surface_of({});
+        return detail::surface_of(m_target);
     }
 
     auto Canvas::refit() noexcept -> void {
@@ -271,7 +275,7 @@ namespace tgx {
     }
 
     auto Canvas::clear(Color color) noexcept -> void {
-        detail::context().clear({.color = color});
+        detail::context().clear(m_target, {.color = color});
     }
 
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
@@ -282,6 +286,7 @@ namespace tgx {
             refit();
         }
         return {
+            .target = m_target,
             .texture = texture,
             .blend = m_blend,
             .program = m_shader ? m_shader->id() : 0,
@@ -377,6 +382,11 @@ namespace tgx {
     }
 
     auto Canvas::sprite(const Texture &texture, const Sprite &sprite) noexcept -> void {
+        TGX_ASSERT_MSG(
+            texture.id() != m_target.texture,
+            "a sprite of the render target the canvas draws into"
+        );
+
         const Size texture_size = texture.size();
         const Rect src = sprite.src.width == 0.f && sprite.src.height == 0.f
             ? Rect{0.f, 0.f, static_cast<float>(texture_size.width), static_cast<float>(texture_size.height)}
@@ -397,6 +407,12 @@ namespace tgx {
         }
         if (src.height < 0.f) {
             std::swap(v0, v1);
+        }
+        // A render target's rows run bottom to top: the same texels, counted
+        // from the other end.
+        if (texture.bottom_up()) {
+            v0 = 1.f - v0;
+            v1 = 1.f - v1;
         }
         const std::array<Vec2, 4> uvs{Vec2{u0, v0}, Vec2{u1, v0}, Vec2{u1, v1}, Vec2{u0, v1}};
 

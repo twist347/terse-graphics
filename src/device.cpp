@@ -1,6 +1,7 @@
 #include "tgx/device.h"
 
 #include "tgx/assert.h"
+#include "tgx/render_target.h"
 #include "tgx/texture.h"
 #include "tgx/window.h"
 
@@ -253,7 +254,7 @@ namespace tgx {
     }
 
     auto Device::clear(const ClearParams &params) noexcept -> void {
-        detail::context().clear(params);
+        detail::context().clear(detail::target_of(params.target), params);
     }
 
     auto Device::draw(const gl::Shader &shader, const gl::VertexArray &vertices) noexcept -> void {
@@ -293,8 +294,7 @@ namespace tgx {
             indexed ? "indices" : "vertices", params.first, params.first + count, available
         );
 
-        // The window, until draws can name a render target.
-        const detail::Target target{};
+        const detail::Target target = detail::target_of(params.target);
         detail::DrawCall call{
             .target = target,
             .program = shader.id(),
@@ -308,6 +308,12 @@ namespace tgx {
         };
         for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
             if (const Texture *texture = params.textures[slot]) {
+                // GL leaves it undefined, and drivers draw garbage.
+                TGX_ASSERT_MSG(
+                    texture->id() != target.texture,
+                    "slot {} reads the texture of the render target the draw writes",
+                    slot
+                );
                 call.textures[slot] = texture->id();
             }
         }

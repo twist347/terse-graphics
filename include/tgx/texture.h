@@ -51,7 +51,8 @@ namespace tgx {
 
     // A 2D RGBA8 texture on the GPU, of a size fixed at creation. Texture
     // coordinates (0, 0) are the top-left pixel of the image it was made from,
-    // (1, 1) the bottom-right.
+    // (1, 1) the bottom-right; a render target's is the other way up
+    // (bottom_up()).
     //
     // Unlike the gl:: resources it has nothing GL-specific to configure, so it
     // serves both the Canvas and Device::draw; id() is the way out to raw GL.
@@ -96,13 +97,27 @@ namespace tgx {
 
         [[nodiscard]] auto params() const noexcept -> const TextureParams & { return m_params; }
 
+        // Whether its rows run bottom to top, as GL draws: true only for a
+        // RenderTarget's. Sprites of it come out the right way up anyway; a
+        // shader of your own reads v = 0 as its bottom.
+        [[nodiscard]] auto bottom_up() const noexcept -> bool { return m_bottom_up; }
+
     private:
-        Texture(GlId id, Size size, const TextureParams &params) noexcept
-            : m_handle{id}, m_size{size}, m_params{params} {
+        friend class RenderTarget;
+
+        Texture(GlId id, Size size, const TextureParams &params, bool bottom_up) noexcept
+            : m_handle{id}, m_size{size}, m_params{params}, m_bottom_up{bottom_up} {
         }
+
+        // Storage for a RenderTarget to draw into.
+        [[nodiscard]] static auto create_for_target(
+            Size size,
+            const TextureParams &params
+        ) noexcept -> Result<Texture>;
 
         detail::Handle<detail::delete_texture> m_handle;
         Size m_size{};
         TextureParams m_params{};
+        bool m_bottom_up{false};
     };
 }

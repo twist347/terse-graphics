@@ -5,13 +5,12 @@
 #include "tgx/color.h"
 #include "tgx/handle.h"
 #include "tgx/math.h"
+#include "tgx/render_target.h"
 
 #include <cstdint>
 #include <string_view>
 
 namespace tgx {
-    class Texture;
-
     namespace gl {
         class Shader;
     }
@@ -52,8 +51,9 @@ namespace tgx {
     // top-left, y down; the canvas is stretched over the whole window, or the
     // part of it set_viewport() gives, so on a scaling display one unit covers
     // several pixels and things keep their size. It follows the window as it
-    // is resized. A camera (set_camera) moves, turns and zooms the world under
-    // them.
+    // is resized. Drawing into a render target instead (set_target), the
+    // coordinates are its pixels. A camera (set_camera) moves, turns and
+    // zooms the world under them.
     //
     // Shapes are collected by the Device, which draws them before anything
     // else of its own (a draw, a clear) and when the frame is presented, so
@@ -73,21 +73,22 @@ namespace tgx {
     // It draws through the Device, which must exist while it does.
     class Canvas {
     public:
-        // Empty follows the window, as App's canvas does; see set_size().
+        // Empty follows what it draws into, as App's canvas does; see
+        // set_size().
         [[nodiscard]] static auto create(Size size = {}) noexcept -> Canvas;
 
         // The area the coordinates span. Empty (the default) is the size of
-        // what the canvas covers, the window or its viewport, whatever it is at
-        // the time; a size of its own is a fixed logical resolution, stretched
-        // over it: 320x180 for pixel art.
+        // what the canvas covers, all it draws into or its viewport, whatever
+        // it is at the time; a size of its own is a fixed logical resolution,
+        // stretched over it.
         auto set_size(Size size) noexcept -> void;
 
         // The area the coordinates span now.
         [[nodiscard]] auto size() const noexcept -> Size;
 
-        // The part of the window the canvas covers, in the window's screen
-        // coordinates (Window::size()), for a minimap or a split screen. Empty
-        // (the default) is the whole window.
+        // The part of what it draws into the canvas covers, for a minimap or a
+        // split screen: in the window's screen coordinates (Window::size()),
+        // or a render target's pixels. Empty (the default) is all of it.
         //
         //     tgx::Canvas minimap = app->canvas();
         //     minimap.set_viewport({16, 16, 200, 150});   // its coordinates span 200x150
@@ -95,20 +96,29 @@ namespace tgx {
 
         [[nodiscard]] auto viewport() const noexcept -> Rect { return m_viewport; }
 
+        // What it draws into: a render target, or nullptr (the default) for
+        // the window. Its id and size are taken now, so the target may move
+        // afterwards, but it must outlive the shapes drawn into it.
+        //
+        //     tgx::Canvas world = app->canvas();
+        //     world.set_target(&pixels);   // its coordinates span the target's pixels
+        auto set_target(const RenderTarget *target) noexcept -> void;
+
         // For what comes after; the default shows the world as it is.
         auto set_camera(const Camera2D &camera) noexcept -> void;
 
         [[nodiscard]] auto camera() const noexcept -> const Camera2D & { return m_camera; }
 
-        // The world point under a point of the window, in the window's screen
-        // coordinates: what is under the mouse. Goes through the viewport, the
-        // size and the camera, so it holds for a minimap or a pixel-art canvas
-        // too; Camera2D::to_world alone holds only for a canvas over the whole
-        // window at its size.
-        [[nodiscard]] auto to_world(Vec2 window_point) const noexcept -> Vec2;
+        // The world point under a point of what it draws into, in the
+        // coordinates set_viewport() takes: for a canvas on the window, what
+        // is under the mouse. Goes through the viewport, the size and the
+        // camera, so it holds for a minimap or a stretched canvas too;
+        // Camera2D::to_world alone holds only for a canvas over all of it at
+        // its size.
+        [[nodiscard]] auto to_world(Vec2 point) const noexcept -> Vec2;
 
-        // Where a world point shows up in the window, in its screen
-        // coordinates: the way back from to_world.
+        // Where a world point shows up in what it draws into: the way back
+        // from to_world.
         [[nodiscard]] auto to_screen(Vec2 world) const noexcept -> Vec2;
 
         // For what comes after; Blend::alpha by default.
@@ -139,8 +149,8 @@ namespace tgx {
 
         [[nodiscard]] auto shader() const noexcept -> gl::Shader * { return m_shader; }
 
-        // Fills the whole framebuffer with the color, as the first thing of a
-        // frame usually; the whole of it even for a canvas with a viewport.
+        // Fills all of what it draws into with the color, as the first thing
+        // of a frame usually; all of it even for a canvas with a viewport.
         auto clear(Color color) noexcept -> void;
 
         auto rect(Rect rect, Color color) noexcept -> void;
@@ -161,7 +171,8 @@ namespace tgx {
         auto circle_lines(Vec2 center, float radius, Color color, float thickness = 1.f) noexcept -> void;
 
         // The texture is drawn from when the shapes are drawn; if it is
-        // updated or destroyed before, they are drawn then.
+        // updated or destroyed before, they are drawn then. It must not be
+        // the texture of the canvas's own render target.
         auto sprite(const Texture &texture, const Sprite &sprite) noexcept -> void;
 
         // The built-in font's own size, the height of a line: text drawn at it,
@@ -201,6 +212,7 @@ namespace tgx {
 
         Size m_size{};
         Rect m_viewport{};
+        detail::Target m_target{};
         Camera2D m_camera{};
         Blend m_blend{Blend::alpha};
         // nullptr for the built-in one.

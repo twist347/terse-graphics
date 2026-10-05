@@ -101,7 +101,7 @@ namespace tgx {
         const TextureParams &params
     ) noexcept -> Result<Texture> {
         return make(image.size(), image.pixels().data(), params).transform([&](GLuint id) {
-            return Texture{id, image.size(), params};
+            return Texture{id, image.size(), params, false};
         });
     }
 
@@ -115,7 +115,16 @@ namespace tgx {
         );
 
         return make(size, nullptr, params).transform([&](GLuint id) {
-            return Texture{id, size, params};
+            return Texture{id, size, params, false};
+        });
+    }
+
+    auto Texture::create_for_target(
+        Size size,
+        const TextureParams &params
+    ) noexcept -> Result<Texture> {
+        return make(size, nullptr, params).transform([&](GLuint id) {
+            return Texture{id, size, params, true};
         });
     }
 

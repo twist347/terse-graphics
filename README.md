@@ -41,6 +41,10 @@ In `tgx`:
 - **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
   JPEG, BMP, TGA or GIF, or made in code) and `Texture` made from it, with
   nearest or linear filtering, wrapping, optional mipmaps and partial updates.
+- **Render targets**: `RenderTarget`, a texture to draw into instead of the
+  window, with the Canvas or a draw of your own; then drawn like any texture
+  (pixel art scaled up, a whole frame through a shader) or read back into an
+  `Image`.
 - **Math**: `Vec2`/`Vec3`/`Vec4`/`Mat4`/`Rect` laid out for the GPU, with the
   usual operations and `ortho`, `perspective`, `look_at`, `translate`, `rotate`,
   `scale`. Same conventions as glm, and glm values convert with `std::bit_cast`.
@@ -49,7 +53,8 @@ In `tgx`:
 
 In `tgx::gl`:
 
-- **Draws and clears** that state everything they need: render state (blending,
+- **Draws and clears** that state everything they need: what they go into
+  (the window or a render target), render state (blending,
   depth test, face culling, wireframe), textures by slot, clear values.
 - **Buffers and vertex arrays**: immutable or dynamic `gl::Buffer<T>`s, typed
   by what they hold, so sizes and offsets count elements and the index type
@@ -58,7 +63,7 @@ In `tgx::gl`:
 - **Shaders and uniforms**: `gl::Shader` from source, uniforms set through typed
   handles looked up once by name; a shader of your own for the `Canvas`.
 
-Not yet: fonts of your own (TTF), render targets.
+Not yet: fonts of your own (TTF).
 
 ## Who does what
 
@@ -133,6 +138,24 @@ its coordinates then span that part:
 
     tgx::Canvas minimap = app->canvas();
     minimap.set_viewport({16, 16, 200, 150});   // screen coordinates of the window
+
+Or it can draw into a render target instead of the window; its coordinates
+are then the target's pixels. For pixel art, draw the world into a small one
+and scale it up by a whole factor with nearest filtering: every pixel stays a
+square, even along a turning line.
+
+    auto pixels = tgx::RenderTarget::create({.size = {320, 180}, .filter = tgx::TextureFilter::nearest});
+
+    tgx::Canvas world = app->canvas();
+    world.set_target(&*pixels);        // set_target(nullptr): the window again
+    world.circle({160, 90}, 20, tgx::colors::yellow);
+
+    app->canvas().sprite(pixels->texture(), {.position = pos, .size = {960, 540}});
+
+`pixels->read()` gives its contents back as an `Image`, rows top to bottom.
+Its texture's rows run bottom to top, as GL draws (`Texture::bottom_up()`):
+sprites come out the right way up anyway, a shader of your own reads `v = 0`
+as its bottom.
 
 Outlines lie inside the shape they outline, so a frame and a fill of the same
 rectangle cover the same area.
@@ -318,6 +341,7 @@ asserts on, tgx stops at the call instead:
   the handle, or set through a handle from another shader;
 - a sampler reading a texture slot the draw put no texture in, or a slot out of
   range;
+- a draw or a sprite reading the texture of the render target it draws into;
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
 - a pixel outside an `Image`;
@@ -366,6 +390,7 @@ e.g. `tgx_01_window`.
 | `09_input`      | Keyboard and mouse: held keys, presses, the wheel, the mouse in the world. |
 | `10_text`       | Text in the built-in font: sizes, lines, centering, a field to type in. |
 | `11_collision`  | Collision checks: a point in a shape, shapes overlapping, the part rects share. |
+| `12_pixel_art`  | A render target: the world at 320x180, scaled up into sharp square pixels. |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|

@@ -5,6 +5,7 @@
 #include "tgx/error.h"
 #include "tgx/handle.h"
 #include "tgx/math.h"
+#include "tgx/render_target.h"
 #include "tgx/texture.h"
 
 #include "tgx/gl/buffer.h"
@@ -33,6 +34,8 @@ namespace tgx::detail {
     // By ids rather than by objects: a Texture or a Shader moved elsewhere
     // keeps its id, so the vertices it was added with stay good.
     struct BatchState {
+        // What the canvas draws into.
+        Target target{};
         // 0 for the built-in texture: the default font, and white for shapes,
         // whose color comes from the vertices alone.
         GlId texture{0};
@@ -44,7 +47,7 @@ namespace tgx::detail {
         std::int32_t u_projection{-1};
         // From the vertices' coordinates to clip space: u_projection.
         Mat4 transform{};
-        // The part of the framebuffer the canvas covers, in pixels from the
+        // The part of the target the canvas covers, in pixels from the
         // top-left.
         gl::Viewport viewport{};
 
@@ -76,11 +79,14 @@ namespace tgx::detail {
         // Draws what is collected, if anything.
         auto flush(Context &context) noexcept -> void;
 
-        // Whether what is collected is drawn with the texture, or with the
-        // program of a custom shader.
+        // Whether what is collected is drawn with the texture, or into it as a
+        // render target's, or with the program of a custom shader.
         [[nodiscard]] auto uses_texture(GlId texture) const noexcept -> bool;
 
         [[nodiscard]] auto uses_shader(GlId program) const noexcept -> bool;
+
+        // Whether what is collected is drawn into the render target.
+        [[nodiscard]] auto uses_target(GlId framebuffer) const noexcept -> bool;
 
     private:
         Batch(

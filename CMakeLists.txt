@@ -23,6 +23,7 @@ set(TGX_SOURCES
         src/image.cpp
         src/input.cpp
         src/log.cpp
+        src/render_target.cpp
         src/texture.cpp
         src/window.cpp
 )

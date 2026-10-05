@@ -180,13 +180,19 @@ namespace tgx {
         }
     }
 
+    auto detail::flush_target_use(GlId framebuffer) noexcept -> void {
+        if (s_context.batch && s_context.batch->uses_target(framebuffer)) {
+            s_context.batch->flush(s_context);
+        }
+    }
+
     auto detail::Context::flush() noexcept -> void {
         if (batch) {
             batch->flush(*this);
         }
     }
 
-    auto detail::Context::clear(const ClearParams &params) noexcept -> void {
+    auto detail::Context::clear(const Target &target, const ClearParams &params) noexcept -> void {
         flush();
 
         GLbitfield bits = 0;
@@ -223,6 +229,8 @@ namespace tgx {
             glDepthMask(GL_TRUE);
             state.depth_write = true;
         }
+        // The whole of it: glClear ignores the viewport.
+        bind_framebuffer(target.framebuffer);
         glClear(bits);
     }
 
@@ -240,6 +248,7 @@ namespace tgx {
             call.viewport.width,
             call.viewport.height,
         };
+        bind_framebuffer(call.target.framebuffer);
         if (flipped != gl_viewport) {
             glViewport(flipped.x, flipped.y, flipped.width, flipped.height);
             gl_viewport = flipped;
@@ -267,6 +276,19 @@ namespace tgx {
         // buffer, passed where a pointer used to go.
         const auto *start = reinterpret_cast<const void *>(call.first * index_size);
         glDrawElements(mode, count, to_gl(*call.index_type), start);
+    }
+
+    auto detail::Context::bind_framebuffer(GlId next) noexcept -> void {
+        if (next != framebuffer) {
+            glBindFramebuffer(GL_FRAMEBUFFER, next);
+            framebuffer = next;
+        }
+    }
+
+    auto detail::Context::forget_framebuffer(GlId id) noexcept -> void {
+        if (id == framebuffer) {
+            framebuffer = 0;
+        }
     }
 
     auto detail::Context::use_program(GlId next) noexcept -> void {
@@ -309,6 +331,7 @@ namespace tgx {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glActiveTexture(GL_TEXTURE0);
         glUseProgram(0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         apply_clear_color(clear_color);
         apply_clear_depth(clear_depth);
         glClearStencil(clear_stencil);

@@ -4,6 +4,7 @@
 #include "tgx/device.h"
 #include "tgx/handle.h"
 #include "tgx/math.h"
+#include "tgx/render_target.h"
 
 #include "tgx/gl/draw.h"
 #include "tgx/gl/texture_slot.h"
@@ -19,16 +20,6 @@
 
 namespace tgx::detail {
     class Batch;
-
-    // What a draw goes into, by id: framebuffer 0 is the window. A render
-    // target's size is fixed, so it travels with the id; the window's is read
-    // when it is drawn into, as it can change in between.
-    struct Target {
-        GlId framebuffer{0};
-        Size size{};
-
-        [[nodiscard]] constexpr auto operator==(const Target &) const noexcept -> bool = default;
-    };
 
     // The two sizes of what is drawn into. The only place that tells the
     // window from a render target: everything else measures through this.
@@ -79,6 +70,8 @@ namespace tgx::detail {
         // As glViewport took it: from the bottom-left, unlike every other
         // gl::Viewport in tgx.
         gl::Viewport gl_viewport{};
+        // What draws and clears go into; 0 for the window.
+        GlId framebuffer{0};
         // What glUseProgram last made current; 0 for none.
         GlId program{0};
         // The texture bound in each slot, 0 for none, and the slot
@@ -102,12 +95,20 @@ namespace tgx::detail {
         // Draws what the batch has collected, if anything.
         auto flush() noexcept -> void;
 
-        // Draws the batch first.
-        auto clear(const ClearParams &params) noexcept -> void;
+        // Draws the batch first. Clears the target; params.target is the
+        // caller's to turn into it.
+        auto clear(const Target &target, const ClearParams &params) noexcept -> void;
 
         // Neither draws the batch first nor checks anything: the callers do
         // what they need of both.
         auto draw(const DrawCall &call) noexcept -> void;
+
+        // Makes the framebuffer the one drawn into unless it already is.
+        auto bind_framebuffer(GlId framebuffer) noexcept -> void;
+
+        // For a framebuffer about to be deleted: GL goes back to the window's
+        // if it was bound, and its id may come back for the next one created.
+        auto forget_framebuffer(GlId framebuffer) noexcept -> void;
 
         // Makes the program current unless it already is.
         auto use_program(GlId program) noexcept -> void;
@@ -135,4 +136,8 @@ namespace tgx::detail {
     auto flush_texture_use(GlId texture) noexcept -> void;
 
     auto flush_shader_use(GlId program) noexcept -> void;
+
+    // For a render target about to go: shapes waiting to be drawn into it are.
+    // Its texture going first does the same (flush_texture_use).
+    auto flush_target_use(GlId framebuffer) noexcept -> void;
 }

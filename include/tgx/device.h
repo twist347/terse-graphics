@@ -9,6 +9,7 @@
 #include <utility>
 
 namespace tgx {
+    class RenderTarget;
     class Window;
 
     namespace gl {
@@ -23,6 +24,8 @@ namespace tgx {
     //
     //     device.clear({.color = colors::black, .depth = 1.f});
     struct ClearParams {
+        // What is cleared, all of it; nullptr is the window.
+        const RenderTarget *target{nullptr};
         std::optional<Color> color{};
         // Usually 1, the far end of the depth range.
         std::optional<float> depth{};

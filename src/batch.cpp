@@ -172,6 +172,7 @@ namespace tgx::detail {
         glUniformMatrix4fv(u_projection, 1, GL_FALSE, floats.data());
 
         context.draw({
+            .target = m_state.target,
             .program = program,
             .vertex_array = m_vertex_array.id(),
             .index_type = gl::IndexType::uint16,
@@ -186,10 +187,14 @@ namespace tgx::detail {
     }
 
     auto Batch::uses_texture(GlId texture) const noexcept -> bool {
-        return !m_indices.empty() && m_state.texture == texture;
+        return !m_indices.empty() && (m_state.texture == texture || m_state.target.texture == texture);
     }
 
     auto Batch::uses_shader(GlId program) const noexcept -> bool {
         return !m_indices.empty() && m_state.program == program;
+    }
+
+    auto Batch::uses_target(GlId framebuffer) const noexcept -> bool {
+        return !m_indices.empty() && m_state.target.framebuffer == framebuffer;
     }
 }

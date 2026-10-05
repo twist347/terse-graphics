@@ -11,6 +11,7 @@
 #include <optional>
 
 namespace tgx {
+    class RenderTarget;
     class Texture;
 }
 
@@ -82,6 +83,8 @@ namespace tgx::gl {
         // For count: everything from first to the end of the buffer.
         static constexpr std::size_t all = std::numeric_limits<std::size_t>::max();
 
+        // What is drawn into; nullptr is the window.
+        const RenderTarget *target{nullptr};
         // Vertices, or indices when the vertex array has an index buffer. A
         // count of 0 draws nothing, so an empty batch stays empty.
         std::size_t count{all};
@@ -89,8 +92,8 @@ namespace tgx::gl {
         std::size_t first{0};
         Primitive primitive{Primitive::triangles};
         RenderState state{};
-        // Empty for the whole framebuffer, which is what a draw usually wants;
-        // a part of it for split screens, minimaps and the like.
+        // Empty for the whole target, which is what a draw usually wants; a
+        // part of it for split screens, minimaps and the like.
         std::optional<Viewport> viewport{};
         // By slot, for the shader's samplers to read (gl::TextureSlot); every
         // slot a sampler reads must have one. Empty slots are left as they are.
