@@ -31,34 +31,36 @@ light and a scanline shader, all made in code.*
 
 ## Quick start
 
-    #include "tgx/tgx.h"
+```cpp
+#include "tgx/tgx.h"
 
-    int main() {
-        auto app = tgx::App::create({.title = "hello"});
-        if (!app) {
-            return 1;
-        }
-        auto &canvas = app->canvas();
-        tgx::Vec2 player{640, 360};
-
-        while (!app->should_close()) {
-            app->poll_events();
-            const float speed = 300 * app->clock().delta();
-            if (app->input().down(tgx::Key::left)) {
-                player.x -= speed;
-            }
-            if (app->input().down(tgx::Key::right)) {
-                player.x += speed;
-            }
-
-            canvas.clear(tgx::colors::dark_gray);
-            canvas.rect_gradient({0, 0, 1280, 360}, tgx::colors::blue, tgx::colors::dark_gray);
-            canvas.circle(player, 20, tgx::colors::yellow);
-            canvas.text({20, 40}, "arrows to move", tgx::colors::white);
-
-            app->swap_buffers();
-        }
+int main() {
+    auto app = tgx::App::create({.title = "hello"});
+    if (!app) {
+        return 1;
     }
+    auto &canvas = app->canvas();
+    tgx::Vec2 player{640, 360};
+
+    while (!app->should_close()) {
+        app->poll_events();
+        const float speed = 300 * app->clock().delta();
+        if (app->input().down(tgx::Key::left)) {
+            player.x -= speed;
+        }
+        if (app->input().down(tgx::Key::right)) {
+            player.x += speed;
+        }
+
+        canvas.clear(tgx::colors::dark_gray);
+        canvas.rect_gradient({0, 0, 1280, 360}, tgx::colors::blue, tgx::colors::dark_gray);
+        canvas.circle(player, 20, tgx::colors::yellow);
+        canvas.text({20, 40}, "arrows to move", tgx::colors::white);
+
+        app->swap_buffers();
+    }
+}
+```
 
 The [guide](docs/guide.md) explains how the parts fit together; every function
 is documented in its header.
@@ -108,9 +110,11 @@ time; everything in them is made in code, no files needed.
 CMake 3.25+ and a C++23 compiler; every dependency is vendored in
 `thirdparty/`.
 
-    cmake -S . -B build
-    cmake --build build
-    ctest --test-dir build
+```sh
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build
+```
 
 In another CMake project: `add_subdirectory(terse-graphics)` and link
 `tgx::tgx`. Options and the rest: [guide](docs/guide.md#building).

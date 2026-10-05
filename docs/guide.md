@@ -112,22 +112,26 @@ events refreshes the window's sizes, `app->window().resized()` and
 fitting after a resize: draws cover the whole framebuffer unless told
 otherwise, and the canvas follows the window.
 
-    auto app = tgx::App::create({.title = "tgx"});
-    while (!app->should_close()) {
-        app->poll_events();
+```cpp
+auto app = tgx::App::create({.title = "tgx"});
+while (!app->should_close()) {
+    app->poll_events();
 
-        app->canvas().clear(tgx::colors::black);
-        ...
+    app->canvas().clear(tgx::colors::black);
+    ...
 
-        app->swap_buffers();
-    }
+    app->swap_buffers();
+}
+```
 
 The parts can also be created one by one; creation order is the dependency
 chain, and each step fails on its own:
 
-    auto window = tgx::Window::create({...});
-    auto device = tgx::Device::create(*window);
-    auto canvas = tgx::Canvas::create();   // follows the window
+```cpp
+auto window = tgx::Window::create({...});
+auto device = tgx::Device::create(*window);
+auto canvas = tgx::Canvas::create();   // follows the window
+```
 
 Frames are shown with `device->present()`, which also draws the last of the
 `Canvas` shapes; `App::swap_buffers` calls it.
@@ -139,64 +143,76 @@ are the window's screen coordinates, (0, 0) at the top-left, y down; on a
 scaling display (Retina) things keep their size. A canvas drawing into a render
 target instead counts in its pixels (see below).
 
-    auto &canvas = app->canvas();
-    while (!app->should_close()) {
-        app->poll_events();
+```cpp
+auto &canvas = app->canvas();
+while (!app->should_close()) {
+    app->poll_events();
 
-        canvas.clear(tgx::colors::dark_gray);
-        canvas.rect({40, 40, 90, 90}, tgx::colors::red);
-        canvas.triangle({190, 200}, {320, 360}, {60, 360}, tgx::colors::green);
-        canvas.line({400, 200}, {640, 200}, tgx::colors::white, 4.f);
-        canvas.circle({800, 300}, 60.f, tgx::colors::yellow);
-        canvas.circle_lines({800, 300}, 80.f, tgx::colors::white, 2.f);
-        canvas.rect_lines({40, 400, 200, 100}, tgx::colors::cyan, 3.f);
-        canvas.rect_gradient({300, 400, 200, 100}, tgx::colors::orange, tgx::colors::purple);
-        canvas.circle_gradient({1000, 300}, 80.f, tgx::colors::white, tgx::colors::white.fade(0.f));
-        canvas.line_strip(points, tgx::colors::white, 3.f);   // corners joined
+    canvas.clear(tgx::colors::dark_gray);
+    canvas.rect({40, 40, 90, 90}, tgx::colors::red);
+    canvas.triangle({190, 200}, {320, 360}, {60, 360}, tgx::colors::green);
+    canvas.line({400, 200}, {640, 200}, tgx::colors::white, 4.f);
+    canvas.circle({800, 300}, 60.f, tgx::colors::yellow);
+    canvas.circle_lines({800, 300}, 80.f, tgx::colors::white, 2.f);
+    canvas.rect_lines({40, 400, 200, 100}, tgx::colors::cyan, 3.f);
+    canvas.rect_gradient({300, 400, 200, 100}, tgx::colors::orange, tgx::colors::purple);
+    canvas.circle_gradient({1000, 300}, 80.f, tgx::colors::white, tgx::colors::white.fade(0.f));
+    canvas.line_strip(points, tgx::colors::white, 3.f);   // corners joined
 
-        app->swap_buffers();
-    }
+    app->swap_buffers();
+}
+```
 
 A canvas can instead have a size of its own, a fixed logical resolution
 stretched over the window:
 
-    tgx::Canvas pixels = app->canvas();
-    pixels.set_size({320, 180});   // set_size({}) follows the window again
+```cpp
+tgx::Canvas pixels = app->canvas();
+pixels.set_size({320, 180});   // set_size({}) follows the window again
+```
 
 It can also cover only a part of the window, for a minimap or a split screen;
 its coordinates then span that part:
 
-    tgx::Canvas minimap = app->canvas();
-    minimap.set_viewport({16, 16, 200, 150});   // screen coordinates of the window
+```cpp
+tgx::Canvas minimap = app->canvas();
+minimap.set_viewport({16, 16, 200, 150});   // screen coordinates of the window
+```
 
 Or it can draw into a render target instead of the window; its coordinates
 are then the target's pixels. For pixel art, draw the world into a small one
 and scale it up by a whole factor with nearest filtering: every pixel stays a
 square, even along a turning line.
 
-    auto pixels = tgx::RenderTarget::create({.size = {320, 180}, .filter = tgx::TextureFilter::nearest});
+```cpp
+auto pixels = tgx::RenderTarget::create({.size = {320, 180}, .filter = tgx::TextureFilter::nearest});
 
-    tgx::Canvas world = app->canvas();
-    world.set_target(&*pixels);        // set_target(nullptr): the window again
-    world.circle({160, 90}, 20, tgx::colors::yellow);
+tgx::Canvas world = app->canvas();
+world.set_target(&*pixels);        // set_target(nullptr): the window again
+world.circle({160, 90}, 20, tgx::colors::yellow);
 
-    // The largest whole multiple that fits the window, in its middle.
-    const tgx::Rect r = tgx::fit_whole({320, 180}, app->window().size());
-    app->canvas().sprite(pixels->texture(), {.position = {r.x, r.y}, .size = {r.width, r.height}});
+// The largest whole multiple that fits the window, in its middle.
+const tgx::Rect r = tgx::fit_whole({320, 180}, app->window().size());
+app->canvas().sprite(pixels->texture(), {.position = {r.x, r.y}, .size = {r.width, r.height}});
+```
 
 What has been drawn into the window this frame can be read back the same
 way, as a screenshot, before the frame is presented:
 
-    const auto saved = app->device().read().save("screenshot.png");
+```cpp
+const auto saved = app->device().read().save("screenshot.png");
+```
 
 A target's see-through parts hold premultiplied colors, as `Blend::alpha`
 leaves them; one cleared to `colors::transparent` is drawn with a canvas set
 to `Blend::premultiplied`, or its half see-through parts come out darker.
 Opaque parts look the same either way.
 
-    tgx::Canvas overlay = app->canvas();
-    overlay.set_blend(tgx::Blend::premultiplied);
-    overlay.sprite(layer->texture(), {});
+```cpp
+tgx::Canvas overlay = app->canvas();
+overlay.set_blend(tgx::Blend::premultiplied);
+overlay.sprite(layer->texture(), {});
+```
 
 `pixels->read()` gives its contents back as an `Image`, rows top to bottom
 (see-through pixels premultiplied).
@@ -219,32 +235,36 @@ Textures load from image files in one call; `Image` is for pixels made in code
 or read on the CPU, rows top to bottom. A sprite needs only a position: by
 default it is the whole texture at its own size.
 
-    auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
-    // Error::io or Error::decode on failure; Image::load + Texture::create is the long way
+```cpp
+auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
+// Error::io or Error::decode on failure; Image::load + Texture::create is the long way
 
-    canvas.sprite(*player, {pos});
-    canvas.sprite(*atlas, {
-        .position = pos,
-        .size = {64, 64},              // on the canvas; default: the size of src
-        .src = {16, 0, 16, 16},        // texels; default: the whole texture; negative size mirrors
-        .origin = {32, 32},            // the point at position, and what rotation turns around
-        .rotation = angle,             // radians, clockwise
-        .tint = tgx::colors::red,
-    });
+canvas.sprite(*player, {pos});
+canvas.sprite(*atlas, {
+    .position = pos,
+    .size = {64, 64},              // on the canvas; default: the size of src
+    .src = {16, 0, 16, 16},        // texels; default: the whole texture; negative size mirrors
+    .origin = {32, 32},            // the point at position, and what rotation turns around
+    .rotation = angle,             // radians, clockwise
+    .tint = tgx::colors::red,
+});
+```
 
 A camera moves, turns and zooms the world. A canvas is a plain value holding
 how to draw (size, camera, blend, shader), so rather than switching one back
 and forth, keep a copy for each way of drawing. Copies share the frame and
 the order of the calls:
 
-    tgx::Canvas world = app->canvas();
-    world.set_camera({.target = player_pos, .offset = screen_center, .zoom = 2.f});
+```cpp
+tgx::Canvas world = app->canvas();
+world.set_camera({.target = player_pos, .offset = screen_center, .zoom = 2.f});
 
-    world.sprite(...);                  // the world
-    app->canvas().rect(...);            // the HUD, on top
+world.sprite(...);                  // the world
+app->canvas().rect(...);            // the HUD, on top
 
-    tgx::Canvas glow = app->canvas();
-    glow.set_blend(tgx::Blend::additive);   // Blend::alpha by default
+tgx::Canvas glow = app->canvas();
+glow.set_blend(tgx::Blend::additive);   // Blend::alpha by default
+```
 
 `canvas.to_world(point)` gives the world point under a point of what the
 canvas draws into (for the window, such as the mouse), and `to_screen(world)`
@@ -258,9 +278,11 @@ stay even squares when three things are whole: the size a multiple of 16, the
 position in whole units, and the display's scale (1 or 2, as on Retina, but
 not 1.25); otherwise some columns come out a pixel wider than others.
 
-    canvas.text({20, 20}, "Score: 120", tgx::colors::white);
-    canvas.text({20, 60}, "GAME OVER", tgx::colors::red, 48);
-    const tgx::Vec2 extent = tgx::Canvas::measure_text("GAME OVER", 48);   // to center it
+```cpp
+canvas.text({20, 20}, "Score: 120", tgx::colors::white);
+canvas.text({20, 60}, "GAME OVER", tgx::colors::red, 48);
+const tgx::Vec2 extent = tgx::Canvas::measure_text("GAME OVER", 48);   // to center it
+```
 
 The font shares its texture with the shapes, so text and shapes drawn in a row
 are one draw. It is baked into the library by `tools/bake_font.py` from
@@ -279,9 +301,11 @@ triangles (a color in each corner) and circles (center to edge):
 
 `app->audio()` plays short sounds, many at once, each from its start:
 
-    auto jump = tgx::Sound::load("jump.ogg");   // Error::io or Error::decode on failure
-    app->audio().play(*jump);
-    app->audio().play(*jump, {.volume = 0.5f, .pan = -0.8f, .pitch = 1.2f});
+```cpp
+auto jump = tgx::Sound::load("jump.ogg");   // Error::io or Error::decode on failure
+app->audio().play(*jump);
+app->audio().play(*jump, {.volume = 0.5f, .pan = -0.8f, .pitch = 1.2f});
+```
 
 A `Sound` is decoded whole into memory when loaded, or made from samples in
 code (`Sound::from_samples`). Up to 64 plays sound at once; past that the one
@@ -290,9 +314,11 @@ playing longest is cut off. Destroying a sound stops what of it still plays.
 Music streams from its file while it plays, and needs nothing called every
 frame:
 
-    auto music = tgx::Music::load("theme.ogg");
-    music->set_looping(true);
-    music->play();                     // pause(), stop(), seek(seconds), position(), length()
+```cpp
+auto music = tgx::Music::load("theme.ogg");
+music->set_looping(true);
+music->play();                     // pause(), stop(), seek(seconds), position(), length()
+```
 
 Without an output device (no sound card, a machine with no display) the audio
 stays silent, says so once in the log, and `audio().active()` is false;
@@ -303,67 +329,79 @@ sounds and music still load, so a game runs the same.
 A vertex is a plain struct; the layout comes from its fields, format and offset
 alike:
 
-    struct Vertex {
-        tgx::Vec2 position;
-        tgx::Color color;
-    };
+```cpp
+struct Vertex {
+    tgx::Vec2 position;
+    tgx::Color color;
+};
 
-    const std::array layout{
-        tgx::gl::VertexAttribute::of(0, &Vertex::position),   // float32x2
-        tgx::gl::VertexAttribute::of(1, &Vertex::color),      // unorm8x4, read as vec4 in [0, 1]
-    };
+const std::array layout{
+    tgx::gl::VertexAttribute::of(0, &Vertex::position),   // float32x2
+    tgx::gl::VertexAttribute::of(1, &Vertex::color),      // unorm8x4, read as vec4 in [0, 1]
+};
 
-    auto vbo = tgx::gl::Buffer<Vertex>::create(vertices);   // std::array, std::vector, span...
-    auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
-    vao.set_vertex_buffer(*vbo);
+auto vbo = tgx::gl::Buffer<Vertex>::create(vertices);   // std::array, std::vector, span...
+auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
+vao.set_vertex_buffer(*vbo);
+```
 
 Shader sources carry their own `#version` line; `TGX_GLSL_VERSION` is the one
 matching the context:
 
-    constexpr const char *vertex_source = TGX_GLSL_VERSION R"(
-        layout(location = 0) in vec2 in_position;
-        ...
-    )";
+```cpp
+constexpr const char *vertex_source = TGX_GLSL_VERSION R"(
+    layout(location = 0) in vec2 in_position;
+    ...
+)";
 
-    std::string log;   // compile and link messages, warnings included
-    auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
+std::string log;   // compile and link messages, warnings included
+auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
+```
 
 Uniforms are looked up by name once, then set without names. The handle's type
 is checked against the GLSL type when it is looked up, and against the value by
 the compiler:
 
-    const auto u_mvp  = shader->uniform<tgx::Mat4>("u_mvp");
-    const auto u_tint = shader->uniform<tgx::Color>("u_tint");   // a vec4 in GLSL
+```cpp
+const auto u_mvp  = shader->uniform<tgx::Mat4>("u_mvp");
+const auto u_tint = shader->uniform<tgx::Color>("u_tint");   // a vec4 in GLSL
 
-    shader->set(u_mvp, projection * view * model);
-    shader->set(u_tint, tgx::colors::red.with_alpha(128));
+shader->set(u_mvp, projection * view * model);
+shader->set(u_tint, tgx::colors::red.with_alpha(128));
+```
 
 A draw draws the whole buffer unless told otherwise, and carries its own render
 state; a clear carries its own values. Nothing one call sets leaks into the
 next; the `Device` only changes what differs from the previous call. That
 includes the viewport: the whole framebuffer unless a draw says otherwise.
 
-    auto &device = app->device();
-    device.clear({.color = tgx::colors::black, .depth = 1.f});
-    device.draw(*shader, vao);
-    device.draw(*shader, vao, {.count = 6, .first = 12});
-    device.draw(*shader, sprites, {.state = {.blend = tgx::Blend::alpha}});
-    device.draw(*shader, cube, {.state = {.depth = tgx::gl::Depth::less, .cull = tgx::gl::Cull::back}});
-    device.draw(*shader, minimap, {.viewport = tgx::gl::Viewport{0, 0, 256, 256}});   // pixels, from the top-left
+```cpp
+auto &device = app->device();
+device.clear({.color = tgx::colors::black, .depth = 1.f});
+device.draw(*shader, vao);
+device.draw(*shader, vao, {.count = 6, .first = 12});
+device.draw(*shader, sprites, {.state = {.blend = tgx::Blend::alpha}});
+device.draw(*shader, cube, {.state = {.depth = tgx::gl::Depth::less, .cull = tgx::gl::Cull::back}});
+device.draw(*shader, minimap, {.viewport = tgx::gl::Viewport{0, 0, 256, 256}});   // pixels, from the top-left
+```
 
 Textures are the same `tgx::Texture` the `Canvas` takes; texture coordinates
 (0, 0) are the image's top-left pixel. A `sampler2D` uniform is set once to a
 slot, and each draw puts textures into slots:
 
-    shader->set(shader->uniform<tgx::gl::TextureSlot>("u_texture"), {0});
-    device.draw(*shader, quad, {.textures = {&*texture}});
+```cpp
+shader->set(shader->uniform<tgx::gl::TextureSlot>("u_texture"), {0});
+device.draw(*shader, quad, {.textures = {&*texture}});
+```
 
 The `Canvas` can draw through a shader of your own, which takes what its own
 takes (see `Canvas::set_shader`); its other uniforms are yours to set:
 
-    tgx::Canvas gray = app->canvas();
-    gray.set_shader(&*grayscale);
-    gray.rect(...);   // through grayscale
+```cpp
+tgx::Canvas gray = app->canvas();
+gray.set_shader(&*grayscale);
+gray.rect(...);   // through grayscale
+```
 
 `Blend` has `none`, `alpha`, `premultiplied`, `additive` and `multiply` (the
 last takes premultiplied colors, as `premultiplied` does:
@@ -442,10 +480,12 @@ Messages go to the console: `info` and `debug` to stdout, `warn` and `error` to
 stderr, one line each, prefixed with `[tgx] <level>:`. Both the level and the
 destination are configurable, before creating the `App`:
 
-    tgx::set_log_level(tgx::LogLevel::info);   // also show the GL context at startup; off drops all
-    tgx::set_log_sink([](tgx::LogLevel level, std::string_view msg, void *) noexcept {
-        // forward to your own logger
-    });
+```cpp
+tgx::set_log_level(tgx::LogLevel::info);   // also show the GL context at startup; off drops all
+tgx::set_log_sink([](tgx::LogLevel level, std::string_view msg, void *) noexcept {
+    // forward to your own logger
+});
+```
 
 A sink is called on the thread that made the tgx call, GL driver messages
 included: they are delivered synchronously. Passing `nullptr` restores the default.
@@ -462,8 +502,10 @@ miniaudio and stb_vorbis are vendored in `thirdparty/`, as are doctest (for
 the tests only) and the TTF the built-in font is baked from (not built; only
 `tools/bake_font.py`, with Pillow, reads it).
 
-    cmake -S . -B build
-    cmake --build build
+```sh
+cmake -S . -B build
+cmake --build build
+```
 
 Examples and tests are built by default; turn them off with
 `-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. The tests cover what
