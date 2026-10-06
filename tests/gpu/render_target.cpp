@@ -25,11 +25,11 @@ TEST_CASE("a canvas on a target spans its pixels, read back rows top to bottom")
 
     const tgx::Image image = target.read();
     CHECK(image.size() == tgx::Size{64, 32});
-    CHECK(image.at(0, 0) == tgx::colors::red);
-    CHECK(image.at(31, 15) == tgx::colors::red);
-    CHECK(image.at(32, 0) == tgx::colors::blue);
-    CHECK(image.at(0, 16) == tgx::colors::blue);
-    CHECK(image.at(63, 31) == tgx::colors::blue);
+    CHECK(image[0, 0] == tgx::colors::red);
+    CHECK(image[31, 15] == tgx::colors::red);
+    CHECK(image[32, 0] == tgx::colors::blue);
+    CHECK(image[0, 16] == tgx::colors::blue);
+    CHECK(image[63, 31] == tgx::colors::blue);
 }
 
 TEST_CASE("a target drawn as a sprite: the right way up, mirrored, a part of it") {
@@ -42,22 +42,22 @@ TEST_CASE("a target drawn as a sprite: the right way up, mirrored, a part of it"
     screen.clear(tgx::colors::black);
     screen.sprite(target.texture(), {.size = {64, 32}});
     tgx::Image image = out.read();
-    CHECK(image.at(2, 2) == tgx::colors::red);
-    CHECK(image.at(2, 28) == tgx::colors::blue);
-    CHECK(image.at(60, 2) == tgx::colors::blue);
-    CHECK(image.at(32, 48) == tgx::colors::black);
+    CHECK(image[2, 2] == tgx::colors::red);
+    CHECK(image[2, 28] == tgx::colors::blue);
+    CHECK(image[60, 2] == tgx::colors::blue);
+    CHECK(image[32, 48] == tgx::colors::black);
 
     screen.clear(tgx::colors::black);
     screen.sprite(target.texture(), {.size = {64, 32}, .src = {0, 0, 64, -32}});
     image = out.read();
-    CHECK(image.at(2, 28) == tgx::colors::red);
-    CHECK(image.at(2, 2) == tgx::colors::blue);
+    CHECK(image[2, 28] == tgx::colors::red);
+    CHECK(image[2, 2] == tgx::colors::blue);
 
     screen.clear(tgx::colors::black);
     screen.sprite(target.texture(), {.size = {32, 32}, .src = {0, 0, 32, 16}});
     image = out.read();
-    CHECK(image.at(16, 30) == tgx::colors::red);
-    CHECK(image.at(40, 16) == tgx::colors::black);
+    CHECK(image[16, 30] == tgx::colors::red);
+    CHECK(image[40, 16] == tgx::colors::black);
 }
 
 TEST_CASE("a canvas with a viewport on a target, and to_world in its pixels") {
@@ -71,9 +71,9 @@ TEST_CASE("a canvas with a viewport on a target, and to_world in its pixels") {
     quarter.rect({0, 0, 32, 16}, tgx::colors::yellow);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(40, 20) == tgx::colors::yellow);
-    CHECK(image.at(0, 0) == tgx::colors::red);
-    CHECK(image.at(40, 4) == tgx::colors::blue);
+    CHECK(image[40, 20] == tgx::colors::yellow);
+    CHECK(image[0, 0] == tgx::colors::red);
+    CHECK(image[40, 4] == tgx::colors::blue);
 
     tgx::Canvas small = canvas;
     small.set_size({16, 8});
@@ -94,9 +94,9 @@ TEST_CASE("draws into two targets keep the call order") {
     screen.rect({40, 40, 10, 10}, tgx::colors::red);
 
     const tgx::Image image = out.read();
-    CHECK(image.at(10, 10) == tgx::colors::cyan);
-    CHECK(image.at(10, 50) == tgx::colors::white);
-    CHECK(image.at(45, 45) == tgx::colors::red);
+    CHECK(image[10, 10] == tgx::colors::cyan);
+    CHECK(image[10, 50] == tgx::colors::white);
+    CHECK(image[45, 45] == tgx::colors::red);
 }
 
 TEST_CASE("a target destroyed while shapes for it wait") {
@@ -111,8 +111,8 @@ TEST_CASE("a target destroyed while shapes for it wait") {
     canvas.rect({0, 0, 4, 4}, tgx::colors::green);
 
     const tgx::Image image = after.read();
-    CHECK(image.at(1, 1) == tgx::colors::green);
-    CHECK(image.at(10, 10) == tgx::colors::black);
+    CHECK(image[1, 1] == tgx::colors::green);
+    CHECK(image[10, 10] == tgx::colors::black);
 }
 
 TEST_CASE("a target moved and move-assigned while shapes for it wait") {
@@ -122,7 +122,7 @@ TEST_CASE("a target moved and move-assigned while shapes for it wait") {
     canvas.rect({0, 0, 16, 16}, tgx::colors::red);
 
     tgx::RenderTarget moved = std::move(a);
-    CHECK(moved.read().at(8, 8) == tgx::colors::red);
+    CHECK(moved.read()[8, 8] == tgx::colors::red);
 
     // The canvas still draws into what moved holds, which goes with blue
     // waiting for it.
@@ -130,7 +130,7 @@ TEST_CASE("a target moved and move-assigned while shapes for it wait") {
     moved = tgx_test::target({8, 8});
     tgx::Canvas other = tgx_test::canvas_on(moved);
     other.clear(tgx::colors::green);
-    CHECK(moved.read().at(4, 4) == tgx::colors::green);
+    CHECK(moved.read()[4, 4] == tgx::colors::green);
 }
 
 TEST_CASE("a target with a depth buffer takes a draw with a depth test") {
@@ -140,7 +140,7 @@ TEST_CASE("a target with a depth buffer takes a draw with a depth test") {
 
     tgx_test::app().device().clear({.target = &target, .color = tgx::colors::black, .depth = 1.f});
     cover.draw({.target = &target, .state = {.depth = tgx::gl::Depth::less}});
-    CHECK(target.read().at(5, 5) == tgx::colors::green);
+    CHECK(target.read()[5, 5] == tgx::colors::green);
 }
 
 TEST_CASE("a target larger than the driver draws into") {
@@ -154,7 +154,7 @@ TEST_CASE("see-through parts of a target are premultiplied") {
     tgx::Canvas canvas = tgx_test::canvas_on(layer);
     canvas.clear(tgx::colors::transparent);
     canvas.rect({0, 0, 8, 8}, tgx::colors::white.with_alpha(128));
-    CHECK(layer.read().at(4, 4) == tgx::Color{128, 128, 128, 128});
+    CHECK(layer.read()[4, 4] == tgx::Color{128, 128, 128, 128});
 
     const tgx::RenderTarget out = tgx_test::target({8, 8});
     for (const tgx::Blend blend: {tgx::Blend::alpha, tgx::Blend::premultiplied}) {
@@ -165,6 +165,6 @@ TEST_CASE("see-through parts of a target are premultiplied") {
         screen.sprite(layer.texture(), {.size = {8, 8}});
         // Alpha applies the alpha a second time: a quarter gray, not half.
         const tgx::Color expected = blend == tgx::Blend::alpha ? tgx::Color{64, 64, 64, 255} : tgx::Color{128, 128, 128, 255};
-        CHECK(out.read().at(2, 2) == expected);
+        CHECK(out.read()[2, 2] == expected);
     }
 }

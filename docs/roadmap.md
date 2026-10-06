@@ -19,7 +19,7 @@ Features:
 - Shapes: a rotated and a rounded rectangle, `triangle_lines`, a closed
   `line_strip`, regular polygons, circle sectors and rings.
 - Clipping to a rectangle without changing coordinates (raylib's scissor
-  mode); `Blend::multiplied`.
+  mode).
 - Nine-slice sprites, for UI frames that stretch.
 - Control of one playing sound: stop or pause that instance, not every one of
   the `Sound`.

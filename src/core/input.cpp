@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 namespace {
     // Per key or mouse button: down now, and whether it went down or up since
@@ -121,7 +122,7 @@ namespace {
 
     auto on_key(GLFWwindow *, int code, int, int action, int) noexcept -> void {
         if (const tgx::Key key = to_key(code); key != tgx::Key::unknown) {
-            set_edge(s_input.keys[static_cast<std::size_t>(key)], action);
+            set_edge(s_input.keys[std::to_underlying(key)], action);
         }
     }
 
@@ -166,19 +167,19 @@ namespace {
 
 namespace tgx {
     auto Input::down(Key key) const noexcept -> bool {
-        return (s_input.keys[static_cast<std::size_t>(key)] & bit_down) != 0;
+        return (s_input.keys[std::to_underlying(key)] & bit_down) != 0;
     }
 
     auto Input::pressed(Key key) const noexcept -> bool {
-        return (s_input.keys[static_cast<std::size_t>(key)] & bit_pressed) != 0;
+        return (s_input.keys[std::to_underlying(key)] & bit_pressed) != 0;
     }
 
     auto Input::released(Key key) const noexcept -> bool {
-        return (s_input.keys[static_cast<std::size_t>(key)] & bit_released) != 0;
+        return (s_input.keys[std::to_underlying(key)] & bit_released) != 0;
     }
 
     auto Input::repeated(Key key) const noexcept -> bool {
-        return (s_input.keys[static_cast<std::size_t>(key)] & bit_repeated) != 0;
+        return (s_input.keys[std::to_underlying(key)] & bit_repeated) != 0;
     }
 
     auto Input::direction() const noexcept -> Vec2 {
@@ -194,15 +195,15 @@ namespace tgx {
     }
 
     auto Input::down(MouseButton button) const noexcept -> bool {
-        return (s_input.buttons[static_cast<std::size_t>(button)] & bit_down) != 0;
+        return (s_input.buttons[std::to_underlying(button)] & bit_down) != 0;
     }
 
     auto Input::pressed(MouseButton button) const noexcept -> bool {
-        return (s_input.buttons[static_cast<std::size_t>(button)] & bit_pressed) != 0;
+        return (s_input.buttons[std::to_underlying(button)] & bit_pressed) != 0;
     }
 
     auto Input::released(MouseButton button) const noexcept -> bool {
-        return (s_input.buttons[static_cast<std::size_t>(button)] & bit_released) != 0;
+        return (s_input.buttons[std::to_underlying(button)] & bit_released) != 0;
     }
 
     auto Input::mouse() const noexcept -> Vec2 {

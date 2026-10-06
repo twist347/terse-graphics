@@ -60,8 +60,8 @@ TEST_CASE("a canvas shader for the shapes after it, the built-in one back after 
     canvas.rect({20, 0, 20, 20}, tgx::colors::red);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(10, 10) == tgx::colors::cyan);
-    CHECK(image.at(30, 10) == tgx::colors::red);
+    CHECK(image[10, 10] == tgx::colors::cyan);
+    CHECK(image[30, 10] == tgx::colors::red);
 }
 
 TEST_CASE("a uniform set while shapes drawn with the shader wait") {
@@ -78,8 +78,8 @@ TEST_CASE("a uniform set while shapes drawn with the shader wait") {
     canvas.rect({20, 0, 20, 20}, tgx::colors::white);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(10, 10) == tgx::colors::red);
-    CHECK(image.at(30, 10) == tgx::colors::green);
+    CHECK(image[10, 10] == tgx::colors::red);
+    CHECK(image[30, 10] == tgx::colors::green);
 }
 
 TEST_CASE("a shader destroyed while shapes drawn with it wait") {
@@ -96,8 +96,8 @@ TEST_CASE("a shader destroyed while shapes drawn with it wait") {
     canvas.rect({20, 0, 20, 20}, tgx::colors::yellow);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(10, 10) == tgx::colors::magenta);
-    CHECK(image.at(30, 10) == tgx::colors::yellow);
+    CHECK(image[10, 10] == tgx::colors::magenta);
+    CHECK(image[30, 10] == tgx::colors::yellow);
 }
 
 TEST_CASE("a shader moved while shapes drawn with it wait") {
@@ -113,6 +113,6 @@ TEST_CASE("a shader moved while shapes drawn with it wait") {
     canvas.rect({20, 0, 20, 20}, tgx::colors::white);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(10, 10) == tgx::colors::cyan);
-    CHECK(image.at(30, 10) == tgx::colors::cyan);
+    CHECK(image[10, 10] == tgx::colors::cyan);
+    CHECK(image[30, 10] == tgx::colors::cyan);
 }

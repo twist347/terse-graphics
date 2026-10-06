@@ -15,15 +15,15 @@ TEST_CASE("a Device draw with a viewport counts it from the top-left") {
     device.clear({.target = &target, .color = tgx::colors::black});
     cover.draw({.target = &target, .viewport = tgx::gl::Viewport{0, 0, 32, 32}});
     tgx::Image image = target.read();
-    CHECK(image.at(5, 5) == tgx::colors::green);
-    CHECK(image.at(60, 5) == tgx::colors::black);
-    CHECK(image.at(5, 60) == tgx::colors::black);
+    CHECK(image[5, 5] == tgx::colors::green);
+    CHECK(image[60, 5] == tgx::colors::black);
+    CHECK(image[5, 60] == tgx::colors::black);
 
     device.clear({.target = &target, .color = tgx::colors::black});
     cover.draw({.target = &target, .viewport = tgx::gl::Viewport{54, 54, 10, 10}});
     image = target.read();
-    CHECK(image.at(59, 59) == tgx::colors::green);
-    CHECK(image.at(59, 5) == tgx::colors::black);
+    CHECK(image[59, 59] == tgx::colors::green);
+    CHECK(image[59, 5] == tgx::colors::black);
 }
 
 TEST_CASE("a Device draw with a viewport leaves the canvas whole") {
@@ -36,9 +36,9 @@ TEST_CASE("a Device draw with a viewport leaves the canvas whole") {
     canvas.rect({0, 0, 20, 20}, tgx::colors::white);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(5, 5) == tgx::colors::white);
-    CHECK(image.at(25, 25) == tgx::colors::green);
-    CHECK(image.at(60, 5) == tgx::colors::red);
+    CHECK(image[5, 5] == tgx::colors::white);
+    CHECK(image[25, 25] == tgx::colors::green);
+    CHECK(image[60, 5] == tgx::colors::red);
 }
 
 TEST_CASE("a canvas with a viewport: a minimap") {
@@ -55,11 +55,11 @@ TEST_CASE("a canvas with a viewport: a minimap") {
     canvas.rect({20, 0, 4, 4}, tgx::colors::white);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(60, 10) == tgx::colors::blue);
-    CHECK(image.at(34, 2) == tgx::colors::yellow);
-    CHECK(image.at(60, 60) == tgx::colors::black);
-    CHECK(image.at(5, 5) == tgx::colors::red);
-    CHECK(image.at(21, 2) == tgx::colors::white);
+    CHECK(image[60, 10] == tgx::colors::blue);
+    CHECK(image[34, 2] == tgx::colors::yellow);
+    CHECK(image[60, 60] == tgx::colors::black);
+    CHECK(image[5, 5] == tgx::colors::red);
+    CHECK(image[21, 2] == tgx::colors::white);
 }
 
 TEST_CASE("a canvas of a size of its own is stretched over its viewport") {
@@ -73,9 +73,9 @@ TEST_CASE("a canvas of a size of its own is stretched over its viewport") {
     pixels.rect({2, 1, 2, 1}, tgx::colors::green);   // its bottom-right quarter
 
     const tgx::Image image = target.read();
-    CHECK(image.at(60, 28) == tgx::colors::green);
-    CHECK(image.at(44, 28) == tgx::colors::black);
-    CHECK(image.at(60, 12) == tgx::colors::black);
+    CHECK(image[60, 28] == tgx::colors::green);
+    CHECK(image[44, 28] == tgx::colors::black);
+    CHECK(image[60, 12] == tgx::colors::black);
 }
 
 TEST_CASE("set_size, then back to following what it draws into") {
@@ -85,7 +85,7 @@ TEST_CASE("set_size, then back to following what it draws into") {
     canvas.set_size({32, 32});
     canvas.clear(tgx::colors::black);
     canvas.rect({16, 16, 16, 16}, tgx::colors::yellow);
-    CHECK(target.read().at(60, 60) == tgx::colors::yellow);
+    CHECK(target.read()[60, 60] == tgx::colors::yellow);
 
     canvas.set_size({});
     CHECK(canvas.size() == tgx::Size{64, 64});
@@ -123,7 +123,7 @@ TEST_CASE("a camera holds for the shapes after it, until reset") {
     canvas.rect({0, 0, 5, 5}, tgx::colors::yellow);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(15, 15) == tgx::colors::white);
-    CHECK(image.at(2, 2) == tgx::colors::yellow);
-    CHECK(image.at(25, 25) == tgx::colors::black);
+    CHECK(image[15, 15] == tgx::colors::white);
+    CHECK(image[2, 2] == tgx::colors::yellow);
+    CHECK(image[25, 25] == tgx::colors::black);
 }

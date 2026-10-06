@@ -22,7 +22,7 @@ namespace {
 
     [[nodiscard]] auto at(const tgx::Image &image, tgx::Vec2 point) -> tgx::Color {
         const tgx::Vec2 p = pixel(point);
-        return image.at(static_cast<int>(p.x), static_cast<int>(p.y));
+        return image[static_cast<int>(p.x), static_cast<int>(p.y)];
     }
 }
 

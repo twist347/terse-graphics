@@ -18,9 +18,9 @@ TEST_CASE("a circle's edge") {
     canvas.circle({32, 32}, 20, tgx::colors::white);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(32, 32) == tgx::colors::white);
-    CHECK(image.at(50, 32) == tgx::colors::white);
-    CHECK(image.at(54, 32) == tgx::colors::black);
+    CHECK(image[32, 32] == tgx::colors::white);
+    CHECK(image[50, 32] == tgx::colors::white);
+    CHECK(image[54, 32] == tgx::colors::black);
 }
 
 TEST_CASE("a circle stretched with its canvas stays round") {
@@ -38,7 +38,7 @@ TEST_CASE("a circle stretched with its canvas stays round") {
     for (int y = 0; y < 256; ++y) {
         for (int x = 0; x < 256; ++x) {
             const float distance = std::hypot(static_cast<float>(x) + 0.5f - 128.f, static_cast<float>(y) + 0.5f - 128.f);
-            const bool white = image.at(x, y).r > 128;
+            const bool white = image[x, y].r > 128;
             if (white != (distance < 40.f) && std::abs(distance - 40.f) > 1.f) {
                 ++strays;
             }
@@ -54,7 +54,7 @@ TEST_CASE("a circle far larger than what it draws into covers it") {
     canvas.clear(tgx::colors::black);
     canvas.circle({32, 32}, 1e8f, tgx::colors::white);
 
-    CHECK(target.read().at(5, 5) == tgx::colors::white);
+    CHECK(target.read()[5, 5] == tgx::colors::white);
 }
 
 TEST_CASE("additive blending adds up") {
@@ -66,7 +66,7 @@ TEST_CASE("additive blending adds up") {
     canvas.rect({0, 0, 20, 20}, tgx::colors::red);
     canvas.rect({0, 0, 20, 20}, tgx::colors::green);
 
-    CHECK(target.read().at(10, 10) == tgx::colors::yellow);
+    CHECK(target.read()[10, 10] == tgx::colors::yellow);
 }
 
 TEST_CASE("line_strip: a mitered corner") {
@@ -78,10 +78,10 @@ TEST_CASE("line_strip: a mitered corner") {
     canvas.line_strip(corner, tgx::colors::green, 10.f);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(110, 10) == tgx::colors::green);
-    CHECK(image.at(210, 110) == tgx::colors::green);
-    CHECK(image.at(213, 7) == tgx::colors::green);
-    CHECK(image.at(218, 2) == tgx::colors::black);
+    CHECK(image[110, 10] == tgx::colors::green);
+    CHECK(image[210, 110] == tgx::colors::green);
+    CHECK(image[213, 7] == tgx::colors::green);
+    CHECK(image[218, 2] == tgx::colors::black);
 }
 
 TEST_CASE("line_strip: a hairpin turn has no spike") {
@@ -93,8 +93,8 @@ TEST_CASE("line_strip: a hairpin turn has no spike") {
     canvas.line_strip(hairpin, tgx::colors::white, 8.f);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(208, 102) == tgx::colors::white);
-    CHECK(image.at(235, 106) == tgx::colors::black);
+    CHECK(image[208, 102] == tgx::colors::white);
+    CHECK(image[235, 106] == tgx::colors::black);
 }
 
 TEST_CASE("line_strip: a repeated point is skipped, a single one draws nothing") {
@@ -108,8 +108,8 @@ TEST_CASE("line_strip: a repeated point is skipped, a single one draws nothing")
     canvas.line_strip(single, tgx::colors::yellow, 4.f);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(110, 150) == tgx::colors::yellow);
-    CHECK(image.at(200, 200) == tgx::colors::black);
+    CHECK(image[110, 150] == tgx::colors::yellow);
+    CHECK(image[200, 200] == tgx::colors::black);
 }
 
 TEST_CASE("rect_gradient, top to bottom and by the corners") {
@@ -119,9 +119,9 @@ TEST_CASE("rect_gradient, top to bottom and by the corners") {
     canvas.clear(tgx::colors::black);
     canvas.rect_gradient({0, 0, 64, 64}, tgx::colors::red, tgx::colors::blue);
     tgx::Image image = target.read();
-    CHECK(tgx_test::near(image.at(32, 0), tgx::colors::red, 8));
-    CHECK(tgx_test::near(image.at(32, 63), tgx::colors::blue, 8));
-    CHECK(tgx_test::near(image.at(32, 32), tgx::Color{128, 0, 128, 255}, 8));
+    CHECK(tgx_test::near(image[32, 0], tgx::colors::red, 8));
+    CHECK(tgx_test::near(image[32, 63], tgx::colors::blue, 8));
+    CHECK(tgx_test::near(image[32, 32], tgx::Color{128, 0, 128, 255}, 8));
 
     canvas.clear(tgx::colors::black);
     canvas.rect_gradient(
@@ -129,10 +129,10 @@ TEST_CASE("rect_gradient, top to bottom and by the corners") {
         tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white
     );
     image = target.read();
-    CHECK(tgx_test::near(image.at(0, 0), tgx::colors::red, 16));
-    CHECK(tgx_test::near(image.at(63, 0), tgx::colors::green, 16));
-    CHECK(tgx_test::near(image.at(63, 63), tgx::colors::blue, 16));
-    CHECK(tgx_test::near(image.at(0, 63), tgx::colors::white, 16));
+    CHECK(tgx_test::near(image[0, 0], tgx::colors::red, 16));
+    CHECK(tgx_test::near(image[63, 0], tgx::colors::green, 16));
+    CHECK(tgx_test::near(image[63, 63], tgx::colors::blue, 16));
+    CHECK(tgx_test::near(image[0, 63], tgx::colors::white, 16));
 }
 
 TEST_CASE("triangle_gradient, a color at each corner") {
@@ -143,9 +143,9 @@ TEST_CASE("triangle_gradient, a color at each corner") {
     canvas.triangle_gradient({10, 10}, {210, 10}, {110, 170}, tgx::colors::red, tgx::colors::green, tgx::colors::blue);
 
     const tgx::Image image = target.read();
-    CHECK(tgx_test::near(image.at(13, 12), tgx::colors::red, 16));
-    CHECK(tgx_test::near(image.at(206, 12), tgx::colors::green, 16));
-    CHECK(tgx_test::near(image.at(110, 166), tgx::colors::blue, 16));
+    CHECK(tgx_test::near(image[13, 12], tgx::colors::red, 16));
+    CHECK(tgx_test::near(image[206, 12], tgx::colors::green, 16));
+    CHECK(tgx_test::near(image[110, 166], tgx::colors::blue, 16));
 }
 
 TEST_CASE("circle_gradient, from the center out") {
@@ -155,13 +155,13 @@ TEST_CASE("circle_gradient, from the center out") {
     canvas.clear(tgx::colors::black);
     canvas.circle_gradient({128, 128}, 80, tgx::colors::white, tgx::colors::black);
     tgx::Image image = target.read();
-    CHECK(image.at(128, 128).r > 245);
-    CHECK(image.at(205, 128).r < 20);
-    CHECK(tgx_test::near(image.at(168, 128), tgx::Color{128, 128, 128, 255}, 18));
+    CHECK(image[128, 128].r > 245);
+    CHECK(image[205, 128].r < 20);
+    CHECK(tgx_test::near(image[168, 128], tgx::Color{128, 128, 128, 255}, 18));
 
     canvas.clear(tgx::colors::black);
     canvas.circle_gradient({128, 128}, 50, tgx::colors::yellow, tgx::colors::yellow.fade(0.f));
     image = target.read();
-    CHECK(tgx_test::near(image.at(128, 128), tgx::colors::yellow, 8));
-    CHECK(image.at(183, 128) == tgx::colors::black);
+    CHECK(tgx_test::near(image[128, 128], tgx::colors::yellow, 8));
+    CHECK(image[183, 128] == tgx::colors::black);
 }

@@ -28,7 +28,7 @@ namespace {
         device.clear({.target = &target, .color = tgx::colors::black});
         device.draw(cover.shader, drawn, {.target = &target});
         const tgx::Image image = target.read();
-        return image.at(1, 1) == tgx::colors::green && image.at(14, 14) == tgx::colors::green;
+        return image[1, 1] == tgx::colors::green && image[14, 14] == tgx::colors::green;
     }
 }
 
@@ -81,9 +81,9 @@ TEST_CASE("a draw of first and count") {
 
     device.clear({.target = &target, .color = tgx::colors::black});
     device.draw(cover.shader, drawn, {.target = &target, .first = 1, .count = 3});
-    CHECK(target.read().at(8, 8) == tgx::colors::green);
+    CHECK(target.read()[8, 8] == tgx::colors::green);
 
     device.clear({.target = &target, .color = tgx::colors::black});
     device.draw(cover.shader, drawn, {.target = &target, .first = 1, .count = 0});
-    CHECK(target.read().at(8, 8) == tgx::colors::black);
+    CHECK(target.read()[8, 8] == tgx::colors::black);
 }

@@ -12,7 +12,7 @@ TEST_CASE("shapes waiting are drawn before a Device clear") {
     canvas.rect({0, 0, 64, 64}, tgx::colors::red);
     tgx_test::app().device().clear({.target = &target, .color = tgx::colors::blue});
 
-    CHECK(target.read().at(10, 10) == tgx::colors::blue);
+    CHECK(target.read()[10, 10] == tgx::colors::blue);
 }
 
 TEST_CASE("shapes waiting are drawn before a Device draw, and later ones after it") {
@@ -25,8 +25,8 @@ TEST_CASE("shapes waiting are drawn before a Device draw, and later ones after i
     canvas.rect({0, 0, 20, 20}, tgx::colors::white);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(5, 5) == tgx::colors::white);
-    CHECK(image.at(40, 40) == tgx::colors::green);
+    CHECK(image[5, 5] == tgx::colors::white);
+    CHECK(image[40, 40] == tgx::colors::green);
 }
 
 TEST_CASE("Canvas::clear covers what came before it, all of it") {
@@ -38,8 +38,8 @@ TEST_CASE("Canvas::clear covers what came before it, all of it") {
     canvas.rect({0, 0, 20, 20}, tgx::colors::white);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(5, 5) == tgx::colors::white);
-    CHECK(image.at(60, 60) == tgx::colors::green);
+    CHECK(image[5, 5] == tgx::colors::white);
+    CHECK(image[60, 60] == tgx::colors::green);
 }
 
 TEST_CASE("two canvases share the batch, each with its own state, in call order") {
@@ -54,8 +54,8 @@ TEST_CASE("two canvases share the batch, each with its own state, in call order"
     canvas.rect({0, 0, 20, 20}, tgx::colors::blue);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(60, 60) == tgx::colors::yellow);
-    CHECK(image.at(5, 5) == tgx::colors::blue);
+    CHECK(image[60, 60] == tgx::colors::yellow);
+    CHECK(image[5, 5] == tgx::colors::blue);
 }
 
 TEST_CASE("a copy with a camera and the original drawn in between keep the call order") {
@@ -70,9 +70,9 @@ TEST_CASE("a copy with a camera and the original drawn in between keep the call 
     world.rect({20, 20, 5, 5}, tgx::colors::blue);    // 50 to 60, after it again
 
     const tgx::Image image = target.read();
-    CHECK(image.at(12, 12) == tgx::colors::white);
-    CHECK(image.at(17, 17) == tgx::colors::red);
-    CHECK(image.at(55, 55) == tgx::colors::blue);
+    CHECK(image[12, 12] == tgx::colors::white);
+    CHECK(image[17, 17] == tgx::colors::red);
+    CHECK(image[55, 55] == tgx::colors::blue);
 }
 
 TEST_CASE("more shapes than one batch holds, then one on top") {
@@ -90,7 +90,7 @@ TEST_CASE("more shapes than one batch holds, then one on top") {
     canvas.circle({40, 40}, 10, tgx::colors::white);
 
     const tgx::Image image = target.read();
-    CHECK(image.at(5, 5) == tgx::colors::white);
-    CHECK(image.at(40, 40) == tgx::colors::white);
-    CHECK(image.at(32, 10) == tgx::colors::red);
+    CHECK(image[5, 5] == tgx::colors::white);
+    CHECK(image[40, 40] == tgx::colors::white);
+    CHECK(image[32, 10] == tgx::colors::red);
 }

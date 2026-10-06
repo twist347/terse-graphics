@@ -29,7 +29,7 @@ namespace {
             for (int x = 0; x < font::atlas_width; ++x) {
                 const auto byte = font::bits[static_cast<std::size_t>(y * font::row_bytes + x / 8)];
                 if ((byte & (0x80 >> (x % 8))) != 0) {
-                    image.at(x, y) = tgx::colors::white;
+                    image[x, y] = tgx::colors::white;
                 }
             }
         }

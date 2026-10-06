@@ -46,8 +46,8 @@ namespace tgx {
         [[nodiscard]] auto pixels(this auto &self) noexcept -> auto { return std::span{self.m_pixels}; }
 
         // (0, 0) is the top-left pixel.
-        [[nodiscard]] auto at(int x, int y) noexcept -> Color & { return m_pixels[index(x, y)]; }
-        [[nodiscard]] auto at(int x, int y) const noexcept -> Color { return m_pixels[index(x, y)]; }
+        [[nodiscard]] auto operator[](int x, int y) noexcept -> Color & { return m_pixels[index(x, y)]; }
+        [[nodiscard]] auto operator[](int x, int y) const noexcept -> Color { return m_pixels[index(x, y)]; }
 
     private:
         Image(Size size, std::vector<Color> pixels) noexcept : m_size{size}, m_pixels{std::move(pixels)} {

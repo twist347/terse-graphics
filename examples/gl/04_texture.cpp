@@ -88,10 +88,10 @@ int main() {
     auto image = tgx::Image::create({8, 8});
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 8; ++x) {
-            image.at(x, y) = (x + y) % 2 == 0 ? tgx::colors::white : tgx::colors::gray;
+            image[x, y] = (x + y) % 2 == 0 ? tgx::colors::white : tgx::colors::gray;
         }
     }
-    image.at(0, 0) = tgx::colors::red;
+    image[0, 0] = tgx::colors::red;
 
     auto texture = tgx::Texture::create(image, {.filter = tgx::TextureFilter::nearest});
     if (!texture) {

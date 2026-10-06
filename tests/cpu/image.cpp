@@ -34,15 +34,15 @@ TEST_CASE("Image made in code") {
     tgx::Image image = tgx::Image::create({3, 2}, tgx::colors::blue);
     CHECK(image.size() == tgx::Size{3, 2});
     CHECK(image.pixels().size() == 6);
-    CHECK(image.at(2, 1) == tgx::colors::blue);
+    CHECK(image[2, 1] == tgx::colors::blue);
 
-    image.at(2, 1) = tgx::colors::red;
+    image[2, 1] = tgx::colors::red;
     // Row by row, width pixels each: (2, 1) is the last.
     CHECK(image.pixels()[5] == tgx::colors::red);
 
     const std::array pixels{tgx::colors::red, tgx::colors::green};
     const tgx::Image copy = tgx::Image::from_pixels({2, 1}, pixels);
-    CHECK(copy.at(1, 0) == tgx::colors::green);
+    CHECK(copy[1, 0] == tgx::colors::green);
 }
 
 TEST_CASE("Image::decode") {
@@ -50,8 +50,8 @@ TEST_CASE("Image::decode") {
     REQUIRE(image.has_value());
     CHECK(image->size() == tgx::Size{1, 2});
     // Rows top to bottom, as the file has them, alpha straight.
-    CHECK(image->at(0, 0) == tgx::colors::red);
-    CHECK(image->at(0, 1) == tgx::Color{0, 0, 255, 128});
+    CHECK((*image)[0, 0] == tgx::colors::red);
+    CHECK((*image)[0, 1] == tgx::Color{0, 0, 255, 128});
 
     const std::array garbage{std::byte{1}, std::byte{2}, std::byte{3}};
     const auto bad = tgx::Image::decode(garbage);
@@ -72,8 +72,8 @@ TEST_CASE("Image::load failures") {
 
 TEST_CASE("Image::save writes what Image::load reads back") {
     tgx::Image image = tgx::Image::create({3, 2}, tgx::colors::transparent);
-    image.at(0, 0) = tgx::colors::red;
-    image.at(2, 1) = tgx::Color{10, 20, 30, 128};
+    image[0, 0] = tgx::colors::red;
+    image[2, 1] = tgx::Color{10, 20, 30, 128};
 
     const tgx_test::TempFile file{"save.png"};
     REQUIRE(image.save(file.path).has_value());
@@ -81,8 +81,8 @@ TEST_CASE("Image::save writes what Image::load reads back") {
 
     REQUIRE(back.has_value());
     CHECK(back->size() == image.size());
-    CHECK(back->at(0, 0) == tgx::colors::red);
-    CHECK(back->at(2, 1) == tgx::Color{10, 20, 30, 128});
+    CHECK((*back)[0, 0] == tgx::colors::red);
+    CHECK((*back)[2, 1] == tgx::Color{10, 20, 30, 128});
 
     const auto nowhere = image.save("there/is/no/such/folder/image.png");
     REQUIRE_FALSE(nowhere.has_value());

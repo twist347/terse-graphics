@@ -35,16 +35,16 @@ TEST_CASE("a sprite the right way up, mirrored, and turned clockwise") {
     canvas.clear(tgx::colors::black);
     canvas.sprite(texture, {.size = {32, 32}});
     tgx::Image image = target.read();
-    CHECK(image.at(8, 8) == tgx::colors::red);
-    CHECK(image.at(24, 8) == tgx::colors::green);
-    CHECK(image.at(8, 24) == tgx::colors::blue);
-    CHECK(image.at(24, 24) == tgx::colors::white);
+    CHECK(image[8, 8] == tgx::colors::red);
+    CHECK(image[24, 8] == tgx::colors::green);
+    CHECK(image[8, 24] == tgx::colors::blue);
+    CHECK(image[24, 24] == tgx::colors::white);
 
     canvas.clear(tgx::colors::black);
     canvas.sprite(texture, {.size = {32, 32}, .src = {0, 0, -2, 2}});
     image = target.read();
-    CHECK(image.at(8, 8) == tgx::colors::green);
-    CHECK(image.at(24, 8) == tgx::colors::red);
+    CHECK(image[8, 8] == tgx::colors::green);
+    CHECK(image[24, 8] == tgx::colors::red);
 
     canvas.clear(tgx::colors::black);
     canvas.sprite(texture, {
@@ -54,9 +54,9 @@ TEST_CASE("a sprite the right way up, mirrored, and turned clockwise") {
         .rotation = std::numbers::pi_v<float> / 2.f,
     });
     image = target.read();
-    CHECK(image.at(40, 24) == tgx::colors::red);
-    CHECK(image.at(40, 40) == tgx::colors::green);
-    CHECK(image.at(24, 24) == tgx::colors::blue);
+    CHECK(image[40, 24] == tgx::colors::red);
+    CHECK(image[40, 40] == tgx::colors::green);
+    CHECK(image[24, 24] == tgx::colors::blue);
 }
 
 TEST_CASE("a part of a texture as src, tinted") {
@@ -69,9 +69,9 @@ TEST_CASE("a part of a texture as src, tinted") {
     canvas.sprite(texture, {.position = {32, 0}, .size = {32, 32}, .src = {1, 1, 1, 1}, .tint = tgx::colors::red});
 
     const tgx::Image image = target.read();
-    CHECK(image.at(8, 16) == tgx::colors::blue);
-    CHECK(image.at(24, 16) == tgx::colors::white);
-    CHECK(image.at(48, 16) == tgx::colors::red);
+    CHECK(image[8, 16] == tgx::colors::blue);
+    CHECK(image[24, 16] == tgx::colors::white);
+    CHECK(image[48, 16] == tgx::colors::red);
 }
 
 TEST_CASE("a texture destroyed while its sprite waits, and one made after it") {
@@ -88,8 +88,8 @@ TEST_CASE("a texture destroyed while its sprite waits, and one made after it") {
     canvas.sprite(after, {.position = {20, 0}, .size = {20, 20}});
 
     const tgx::Image image = target.read();
-    CHECK(image.at(10, 10) == tgx::colors::magenta);
-    CHECK(image.at(30, 10) == tgx::colors::cyan);
+    CHECK(image[10, 10] == tgx::colors::magenta);
+    CHECK(image[30, 10] == tgx::colors::cyan);
 }
 
 TEST_CASE("a texture moved and move-assigned while its sprites wait") {
@@ -109,10 +109,10 @@ TEST_CASE("a texture moved and move-assigned while its sprites wait") {
     }
 
     const tgx::Image image = target.read();
-    CHECK(image.at(10, 10) == tgx::colors::red);
-    CHECK(image.at(30, 10) == tgx::colors::red);
-    CHECK(image.at(50, 10) == tgx::colors::green);
-    CHECK(image.at(70, 10) == tgx::colors::red);
+    CHECK(image[10, 10] == tgx::colors::red);
+    CHECK(image[30, 10] == tgx::colors::red);
+    CHECK(image[50, 10] == tgx::colors::green);
+    CHECK(image[70, 10] == tgx::colors::red);
 }
 
 TEST_CASE("a texture updated while a sprite of it waits") {
@@ -126,6 +126,6 @@ TEST_CASE("a texture updated while a sprite of it waits") {
     canvas.sprite(changing, {.position = {20, 0}, .size = {20, 20}});
 
     const tgx::Image image = target.read();
-    CHECK(image.at(10, 10) == tgx::colors::red);
-    CHECK(image.at(30, 10) == tgx::colors::blue);
+    CHECK(image[10, 10] == tgx::colors::red);
+    CHECK(image[30, 10] == tgx::colors::blue);
 }

@@ -31,7 +31,7 @@ int main() {
     auto image = tgx::Image::create({16, 8});
     for (int y = 0; y < 8; ++y) {
         for (int x = 0; x < 16; ++x) {
-            image.at(x, y) = art[y][x] == '#' ? tgx::colors::white : tgx::colors::transparent;
+            image[x, y] = art[y][x] == '#' ? tgx::colors::white : tgx::colors::transparent;
         }
     }
 
