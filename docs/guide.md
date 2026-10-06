@@ -16,15 +16,18 @@ function; this is what spans more than one. Back to the [README](../README.md).
 
 ## Two levels
 
-- **`tgx`** (`#include "tgx/tgx.h"`): a window, a loop and 2D drawing on the
-  `Canvas`, with images and textures, and the `Device` that shows the frames.
-  Normal use needs nothing from OpenGL; enough for a game in the spirit of
-  raylib.
-- **`tgx::gl`** (`#include "tgx/gl.h"`): drawing with your own shaders and
-  buffers through `Device::draw`. Everything in it is OpenGL. It builds on
-  `tgx` and mixes with the `Canvas` in the same frame.
+One header, `#include "tgx/tgx.h"`, brings both; the other headers under
+`tgx/` (`core/`, `gl/`) are how it is put together, not entry points, and
+their paths may change.
 
-The levels split the headers, not the library: it is one library. The `Device`
+- **`tgx`**: a window, a loop and 2D drawing on the `Canvas`, with images and
+  textures, and the `Device` that shows the frames. Normal use needs nothing
+  from OpenGL; enough for a game in the spirit of raylib.
+- **`tgx::gl`**: drawing with your own shaders and buffers through
+  `Device::draw`. Everything in it is OpenGL. It builds on `tgx` and mixes
+  with the `Canvas` in the same frame.
+
+The levels split the namespaces, not the library: it is one library. The `Device`
 holds the `Canvas`'s batch, so it always makes it (a shader, an 858x16
 texture with the built-in font, about 420 KB of buffers), even for a program
 that draws only with its own shaders.
@@ -52,7 +55,7 @@ In `tgx`:
 - **Collisions**: `contains` (a point in a rect, circle, triangle or polygon),
   `overlaps` (rects and circles in any pair, a circle and a segment),
   `intersection` (the part two rects share, the point two segments cross at),
-  `closest_point` (of a segment), in `tgx/collision.h`.
+  `closest_point` (of a segment).
 - **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
   JPEG, BMP, TGA or GIF, or made in code, saved as PNG) and `Texture` made
   from it, with nearest or linear filtering, wrapping, optional mipmaps and

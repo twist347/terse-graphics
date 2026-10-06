@@ -1,7 +1,7 @@
 // An index buffer: a rectangle from four vertices instead of six, the two
 // triangles sharing two of them.
 
-#include "tgx/gl.h"
+#include "tgx/tgx.h"
 
 #include <array>
 #include <cstdint>

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "tgx/assert.h"
-#include "tgx/color.h"
-#include "tgx/handle.h"
-#include "tgx/math.h"
+#include "tgx/core/assert.h"
+#include "tgx/core/color.h"
+#include "tgx/core/handle.h"
+#include "tgx/core/math.h"
 
 #include "tgx/gl/buffer.h"
 

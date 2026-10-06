@@ -1,4 +1,4 @@
-#include "tgx/color.h"
+#include "tgx/core/color.h"
 
 #include "support.h"
 

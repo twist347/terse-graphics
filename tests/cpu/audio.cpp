@@ -1,4 +1,4 @@
-#include "tgx/audio.h"
+#include "tgx/core/audio.h"
 
 #include "support.h"
 

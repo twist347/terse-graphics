@@ -1,11 +1,11 @@
 #include "tgx/gl/vertex_array.h"
 
-#include "tgx/assert.h"
+#include "tgx/core/assert.h"
 
 #include "tgx/gl/shader.h"
 
-#include "context.h"
-#include "vertex_array_internal.h"
+#include "core/context.h"
+#include "gl/vertex_array_internal.h"
 
 #include <glad/gl.h>
 

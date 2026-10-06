@@ -1,8 +1,8 @@
 #include "tgx/gl/buffer.h"
 
-#include "tgx/assert.h"
+#include "tgx/core/assert.h"
 
-#include "gl_error.h"
+#include "core/gl_error.h"
 
 #include <glad/gl.h>
 

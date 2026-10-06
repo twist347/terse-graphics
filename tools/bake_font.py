@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Bakes a pixel TTF font into src/default_font.h: the built-in font of tgx.
+"""Bakes a pixel TTF font into src/core/default_font.h: the built-in font of tgx.
 
-    python3 tools/bake_font.py thirdparty/unscii/unscii-16.ttf 16 src/default_font.h
+    python3 tools/bake_font.py thirdparty/unscii/unscii-16.ttf 16 src/core/default_font.h
 
 Renders printable ASCII without antialiasing at the font's own pixel size,
 one glyph after another in a strip, then a 3x3 white block for shapes, and

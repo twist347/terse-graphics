@@ -1,9 +1,9 @@
 #pragma once
 
-#include "tgx/color.h"
-#include "tgx/error.h"
-#include "tgx/handle.h"
-#include "tgx/math.h"
+#include "tgx/core/color.h"
+#include "tgx/core/error.h"
+#include "tgx/core/handle.h"
+#include "tgx/core/math.h"
 
 #include "tgx/gl/texture_slot.h"
 #include "tgx/gl/version.h"

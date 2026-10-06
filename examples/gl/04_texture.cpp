@@ -2,7 +2,7 @@
 // (0, 0) at its top-left to (1, 1) at its bottom-right; the shader reads the
 // texture there through a sampler, and the draw says which texture that is.
 
-#include "tgx/gl.h"
+#include "tgx/tgx.h"
 
 #include <array>
 #include <cstdint>

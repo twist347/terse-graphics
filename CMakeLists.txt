@@ -34,21 +34,21 @@ endif ()
 add_subdirectory(thirdparty)
 
 set(TGX_SOURCES
-        src/app.cpp
-        src/assert.cpp
-        src/audio.cpp
-        src/batch.cpp
-        src/canvas.cpp
-        src/clock.cpp
-        src/context.cpp
-        src/device.cpp
-        src/file.cpp
-        src/image.cpp
-        src/input.cpp
-        src/log.cpp
-        src/render_target.cpp
-        src/texture.cpp
-        src/window.cpp
+        src/core/app.cpp
+        src/core/assert.cpp
+        src/core/audio.cpp
+        src/core/batch.cpp
+        src/core/canvas.cpp
+        src/core/clock.cpp
+        src/core/context.cpp
+        src/core/device.cpp
+        src/core/file.cpp
+        src/core/image.cpp
+        src/core/input.cpp
+        src/core/log.cpp
+        src/core/render_target.cpp
+        src/core/texture.cpp
+        src/core/window.cpp
 )
 
 set(TGX_GL_SOURCES

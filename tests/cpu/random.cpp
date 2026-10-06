@@ -1,4 +1,4 @@
-#include "tgx/random.h"
+#include "tgx/core/random.h"
 
 #include "support.h"
 

@@ -1,4 +1,4 @@
-#include "tgx/camera.h"
+#include "tgx/core/camera.h"
 
 #include "support.h"
 

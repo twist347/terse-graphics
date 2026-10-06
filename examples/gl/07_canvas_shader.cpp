@@ -2,7 +2,7 @@
 // your own. Left, the shapes as they are; right, the same shapes through a
 // shader that turns them gray.
 
-#include "tgx/gl.h"
+#include "tgx/tgx.h"
 
 #include <cstdio>
 #include <print>

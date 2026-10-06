@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tgx/math.h"
+#include "tgx/core/math.h"
 
 #include <cstdint>
 

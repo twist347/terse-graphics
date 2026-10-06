@@ -1,7 +1,7 @@
 // 3D: a turning cube seen in perspective. The depth test keeps the nearest
 // face in front, and culling skips the faces turned away from the camera.
 
-#include "tgx/gl.h"
+#include "tgx/tgx.h"
 
 #include <array>
 #include <cstdint>

@@ -1,4 +1,4 @@
-#include "tgx/canvas.h"
+#include "tgx/core/canvas.h"
 
 #include "support.h"
 

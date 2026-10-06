@@ -5,7 +5,7 @@
 // into. Most tests draw into a render target of their own: its size is theirs
 // to pick, whatever the window and the display's scale are.
 
-#include "tgx/gl.h"
+#include "tgx/tgx.h"
 
 #include <doctest/doctest.h>
 

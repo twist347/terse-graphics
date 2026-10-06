@@ -64,9 +64,10 @@ is documented in its header. What comes next: the [roadmap](docs/roadmap.md).
 
 ## Examples
 
-Lessons, one idea each, in two folders by level: `examples/tgx/` includes only
-`tgx/tgx.h`, `examples/gl/` adds `tgx/gl.h`. Each builds as `<folder>_<name>`,
-e.g. `tgx_01_window`.
+Lessons, one idea each, in two folders by level: `examples/tgx/` uses only
+`tgx::`, `examples/gl/` adds `tgx::gl::`. Each includes `tgx/tgx.h`, the one
+header there is to include, and builds as `<folder>_<name>`, e.g.
+`tgx_01_window`.
 
 | `examples/tgx/` | Shows                                                              |
 |-----------------|--------------------------------------------------------------------|

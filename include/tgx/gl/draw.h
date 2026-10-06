@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tgx/blend.h"
+#include "tgx/core/blend.h"
 
 #include "tgx/gl/texture_slot.h"
 

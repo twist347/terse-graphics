@@ -7,7 +7,7 @@
 // The mouse carries a lantern; Space calls lightning, which also comes on its
 // own now and then; F12 saves a screenshot.
 
-#include "tgx/gl.h"
+#include "tgx/tgx.h"
 
 #include <algorithm>
 #include <array>

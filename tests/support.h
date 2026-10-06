@@ -3,8 +3,8 @@
 // What the tests share: comparing within float or color rounding, files of
 // their own, and printing tgx values when a check fails.
 
-#include "tgx/color.h"
-#include "tgx/math.h"
+#include "tgx/core/color.h"
+#include "tgx/core/math.h"
 
 #include <doctest/doctest.h>
 

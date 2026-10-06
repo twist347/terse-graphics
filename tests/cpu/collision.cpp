@@ -1,4 +1,4 @@
-#include "tgx/collision.h"
+#include "tgx/core/collision.h"
 
 #include "support.h"
 

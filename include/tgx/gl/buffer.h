@@ -1,8 +1,8 @@
 #pragma once
 
-#include "tgx/assert.h"
-#include "tgx/error.h"
-#include "tgx/handle.h"
+#include "tgx/core/assert.h"
+#include "tgx/core/error.h"
+#include "tgx/core/handle.h"
 
 #include <cstddef>
 #include <cstdint>

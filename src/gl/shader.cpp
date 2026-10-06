@@ -1,9 +1,9 @@
 #include "tgx/gl/shader.h"
 
-#include "tgx/assert.h"
+#include "tgx/core/assert.h"
 
-#include "context.h"
-#include "shader_internal.h"
+#include "core/context.h"
+#include "gl/shader_internal.h"
 
 #include <glad/gl.h>
 

@@ -1,4 +1,4 @@
-#include "tgx/image.h"
+#include "tgx/core/image.h"
 
 #include "support.h"
 
