@@ -3,7 +3,9 @@
 #include "tgx/math.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <optional>
+#include <span>
 
 namespace tgx {
     struct Circle {
@@ -46,6 +48,31 @@ namespace tgx {
         return !(any_negative && any_positive);
     }
 
+    // The polygon through the points in order, closed back to the first,
+    // either way round, convex or not; where it crosses itself, the parts
+    // covered an odd number of times are inside. A point exactly on an edge
+    // may come out either way. Fewer than three points have no inside.
+    [[nodiscard]] constexpr auto contains(std::span<const Vec2> polygon, Vec2 point) noexcept -> bool {
+        if (polygon.size() < 3) {
+            return false;
+        }
+        // A ray from the point to the right crosses the edges an odd number of
+        // times from inside. A corner level with the point counts as above
+        // it, so a ray through a corner crosses once, not twice.
+        bool inside = false;
+        for (std::size_t i = 0, j = polygon.size() - 1; i < polygon.size(); j = i++) {
+            const Vec2 a = polygon[i];
+            const Vec2 b = polygon[j];
+            if ((a.y > point.y) != (b.y > point.y)) {
+                const float x = a.x + (point.y - a.y) * (b.x - a.x) / (b.y - a.y);
+                if (point.x < x) {
+                    inside = !inside;
+                }
+            }
+        }
+        return inside;
+    }
+
     // Shapes that only touch, edge to edge, do not overlap: two tiles side by
     // side are not in each other.
     [[nodiscard]] constexpr auto overlaps(Rect a, Rect b) noexcept -> bool {
@@ -71,6 +98,26 @@ namespace tgx {
 
     [[nodiscard]] constexpr auto overlaps(Circle circle, Rect rect) noexcept -> bool {
         return overlaps(rect, circle);
+    }
+
+    // The point of the segment from a to b nearest the point: the foot of the
+    // perpendicular, or the nearer end. E.g. where to push a ball out of a
+    // wall from.
+    [[nodiscard]] constexpr auto closest_point(Vec2 a, Vec2 b, Vec2 point) noexcept -> Vec2 {
+        const Vec2 ab = b - a;
+        const float length_squared = dot(ab, ab);
+        if (length_squared == 0.f) {
+            return a;
+        }
+        const float t = std::clamp(dot(point - a, ab) / length_squared, 0.f, 1.f);
+        return a + ab * t;
+    }
+
+    // The circle and the segment from a to b; touching is not overlapping. A
+    // point near a line is a small circle: overlaps(Circle{point, 2}, a, b).
+    [[nodiscard]] constexpr auto overlaps(Circle circle, Vec2 a, Vec2 b) noexcept -> bool {
+        const Vec2 d = circle.center - closest_point(a, b, circle.center);
+        return dot(d, d) < circle.radius * circle.radius;
     }
 
     // The part two rects share; an empty Rect when they do not overlap. Its
