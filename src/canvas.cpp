@@ -35,7 +35,6 @@ namespace {
         && tgx::detail::max_segments * 6 <= tgx::detail::batch_max_indices
     );
 
-
     namespace font = tgx::detail::default_font;
 
     // Where shapes sample the built-in texture: the middle texel of its white

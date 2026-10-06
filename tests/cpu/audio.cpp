@@ -6,7 +6,6 @@
 
 #include <array>
 #include <cstddef>
-#include <filesystem>
 #include <fstream>
 #include <span>
 #include <vector>
@@ -65,20 +64,18 @@ TEST_CASE("a moved Sound keeps what it is") {
 }
 
 TEST_CASE("Music without an Audio loads, measures and stays quiet") {
-    const std::filesystem::path path = tgx_test::temp_path("music.wav");
+    const tgx_test::TempFile file{"music.wav"};
     {
-        std::ofstream file{path, std::ios::binary};
-        file.write(reinterpret_cast<const char *>(wav.data()), static_cast<std::streamsize>(wav.size()));
+        std::ofstream out{file.path, std::ios::binary};
+        out.write(reinterpret_cast<const char *>(wav.data()), static_cast<std::streamsize>(wav.size()));
     }
 
-    auto music = tgx::Music::load(path);
+    auto music = tgx::Music::load(file.path);
     REQUIRE(music.has_value());
     CHECK(music->length() == doctest::Approx(8.0 / 8000.0));
     music->play();
     CHECK_FALSE(music->playing());
     CHECK(music->position() == 0.0);
-
-    std::filesystem::remove(path);
 
     const auto missing = tgx::Music::load("there/is/no/such/music.ogg");
     REQUIRE_FALSE(missing.has_value());

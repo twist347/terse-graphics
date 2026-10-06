@@ -235,7 +235,9 @@ or clear of its own and before presenting the frame.
 Nothing the shapes use is read later than the calls that made them: a texture
 updated or destroyed, or a uniform of the canvas shader set, has the
 shapes waiting on it drawn first. `device.flush()` is only needed before raw
-GL calls.
+GL calls, and those must leave the bindings (program, vertex array, textures,
+framebuffer) as they found them: the `Device` caches them and skips a bind it
+thinks is in place.
 
 Textures load from image files in one call; `Image` is for pixels made in code
 or read on the CPU, rows top to bottom. A sprite needs only a position: by

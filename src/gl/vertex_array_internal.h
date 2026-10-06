@@ -9,7 +9,6 @@ namespace tgx::gl::detail {
     // (usually 0, 0, 0, 1), and reads integers into a float input or the other
     // way round as garbage; neither is reported. A different component count
     // is fine: GL pads the missing ones with 0, 0, 1. For the asserts in
-    // Device::draw alone: with asserts off nothing calls it, which
-    // [[maybe_unused]] says is meant.
-    [[maybe_unused]] auto check_vertex_inputs(const Shader &shader, const VertexArray &vertices) noexcept -> void;
+    // Device::draw alone.
+    auto check_vertex_inputs(const Shader &shader, const VertexArray &vertices) noexcept -> void;
 }

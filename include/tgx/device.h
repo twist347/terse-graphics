@@ -40,7 +40,10 @@ namespace tgx {
     //
     // It also draws what the Canvas has collected before anything else of its
     // own: a draw, a clear, presenting the frame. So the picture follows the
-    // order of the calls. flush() draws it on demand, before raw GL calls.
+    // order of the calls. flush() draws it on demand, before raw GL calls;
+    // those must leave the bindings (program, VAO, textures, framebuffer) as
+    // they found them, as the Device caches them and skips a bind it thinks
+    // is in place.
     //
     // Belongs to the simple level, as without it no frame is shown; only
     // draw() is of the OpenGL level, and takes its types (tgx/gl.h).

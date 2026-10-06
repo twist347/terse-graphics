@@ -13,6 +13,7 @@
 #include <random>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 namespace tgx_test {
     // Vectors equal to within float rounding, as trigonometry leaves them.
@@ -31,6 +32,21 @@ namespace tgx_test {
         static const unsigned run = std::random_device{}();
         return std::filesystem::temp_directory_path() / std::format("tgx_tests_{:08x}_{}", run, name);
     }
+
+    // A temp_path removed when it goes out of scope, so a failed REQUIRE does
+    // not leave the file behind. Declared before whatever holds the file
+    // open, as Windows does not remove an open file.
+    struct TempFile {
+        std::filesystem::path path;
+
+        explicit TempFile(std::string_view name) : path{temp_path(name)} {}
+        TempFile(const TempFile &) = delete;
+        auto operator=(const TempFile &) -> TempFile & = delete;
+        ~TempFile() {
+            std::error_code ignored;
+            std::filesystem::remove(path, ignored);
+        }
+    };
 
     [[nodiscard]] inline auto string(const std::string &text) -> doctest::String {
         return {text.c_str(), static_cast<doctest::String::size_type>(text.size())};
