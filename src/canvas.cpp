@@ -10,6 +10,7 @@
 #include "batch.h"
 #include "context.h"
 #include "default_font.h"
+#include "geometry.h"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,7 @@
 #include <format>
 #include <initializer_list>
 #include <numbers>
+#include <optional>
 #include <string_view>
 #include <utility>
 
@@ -28,16 +30,11 @@ namespace {
     using tgx::detail::BatchVertex;
     using tgx::detail::Surface;
 
-    // Segments for a circle: enough that no edge strays more than a quarter
-    // pixel from the true circle, at the size it shows in pixels.
-    constexpr float circle_tolerance = 0.25f;
-    constexpr std::size_t min_segments = 8;
-    constexpr std::size_t max_segments = 1024;
-
     static_assert(
-        max_segments * 2 <= tgx::detail::batch_max_vertices
-        && max_segments * 6 <= tgx::detail::batch_max_indices
+        tgx::detail::max_segments * 2 <= tgx::detail::batch_max_vertices
+        && tgx::detail::max_segments * 6 <= tgx::detail::batch_max_indices
     );
+
 
     namespace font = tgx::detail::default_font;
 
@@ -48,8 +45,14 @@ namespace {
         (font::white_size / 2.f) / font::atlas_height,
     };
 
+    // Glyphs fill the atlas top to bottom, one row of them: v runs 0 to 1.
+    static_assert(font::atlas_height == font::line_height);
+
     // Stands for a line break among glyph indices.
     constexpr std::size_t newline = font::glyphs.size();
+
+    // The glyph of ' ': all advance and no ink.
+    constexpr std::size_t space = static_cast<std::size_t>(' ' - font::first);
 
     // How many bytes the UTF-8 sequence its lead byte starts is long; a
     // stray continuation byte is one of its own.
@@ -108,14 +111,10 @@ namespace {
         return tgx::ortho(0.f, static_cast<float>(size.width), static_cast<float>(size.height), 0.f);
     }
 
-    [[nodiscard]] auto has_area(tgx::Rect rect) noexcept -> bool {
-        return rect.width > 0.f && rect.height > 0.f;
-    }
-
     // The part of the surface a canvas covers, in its units: the viewport, or
     // all of it.
     [[nodiscard]] auto covered(tgx::Rect viewport, const Surface &surface) noexcept -> tgx::Rect {
-        if (has_area(viewport)) {
+        if (!viewport.empty()) {
             return viewport;
         }
         return {0.f, 0.f, static_cast<float>(surface.units.width), static_cast<float>(surface.units.height)};
@@ -124,7 +123,7 @@ namespace {
     // The part of the surface a canvas covers, in pixels: its viewport, from
     // units, or all of it.
     [[nodiscard]] auto pixel_viewport(tgx::Rect rect, const Surface &surface) noexcept -> tgx::gl::Viewport {
-        if (!has_area(rect) || surface.units.empty()) {
+        if (rect.empty() || surface.units.empty()) {
             return surface.viewport();
         }
 
@@ -139,98 +138,49 @@ namespace {
         return {left, top, right - left, bottom - top};
     }
 
-    // The area a canvas's coordinates span: its own size, else the size of
-    // what it covers, its viewport or the whole surface.
-    [[nodiscard]] auto span_of(tgx::Size size, tgx::Rect viewport, const Surface &surface) noexcept -> tgx::Size {
-        if (!size.empty()) {
-            return size;
+    // Segments for a circle of the radius, by how many pixels it shows over:
+    // one unit of the canvas covers pixels / span along the axis it is
+    // stretched most, so a canvas of its own size stretched over more
+    // pixels, or a scaling display, shows its circles bigger than their
+    // radius. span is the one the state was made for.
+    [[nodiscard]] auto circle_segments(
+        float radius,
+        float zoom,
+        const BatchState &state,
+        tgx::Size span
+    ) noexcept -> std::size_t {
+        float pixels_per_unit = 1.f;
+        if (!span.empty()) {
+            pixels_per_unit = std::max(
+                static_cast<float>(state.viewport.width) / static_cast<float>(span.width),
+                static_cast<float>(state.viewport.height) / static_cast<float>(span.height)
+            );
         }
-        if (has_area(viewport)) {
-            return {static_cast<int>(std::lround(viewport.width)), static_cast<int>(std::lround(viewport.height))};
-        }
-        return surface.units;
+        return tgx::detail::segments_for(radius * std::abs(zoom) * pixels_per_unit);
     }
 
-    // How many pixels one unit of the canvas covers, along the axis it is
-    // stretched most: a canvas of its own size stretched over more pixels,
-    // or a scaling display, shows its circles bigger than their radius.
-    [[nodiscard]] auto pixels_per_unit(const tgx::gl::Viewport &pixels, tgx::Size span) noexcept -> float {
-        if (span.empty()) {
-            return 1.f;
-        }
-        return std::max(
-            static_cast<float>(pixels.width) / static_cast<float>(span.width),
-            static_cast<float>(pixels.height) / static_cast<float>(span.height)
-        );
-    }
-
-    // Where two lines of a strip meet at a corner: the points both share on
-    // either side, plus along the first line's perpendicular, minus the
-    // other way. Not mitered when the corner is too sharp for that, turns
-    // straight back, or would reach along a line more than room: the lines
-    // then end square at it.
-    struct Joint {
-        tgx::Vec2 plus;
-        tgx::Vec2 minus;
-        bool mitered;
+    // From the part of the surface a canvas covers to the canvas's own
+    // coordinates: canvas = (screen - offset) * scale, axis by axis. None for
+    // a minimized window, which covers nothing to map from.
+    struct ScreenMapping {
+        tgx::Vec2 offset;
+        tgx::Vec2 scale;
     };
 
-    // How far a mitered corner may reach out from the line's middle, in
-    // halves of its thickness: SVG's default miter limit of 4 thicknesses
-    // from tip to tip.
-    constexpr float miter_limit = 4.f;
-
-    [[nodiscard]] auto joint(tgx::Vec2 at, tgx::Vec2 in, tgx::Vec2 out, float half, float room) noexcept -> Joint {
-        const tgx::Vec2 sum = tgx::perpendicular(in) + tgx::perpendicular(out);
-        if (tgx::dot(sum, sum) < 1e-6f) {
-            return {at, at, false};
+    [[nodiscard]] auto screen_mapping(
+        tgx::Size size,
+        tgx::Rect viewport,
+        const Surface &surface
+    ) noexcept -> std::optional<ScreenMapping> {
+        const tgx::Rect area = covered(viewport, surface);
+        const tgx::Size span = tgx::detail::span_of(size, viewport, surface.units);
+        if (area.empty() || span.empty()) {
+            return std::nullopt;
         }
-        const tgx::Vec2 miter = tgx::normalize(sum);
-        // Projected onto the line's own side, the miter reaches half out.
-        const float reach = half / tgx::dot(miter, tgx::perpendicular(out));
-        if (reach > half * miter_limit) {
-            return {at, at, false};
-        }
-        // The inside point slides back along both lines; past the far end of
-        // a short one, its band would twist over itself.
-        const tgx::Vec2 offset = miter * reach;
-        if (std::abs(tgx::dot(offset, out)) > room) {
-            return {at, at, false};
-        }
-        return {at + offset, at - offset, true};
-    }
-
-    // Whether the colors of a quad's corners (clockwise) blend between them
-    // as two triangles split along a to c would: when a and c add up to the
-    // same as b and d, channel by channel. Then the diagonal does not show.
-    [[nodiscard]] auto blends_flat(const std::array<tgx::Color, 4> &colors) noexcept -> bool {
-        const auto flat = [&](std::uint8_t tgx::Color::*channel) noexcept {
-            return colors[0].*channel + colors[2].*channel == colors[1].*channel + colors[3].*channel;
+        return ScreenMapping{
+            {area.x, area.y},
+            {static_cast<float>(span.width) / area.width, static_cast<float>(span.height) / area.height},
         };
-        return flat(&tgx::Color::r) && flat(&tgx::Color::g) && flat(&tgx::Color::b) && flat(&tgx::Color::a);
-    }
-
-    // The four corners' colors mixed evenly, rounded.
-    [[nodiscard]] auto average(const std::array<tgx::Color, 4> &colors) noexcept -> tgx::Color {
-        const auto mix = [&](std::uint8_t tgx::Color::*channel) noexcept {
-            const int sum = colors[0].*channel + colors[1].*channel + colors[2].*channel + colors[3].*channel;
-            return static_cast<std::uint8_t>((sum + 2) / 4);
-        };
-        return {mix(&tgx::Color::r), mix(&tgx::Color::g), mix(&tgx::Color::b), mix(&tgx::Color::a)};
-    }
-
-    [[nodiscard]] auto segments_for(float pixel_radius) noexcept -> std::size_t {
-        if (pixel_radius <= circle_tolerance) {
-            return min_segments;
-        }
-        // An edge of a circle split into n strays r * (1 - cos(pi / n)) from it.
-        // A huge radius rounds the cosine to 1 and n to infinity, which no
-        // cast survives: clamped while still a float.
-        const float n = std::numbers::pi_v<float> / std::acos(1.f - circle_tolerance / pixel_radius);
-        if (!(n < static_cast<float>(max_segments))) {
-            return max_segments;
-        }
-        return std::max(static_cast<std::size_t>(std::ceil(n)), min_segments);
     }
 
     // The unit circle split into n, from angle 0 clockwise on screen.
@@ -256,6 +206,21 @@ namespace {
             batch.push_index(static_cast<std::uint16_t>(first + offset));
         }
     }
+
+    // Four corners clockwise, as two triangles: a b c and c d a. Shapes,
+    // sprites and glyphs all come down to it.
+    auto push_quad(
+        const BatchState &state,
+        const std::array<tgx::Vec2, 4> &corners,
+        const std::array<tgx::Vec2, 4> &uvs,
+        const std::array<tgx::Color, 4> &colors
+    ) noexcept -> void {
+        auto [batch, first] = start(state, 4, 6);
+        for (std::size_t i = 0; i < 4; ++i) {
+            batch.push_vertex({corners[i], uvs[i], colors[i]});
+        }
+        push_indices(batch, first, {0, 1, 2, 2, 3, 0});
+    }
 }
 
 namespace tgx {
@@ -265,57 +230,46 @@ namespace tgx {
 
     auto Canvas::set_size(Size size) noexcept -> void {
         m_size = size;
-        refit();
+        m_transform_stale = true;
     }
 
     auto Canvas::size() const noexcept -> Size {
-        return span_of(m_size, m_viewport, surface());
+        return detail::span_of(m_size, m_viewport, surface().units);
     }
 
     auto Canvas::set_viewport(Rect rect) noexcept -> void {
         m_viewport = rect;
-        refit();
+        m_transform_stale = true;
     }
 
     auto Canvas::set_target(const RenderTarget *target) noexcept -> void {
         m_target = detail::target_of(target);
-        refit();
+        m_transform_stale = true;
     }
 
     auto Canvas::set_camera(const Camera2D &camera) noexcept -> void {
         TGX_ASSERT_MSG(camera.zoom != 0.f, "a camera with zoom 0 shows nothing and cannot map back");
 
         m_camera = camera;
-        refit();
+        m_transform_stale = true;
     }
 
     auto Canvas::to_world(Vec2 point) const noexcept -> Vec2 {
-        const Surface surface = this->surface();
-        const Rect area = covered(m_viewport, surface);
-        const Size span = span_of(m_size, m_viewport, surface);
-        // A minimized window covers nothing to map from.
-        if (!has_area(area) || span.empty()) {
+        const auto mapping = screen_mapping(m_size, m_viewport, surface());
+        if (!mapping) {
             return m_camera.to_world(point);
         }
-        const Vec2 canvas_point{
-            (point.x - area.x) * static_cast<float>(span.width) / area.width,
-            (point.y - area.y) * static_cast<float>(span.height) / area.height,
-        };
-        return m_camera.to_world(canvas_point);
+        const Vec2 from_corner = point - mapping->offset;
+        return m_camera.to_world({from_corner.x * mapping->scale.x, from_corner.y * mapping->scale.y});
     }
 
     auto Canvas::to_screen(Vec2 world) const noexcept -> Vec2 {
-        const Surface surface = this->surface();
-        const Rect area = covered(m_viewport, surface);
-        const Size span = span_of(m_size, m_viewport, surface);
+        const auto mapping = screen_mapping(m_size, m_viewport, surface());
         const Vec2 canvas_point = m_camera.to_screen(world);
-        if (!has_area(area) || span.empty()) {
+        if (!mapping) {
             return canvas_point;
         }
-        return {
-            canvas_point.x * area.width / static_cast<float>(span.width) + area.x,
-            canvas_point.y * area.height / static_cast<float>(span.height) + area.y,
-        };
+        return Vec2{canvas_point.x / mapping->scale.x, canvas_point.y / mapping->scale.y} + mapping->offset;
     }
 
     auto Canvas::set_shader(const gl::Shader *shader) noexcept -> void {
@@ -389,7 +343,7 @@ namespace tgx {
             Vec2{rect.x, rect.bottom()},
         };
         const std::array<Color, 4> colors{top_left, top_right, bottom_right, bottom_left};
-        if (blends_flat(colors)) {
+        if (detail::blends_flat(colors)) {
             quad(corners, colors);
             return;
         }
@@ -397,7 +351,7 @@ namespace tgx {
         // Four triangles around the middle, so no one diagonal shows: red
         // and green crossed would otherwise leave a band along it.
         auto [batch, first] = start(state_for(0), 5, 12);
-        batch.push_vertex({rect.center(), white_uv, average(colors)});
+        batch.push_vertex({rect.center(), white_uv, detail::average(colors)});
         for (std::size_t i = 0; i < 4; ++i) {
             batch.push_vertex({corners[i], white_uv, colors[i]});
         }
@@ -458,11 +412,11 @@ namespace tgx {
             const Vec2 side = perpendicular(direction) * half;
 
             // Its start: where the joint before left it, or square.
-            Joint start{points[a] + side, points[a] - side, true};
+            detail::Joint start{points[a] + side, points[a] - side, true};
             if (has_previous) {
                 // Half of either line each, so the joints at its two ends
                 // cannot cross.
-                start = joint(points[a], previous, direction, half, std::min(previous_length, length) / 2.f);
+                start = detail::joint(points[a], previous, direction, half, std::min(previous_length, length) / 2.f);
                 if (!start.mitered) {
                     start = {points[a] + side, points[a] - side, true};
                 }
@@ -470,11 +424,11 @@ namespace tgx {
 
             // Its end: shared with the next line when the corner is mitered;
             // square otherwise, with the corner's outside filled in.
-            Joint end{points[b] + side, points[b] - side, true};
+            detail::Joint end{points[b] + side, points[b] - side, true};
             if (c < points.size()) {
                 const float next_length = tgx::length(points[c] - points[b]);
                 const Vec2 next = (points[c] - points[b]) / next_length;
-                const Joint corner = joint(
+                const detail::Joint corner = detail::joint(
                     points[b], direction, next, half, std::min(length, next_length) / 2.f
                 );
                 if (corner.mitered) {
@@ -507,9 +461,9 @@ namespace tgx {
             return;
         }
 
+        // state_for brings the span up to date first.
         const BatchState state = state_for(0);
-        const float pixel_radius = radius * std::abs(m_camera.zoom) * pixels_per_unit(state.viewport, m_transform_size);
-        const std::size_t n = segments_for(pixel_radius);
+        const std::size_t n = circle_segments(radius, m_camera.zoom, state, m_transform_size);
         auto [batch, first] = start(state, n + 1, n * 3);
 
         // A fan around the center, vertex first.
@@ -533,9 +487,9 @@ namespace tgx {
         }
 
         const float inner = radius - thickness;
+        // state_for brings the span up to date first.
         const BatchState state = state_for(0);
-        const float pixel_radius = radius * std::abs(m_camera.zoom) * pixels_per_unit(state.viewport, m_transform_size);
-        const std::size_t n = segments_for(pixel_radius);
+        const std::size_t n = circle_segments(radius, m_camera.zoom, state, m_transform_size);
         auto [batch, first] = start(state, n * 2, n * 6);
 
         // Outer and inner rim points in pairs; each pair and the next make a
@@ -559,6 +513,8 @@ namespace tgx {
         );
 
         const Size texture_size = texture.size();
+        // An src left unset is the whole texture. Not Rect::empty(): a
+        // negative size is a mirrored part, not none.
         const Rect src = sprite.src.width == 0.f && sprite.src.height == 0.f
             ? Rect{0.f, 0.f, static_cast<float>(texture_size.width), static_cast<float>(texture_size.height)}
             : sprite.src;
@@ -606,12 +562,7 @@ namespace tgx {
             }
         }
 
-        auto [batch, first] = start(state_for(texture.id()), 4, 6);
-        for (std::size_t i = 0; i < 4; ++i) {
-            batch.push_vertex({corners[i], uvs[i], sprite.tint});
-        }
-        // Two triangles: a b c and c d a.
-        push_indices(batch, first, {0, 1, 2, 2, 3, 0});
+        push_quad(state_for(texture.id()), corners, uvs, {sprite.tint, sprite.tint, sprite.tint, sprite.tint});
     }
 
     auto Canvas::text(Vec2 position, std::string_view text, Color color, float size) noexcept -> void {
@@ -627,17 +578,15 @@ namespace tgx {
 
             const font::Glyph glyph = font::glyphs[glyph_index];
             const float width = static_cast<float>(glyph.width) * scale;
-            // A space is all advance and no ink.
-            if (glyph_index != 0) {
+            if (glyph_index != space) {
                 const float u0 = static_cast<float>(glyph.x) / font::atlas_width;
                 const float u1 = static_cast<float>(glyph.x + glyph.width) / font::atlas_width;
-
-                auto [batch, first] = start(state, 4, 6);
-                batch.push_vertex({pen, {u0, 0.f}, color});
-                batch.push_vertex({pen + Vec2{width, 0.f}, {u1, 0.f}, color});
-                batch.push_vertex({pen + Vec2{width, size}, {u1, 1.f}, color});
-                batch.push_vertex({pen + Vec2{0.f, size}, {u0, 1.f}, color});
-                push_indices(batch, first, {0, 1, 2, 2, 3, 0});
+                push_quad(
+                    state,
+                    {pen, pen + Vec2{width, 0.f}, pen + Vec2{width, size}, pen + Vec2{0.f, size}},
+                    {Vec2{u0, 0.f}, Vec2{u1, 0.f}, Vec2{u1, 1.f}, Vec2{u0, 1.f}},
+                    {color, color, color, color}
+                );
             }
             pen.x += width;
         });
@@ -678,15 +627,15 @@ namespace tgx {
     }
 
     Canvas::Canvas(Size size) noexcept : m_size{size} {
-        refit();
     }
 
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
         // A canvas that follows the window notices a resize here, at its first
         // shape after it.
         const Surface surface = this->surface();
-        if (span_of(m_size, m_viewport, surface) != m_transform_size) {
-            refit();
+        if (const Size span = detail::span_of(m_size, m_viewport, surface.units);
+            m_transform_stale || span != m_transform_size) {
+            refit(span);
         }
         return {
             .target = m_target,
@@ -705,21 +654,16 @@ namespace tgx {
     }
 
     auto Canvas::quad(const std::array<Vec2, 4> &corners, const std::array<Color, 4> &colors) noexcept -> void {
-        auto [batch, first] = start(state_for(0), 4, 6);
-
-        for (std::size_t i = 0; i < 4; ++i) {
-            batch.push_vertex({corners[i], white_uv, colors[i]});
-        }
-        // Two triangles: a b c and c d a.
-        push_indices(batch, first, {0, 1, 2, 2, 3, 0});
+        push_quad(state_for(0), corners, {white_uv, white_uv, white_uv, white_uv}, colors);
     }
 
     auto Canvas::surface() const noexcept -> detail::Surface {
         return detail::surface_of(m_target);
     }
 
-    auto Canvas::refit() noexcept -> void {
-        m_transform_size = size();
-        m_transform = projection_for(m_transform_size) * m_camera.matrix();
+    auto Canvas::refit(Size span) noexcept -> void {
+        m_transform_size = span;
+        m_transform = projection_for(span) * m_camera.matrix();
+        m_transform_stale = false;
     }
 }

@@ -69,7 +69,7 @@ TEST_CASE("Image::save writes what Image::load reads back") {
     image.at(0, 0) = tgx::colors::red;
     image.at(2, 1) = tgx::Color{10, 20, 30, 128};
 
-    const std::filesystem::path path = std::filesystem::temp_directory_path() / "tgx_tests_save.png";
+    const std::filesystem::path path = tgx_test::temp_path("save.png");
     REQUIRE(image.save(path).has_value());
     const auto back = tgx::Image::load(path);
     std::filesystem::remove(path);

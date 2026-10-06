@@ -1,0 +1,33 @@
+# macOS: builds the library, examples and tests, warnings as errors,
+# and runs the tests that need no display or sound card. One workflow per
+# platform, so each has a badge of its own in the README.
+name: macOS
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  macos:
+    name: macOS, Apple Clang, ${{ matrix.build_type }}
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Everything needed comes with Xcode: GL and Cocoa are system frameworks.
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DTGX_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build -L cpu --output-on-failure

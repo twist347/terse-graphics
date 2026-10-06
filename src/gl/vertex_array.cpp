@@ -2,7 +2,10 @@
 
 #include "tgx/assert.h"
 
+#include "tgx/gl/shader.h"
+
 #include "context.h"
+#include "vertex_array_internal.h"
 
 #include <glad/gl.h>
 
@@ -16,26 +19,40 @@ namespace {
     // portable to them too.
     constexpr std::size_t max_stride = 2048;
 
+    using tgx::gl::detail::ComponentKind;
+
+    // How GL reads a format, and what a shader input of it must be: the one
+    // table of formats.
     struct GlFormat {
         GLint components;
         GLenum type;
         GLboolean normalized;
-        bool integer;
+        ComponentKind kind;
         std::size_t size;
     };
 
     [[nodiscard]] constexpr auto to_gl(tgx::gl::VertexFormat format) noexcept -> GlFormat {
         using enum tgx::gl::VertexFormat;
+        using enum ComponentKind;
         switch (format) {
-            case float32: return {1, GL_FLOAT, GL_FALSE, false, 4};
-            case float32x2: return {2, GL_FLOAT, GL_FALSE, false, 8};
-            case float32x3: return {3, GL_FLOAT, GL_FALSE, false, 12};
-            case float32x4: return {4, GL_FLOAT, GL_FALSE, false, 16};
-            case unorm8x4: return {4, GL_UNSIGNED_BYTE, GL_TRUE, false, 4};
-            case uint32: return {1, GL_UNSIGNED_INT, GL_FALSE, true, 4};
-            case sint32: return {1, GL_INT, GL_FALSE, true, 4};
+            case float32: return {1, GL_FLOAT, GL_FALSE, floating, 4};
+            case float32x2: return {2, GL_FLOAT, GL_FALSE, floating, 8};
+            case float32x3: return {3, GL_FLOAT, GL_FALSE, floating, 12};
+            case float32x4: return {4, GL_FLOAT, GL_FALSE, floating, 16};
+            case unorm8x4: return {4, GL_UNSIGNED_BYTE, GL_TRUE, floating, 4};
+            case uint32: return {1, GL_UNSIGNED_INT, GL_FALSE, uint, 4};
+            case sint32: return {1, GL_INT, GL_FALSE, sint, 4};
         }
-        return {1, GL_FLOAT, GL_FALSE, false, 4};
+        return {1, GL_FLOAT, GL_FALSE, floating, 4};
+    }
+
+    [[maybe_unused, nodiscard]] constexpr auto kind_name(ComponentKind kind) noexcept -> const char * {
+        switch (kind) {
+            case ComponentKind::floating: return "float";
+            case ComponentKind::sint: return "int";
+            case ComponentKind::uint: return "uint";
+        }
+        return "unknown";
     }
 }
 
@@ -116,7 +133,7 @@ namespace tgx::gl {
             const auto *offset = reinterpret_cast<const void *>(byte_offset + attribute.offset);
             // Fits: the stride is asserted against max_stride at creation.
             const auto stride = static_cast<GLsizei>(m_stride);
-            if (format.integer) {
+            if (format.kind != ComponentKind::floating) {
                 glVertexAttribIPointer(attribute.location, format.components, format.type, stride, offset);
             } else {
                 glVertexAttribPointer(
@@ -140,5 +157,25 @@ namespace tgx::gl {
         m_index_type = type;
         m_has_index_buffer = true;
         m_index_count = index_count;
+    }
+
+    auto detail::check_vertex_inputs(const Shader &shader, const VertexArray &vertices) noexcept -> void {
+        const auto attributes = vertices.attributes();
+        for (const auto &input: vertex_inputs(shader)) {
+            for (std::uint32_t slot = 0; slot < input.slots; ++slot) {
+                const std::uint32_t location = input.location + slot;
+                const auto attribute = std::ranges::find(attributes, location, &VertexAttribute::location);
+                TGX_ASSERT_MSG(
+                    attribute != attributes.end(),
+                    "vertex input '{}' reads location {}, which the vertex array has no attribute for",
+                    input.name, location
+                );
+                TGX_ASSERT_MSG(
+                    to_gl(attribute->format).kind == input.kind,
+                    "vertex input '{}' at location {} is {}, but its attribute is {}",
+                    input.name, location, kind_name(input.kind), kind_name(to_gl(attribute->format).kind)
+                );
+            }
+        }
     }
 }

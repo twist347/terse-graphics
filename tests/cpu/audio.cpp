@@ -65,7 +65,7 @@ TEST_CASE("a moved Sound keeps what it is") {
 }
 
 TEST_CASE("Music without an Audio loads, measures and stays quiet") {
-    const std::filesystem::path path = std::filesystem::temp_directory_path() / "tgx_tests_music.wav";
+    const std::filesystem::path path = tgx_test::temp_path("music.wav");
     {
         std::ofstream file{path, std::ios::binary};
         file.write(reinterpret_cast<const char *>(wav.data()), static_cast<std::streamsize>(wav.size()));

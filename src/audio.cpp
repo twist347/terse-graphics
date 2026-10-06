@@ -14,12 +14,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
-#include <ios>
 #include <memory>
 #include <new>
 #include <span>
-#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -116,21 +113,37 @@ namespace tgx::detail {
 }
 
 namespace {
+    // A decoder over the bytes of a sound file in memory, giving 32-bit
+    // floats, and otherwise the sound as it was recorded: its own rate and
+    // channels, which the engine converts as it plays. Let go however its
+    // scope ends, an exception included.
+    struct MemoryDecoder {
+        ma_decoder decoder{};
+        bool open{false};
+
+        explicit MemoryDecoder(std::span<const std::byte> bytes) noexcept {
+            const ma_decoder_config config = ma_decoder_config_init(ma_format_f32, 0, 0);
+            open = ma_decoder_init_memory(bytes.data(), bytes.size(), &config, &decoder) == MA_SUCCESS;
+        }
+
+        MemoryDecoder(const MemoryDecoder &) = delete;
+        auto operator=(const MemoryDecoder &) -> MemoryDecoder & = delete;
+
+        ~MemoryDecoder() {
+            if (open) {
+                ma_decoder_uninit(&decoder);
+            }
+        }
+    };
+
     // All of it, as 32-bit floats at the rate and channels it has. A file
     // with no samples in it is no sound either.
     [[nodiscard]] auto decode_all(std::span<const std::byte> encoded) -> tgx::Result<tgx::Sound> {
-        // 32-bit floats, and otherwise as the sound was recorded: its own
-        // rate and channels, which the engine converts as it plays.
-        const ma_decoder_config config = ma_decoder_config_init(ma_format_f32, 0, 0);
-        ma_decoder decoder;
-        if (ma_decoder_init_memory(encoded.data(), encoded.size(), &config, &decoder) != MA_SUCCESS) {
+        MemoryDecoder source{encoded};
+        if (!source.open) {
             return std::unexpected{tgx::Error::decode};
         }
-        // Let go however this ends, a failed resize below included.
-        struct DecoderGuard {
-            ma_decoder &decoder;
-            ~DecoderGuard() { ma_decoder_uninit(&decoder); }
-        } guard{decoder};
+        ma_decoder &decoder = source.decoder;
 
         ma_uint32 channels = 0;
         ma_uint32 rate = 0;
@@ -167,32 +180,22 @@ namespace {
 #endif
     }
 
-    // Whether the file is there and opens for reading: what Error::io means,
-    // told apart before miniaudio, which reports both alike, decodes it.
-    [[nodiscard]] auto readable(const std::filesystem::path &path) -> bool {
-        std::error_code err;
-        return std::filesystem::is_regular_file(path, err) && std::ifstream{path, std::ios::binary}.is_open();
-    }
-
     // The length in seconds, by a decoder reading the whole file from
     // memory: a stream reads Vorbis in a way that cannot tell it, and so
     // does a decoder opened on the path on Windows. 0 if it does not tell.
     [[nodiscard]] auto measure(const std::filesystem::path &path) -> tgx::Result<double> {
         return tgx::detail::read_file(path).and_then([](const std::vector<std::byte> &bytes) -> tgx::Result<double> {
-            const ma_decoder_config config = ma_decoder_config_init(ma_format_f32, 0, 0);
-            ma_decoder decoder;
-            if (ma_decoder_init_memory(bytes.data(), bytes.size(), &config, &decoder) != MA_SUCCESS) {
+            MemoryDecoder source{bytes};
+            if (!source.open) {
                 return std::unexpected{tgx::Error::decode};
             }
             ma_uint64 frames = 0;
             ma_uint32 rate = 0;
-            double length = 0.0;
-            ma_decoder_get_data_format(&decoder, nullptr, nullptr, &rate, nullptr, 0);
-            if (ma_decoder_get_length_in_pcm_frames(&decoder, &frames) == MA_SUCCESS && rate != 0) {
-                length = static_cast<double>(frames) / static_cast<double>(rate);
+            ma_decoder_get_data_format(&source.decoder, nullptr, nullptr, &rate, nullptr, 0);
+            if (ma_decoder_get_length_in_pcm_frames(&source.decoder, &frames) != MA_SUCCESS || rate == 0) {
+                return 0.0;
             }
-            ma_decoder_uninit(&decoder);
-            return length;
+            return static_cast<double>(frames) / static_cast<double>(rate);
         });
     }
 }
@@ -273,7 +276,9 @@ namespace tgx {
     // Music
 
     auto Music::load(const std::filesystem::path &path) -> Result<Music> {
-        if (!readable(path)) {
+        // Told apart before miniaudio, which reports a missing file and one it
+        // cannot decode alike.
+        if (!tgx::detail::readable(path)) {
             return std::unexpected{Error::io};
         }
 

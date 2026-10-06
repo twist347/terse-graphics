@@ -55,6 +55,8 @@ namespace {
         in vec4 color;
 
         uniform sampler2D u_texture;
+        // The picture's rows, one scanline each.
+        uniform float u_rows;
 
         out vec4 out_color;
 
@@ -66,7 +68,7 @@ namespace {
                 texture(u_texture, uv).g,
                 texture(u_texture, uv - shift).b
             );
-            float row = fract(uv.y * 180.0);
+            float row = fract(uv.y * u_rows);
             float scanline = mix(1.0, 0.7, smoothstep(0.25, 0.5, abs(row - 0.5)));
             float vignette = 1.0 - dot(from_middle, from_middle) * 1.2;
             out_color = vec4(rgb * scanline * vignette, 1.0) * color;
@@ -229,6 +231,7 @@ int main() {
         std::print(stderr, "crt shader: {}\n{}", crt.error(), log);
         return 1;
     }
+    crt->set(crt->uniform<float>("u_rows"), static_cast<float>(resolution.height));
 
     // Three ways of drawing: the world into the target, the light into it
     // too but adding up, and the target onto the window through the shader.

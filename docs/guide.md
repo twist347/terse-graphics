@@ -41,9 +41,9 @@ In `tgx`:
   them.
 - **Input**: keyboard and mouse as of the last poll: keys and buttons held,
   pressed or released this frame, keys repeated by the OS while held, a
-  direction from WASD or the arrows (`direction()`, length 1), the
-  mouse in window coordinates (and through `Canvas::to_world` in the world),
-  the wheel, typed text in UTF-8.
+  direction from WASD or the arrows (`direction()`, length 1, or 0 with
+  nothing held), the mouse in window coordinates (and through
+  `Canvas::to_world` in the world), the wheel, typed text in UTF-8.
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles and
   circles (also with gradients), lines and joined strips of them, outlines,
   sprites (parts of textures, mirrored, turned, tinted) and text in a

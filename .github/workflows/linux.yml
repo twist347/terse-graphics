@@ -1,0 +1,47 @@
+# Linux: builds the library, examples and tests, warnings as errors,
+# and runs the tests that need no display or sound card. One workflow per
+# platform, so each has a badge of its own in the README.
+name: Linux
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    name: Linux, ${{ matrix.compiler.name }}, ${{ matrix.build_type }}
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - { name: GCC 15, cc: gcc-15, cxx: g++-15 }
+          - { name: Clang 22, cc: clang-22, cxx: clang++-22 }
+        # Debug builds with asserts, Release without.
+        build_type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # GLFW is built for both X11 and Wayland, so it needs both sets of
+      # headers; GL and audio libraries are loaded at run time, not linked.
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwayland-dev libxkbcommon-dev \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+          -DTGX_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build -L cpu --output-on-failure

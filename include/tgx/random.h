@@ -32,22 +32,21 @@ namespace tgx {
 
         // The same numbers every time for the same seed.
         explicit Random(std::uint64_t seed) noexcept {
-            next_u32();
+            step();
             m_state += seed;
-            next_u32();
+            step();
         }
 
         // All 32 bits random.
-        auto next_u32() noexcept -> std::uint32_t {
-            const std::uint64_t old = m_state;
-            m_state = old * 6364136223846793005ull + increment;
+        [[nodiscard]] auto next_u32() noexcept -> std::uint32_t {
+            const std::uint64_t old = step();
             const auto shifted = static_cast<std::uint32_t>(((old >> 18u) ^ old) >> 27u);
             const auto rotation = static_cast<std::uint32_t>(old >> 59u);
             return (shifted >> rotation) | (shifted << ((-rotation) & 31u));
         }
 
         // In [lo, hi): lo may come up, hi never does, unless they are equal.
-        auto next_float(float lo, float hi) noexcept -> float {
+        [[nodiscard]] auto next_float(float lo, float hi) noexcept -> float {
             TGX_ASSERT_MSG(lo <= hi, "next_float({}, {}): an empty range", lo, hi);
 
             // The top 24 bits, as many as a float holds exactly.
@@ -58,7 +57,7 @@ namespace tgx {
         }
 
         // In [lo, hi], both ends included, as a die is: next_int(1, 6).
-        auto next_int(int lo, int hi) noexcept -> int {
+        [[nodiscard]] auto next_int(int lo, int hi) noexcept -> int {
             TGX_ASSERT_MSG(lo <= hi, "next_int({}, {}): an empty range", lo, hi);
 
             // Lemire's way, without the bias a plain modulo has.
@@ -80,17 +79,17 @@ namespace tgx {
         }
 
         // True with the probability p: chance(0.25f) about once in four.
-        auto chance(float p) noexcept -> bool {
+        [[nodiscard]] auto chance(float p) noexcept -> bool {
             return next_float(0.f, 1.f) < p;
         }
 
         // A point anywhere inside the rectangle.
-        auto point_in(Rect rect) noexcept -> Vec2 {
+        [[nodiscard]] auto point_in(Rect rect) noexcept -> Vec2 {
             return {next_float(rect.x, rect.right()), next_float(rect.y, rect.bottom())};
         }
 
         // A unit vector pointing any way, all ways alike.
-        auto direction() noexcept -> Vec2 {
+        [[nodiscard]] auto direction() noexcept -> Vec2 {
             return from_angle(next_float(0.f, 2.f * std::numbers::pi_v<float>));
         }
 
@@ -100,8 +99,8 @@ namespace tgx {
         //
         //     const tgx::Color color = random.pick(palette);
         template<std::ranges::random_access_range Items>
-            requires std::ranges::borrowed_range<Items>
-        auto pick(Items &&items) noexcept -> std::ranges::range_reference_t<Items> {
+            requires std::ranges::sized_range<Items> && std::ranges::borrowed_range<Items>
+        [[nodiscard]] auto pick(Items &&items) noexcept -> std::ranges::range_reference_t<Items> {
             TGX_ASSERT_MSG(!std::ranges::empty(items), "picking from no items");
 
             const int last = static_cast<int>(std::ranges::size(items)) - 1;
@@ -112,6 +111,13 @@ namespace tgx {
         // Which of PCG's streams; any odd number, fixed so a seed alone
         // decides the numbers.
         static constexpr std::uint64_t increment = 1442695040888963407ull;
+
+        // Moves the state on, giving the one it had.
+        auto step() noexcept -> std::uint64_t {
+            const std::uint64_t old = m_state;
+            m_state = old * 6364136223846793005ull + increment;
+            return old;
+        }
 
         std::uint64_t m_state{0};
     };

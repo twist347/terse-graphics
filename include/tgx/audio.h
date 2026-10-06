@@ -106,7 +106,9 @@ namespace tgx {
     public:
         // Opens a WAV, OGG Vorbis, MP3 or FLAC file, stopped at its start.
         // Fails with Error::io when the file cannot be read, Error::decode
-        // when it is not sound in one of those formats.
+        // when it is not sound in one of those formats. Where the stream
+        // cannot tell its length (OGG Vorbis; any format on Windows, and with
+        // the Audio silent), the whole file is read once to measure it.
         [[nodiscard]] static auto load(const std::filesystem::path &path) -> Result<Music>;
 
         Music(const Music &) = delete;

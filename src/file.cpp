@@ -4,11 +4,22 @@
 #include <ios>
 #include <system_error>
 
+namespace {
+    // A directory opens fine on some systems and reports a size that is
+    // anything but its contents (LLONG_MAX on ext4).
+    [[nodiscard]] auto regular_file(const std::filesystem::path &path) -> bool {
+        std::error_code err;
+        return std::filesystem::is_regular_file(path, err);
+    }
+}
+
 namespace tgx {
+    auto detail::readable(const std::filesystem::path &path) -> bool {
+        return regular_file(path) && std::ifstream{path, std::ios::binary}.is_open();
+    }
+
     auto detail::read_file(const std::filesystem::path &path) -> Result<std::vector<std::byte>> {
-        // A directory opens fine on some systems and reports a size that is
-        // anything but its contents (LLONG_MAX on ext4).
-        if (std::error_code err; !std::filesystem::is_regular_file(path, err)) {
+        if (!regular_file(path)) {
             return std::unexpected{Error::io};
         }
 

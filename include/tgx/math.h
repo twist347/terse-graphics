@@ -68,6 +68,9 @@ namespace tgx {
 
         [[nodiscard]] constexpr auto center() const noexcept -> Vec2 { return {x + width / 2.f, y + height / 2.f}; }
 
+        // No area, as Size::empty(): a side of 0 or less.
+        [[nodiscard]] constexpr auto empty() const noexcept -> bool { return width <= 0.f || height <= 0.f; }
+
         [[nodiscard]] constexpr auto operator==(const Rect &) const noexcept -> bool = default;
     };
 

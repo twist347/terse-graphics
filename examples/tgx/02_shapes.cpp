@@ -3,6 +3,7 @@
 
 #include "tgx/tgx.h"
 
+#include <array>
 #include <cstdio>
 #include <print>
 
@@ -25,6 +26,8 @@ int main() {
 
         // Filled: a rectangle is {x, y, width, height}.
         canvas.rect({100, 100, 240, 160}, tgx::colors::red);
+        // A glow first, fading to see-through, then the circle over it.
+        canvas.circle_gradient({540, 180}, 120, tgx::colors::yellow.fade(0.4f), tgx::colors::yellow.fade(0));
         canvas.circle({540, 180}, 80, tgx::colors::yellow);
         canvas.triangle({760, 260}, {860, 100}, {960, 260}, tgx::colors::green);
 
@@ -32,6 +35,23 @@ int main() {
         canvas.line({100, 340}, {960, 340}, tgx::colors::white, 4);
         canvas.rect_lines({100, 420, 240, 160}, tgx::colors::cyan, 3);
         canvas.circle_lines({540, 500}, 80, tgx::colors::magenta, 3);
+
+        // Gradients: a color for each corner, blended between them.
+        canvas.rect_gradient(
+            {1020, 100, 200, 160},
+            tgx::colors::red, tgx::colors::yellow, tgx::colors::blue, tgx::colors::green
+        );
+        canvas.triangle_gradient(
+            {1020, 580}, {1120, 420}, {1220, 580},
+            tgx::colors::red, tgx::colors::green, tgx::colors::blue
+        );
+
+        // Joined lines: corners without gaps.
+        const std::array zigzag{
+            tgx::Vec2{1020, 380}, tgx::Vec2{1070, 300}, tgx::Vec2{1120, 380},
+            tgx::Vec2{1170, 300}, tgx::Vec2{1220, 380},
+        };
+        canvas.line_strip(zigzag, tgx::colors::orange, 6);
 
         // Later shapes cover earlier ones; alpha lets them show through.
         canvas.rect({760, 420, 140, 140}, tgx::colors::blue);

@@ -1,0 +1,31 @@
+# Windows: builds the library, examples and tests, warnings as errors,
+# and runs the tests that need no display or sound card. One workflow per
+# platform, so each has a badge of its own in the README.
+name: Windows
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows:
+    name: Windows, MSVC, ${{ matrix.build_type }}
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Visual Studio generator builds every configuration from one
+      # tree, so the configuration is picked at build and test time.
+      - name: Configure
+        run: cmake -S . -B build -DTGX_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --parallel --config ${{ matrix.build_type }}
+
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.build_type }} -L cpu --output-on-failure

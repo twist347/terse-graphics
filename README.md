@@ -1,6 +1,8 @@
 # terse-graphics (tgx)
 
-[![CI](https://github.com/twist347/terse-graphics/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/terse-graphics/actions/workflows/ci.yml)
+[![Linux](https://github.com/twist347/terse-graphics/actions/workflows/linux.yml/badge.svg)](https://github.com/twist347/terse-graphics/actions/workflows/linux.yml)
+[![macOS](https://github.com/twist347/terse-graphics/actions/workflows/macos.yml/badge.svg)](https://github.com/twist347/terse-graphics/actions/workflows/macos.yml)
+[![Windows](https://github.com/twist347/terse-graphics/actions/workflows/windows.yml/badge.svg)](https://github.com/twist347/terse-graphics/actions/workflows/windows.yml)
 
 A small 2D-first graphics library on top of OpenGL 3.3 core, C++23: a window,
 a loop and a canvas for games in the spirit of raylib, with the OpenGL level

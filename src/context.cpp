@@ -24,6 +24,17 @@ static_assert(std::is_same_v<GLuint, tgx::GlId>);
 namespace {
     tgx::detail::Context s_context;
 
+    // Draws the batch now if it is to be drawn with the object (uses says
+    // whether), before the object changes or goes.
+    auto flush_if_used(
+        bool (tgx::detail::Batch::*uses)(tgx::GlId) const noexcept,
+        tgx::GlId id
+    ) noexcept -> void {
+        if (s_context.batch && (s_context.batch.get()->*uses)(id)) {
+            s_context.batch->flush(s_context);
+        }
+    }
+
     auto apply_clear_color(tgx::Color color) noexcept -> void {
         const tgx::Vec4 unit = tgx::to_vec4(color);
         glClearColor(unit.x, unit.y, unit.z, unit.w);
@@ -365,20 +376,14 @@ namespace tgx {
     }
 
     auto detail::flush_texture_use(GlId texture) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_texture(texture)) {
-            s_context.batch->flush(s_context);
-        }
+        flush_if_used(&Batch::uses_texture, texture);
     }
 
     auto detail::flush_shader_use(GlId program) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_shader(program)) {
-            s_context.batch->flush(s_context);
-        }
+        flush_if_used(&Batch::uses_shader, program);
     }
 
     auto detail::flush_target_use(GlId framebuffer) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_target(framebuffer)) {
-            s_context.batch->flush(s_context);
-        }
+        flush_if_used(&Batch::uses_target, framebuffer);
     }
 }

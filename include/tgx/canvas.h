@@ -85,7 +85,8 @@ namespace tgx {
         // stretched over it.
         auto set_size(Size size) noexcept -> void;
 
-        // The area the coordinates span now.
+        // The area the coordinates span now: worked out, so never empty while
+        // there is something to draw into, unlike the size set.
         [[nodiscard]] auto size() const noexcept -> Size;
 
         // The part of what it draws into the canvas covers, for a minimap or a
@@ -96,6 +97,7 @@ namespace tgx {
         //     minimap.set_viewport({16, 16, 200, 150});   // its coordinates span 200x150
         auto set_viewport(Rect rect) noexcept -> void;
 
+        // As set: empty for all of it.
         [[nodiscard]] auto viewport() const noexcept -> Rect { return m_viewport; }
 
         // What it draws into: a render target, or nullptr (the default) for
@@ -244,8 +246,8 @@ namespace tgx {
         // What the canvas draws into.
         [[nodiscard]] auto surface() const noexcept -> detail::Surface;
 
-        // Remakes the transform for the size the canvas has now.
-        auto refit() noexcept -> void;
+        // Remakes the transform for the span and the camera.
+        auto refit(Size span) noexcept -> void;
 
         Size m_size{};
         Rect m_viewport{};
@@ -258,9 +260,11 @@ namespace tgx {
         // it has none, looked up when it was set.
         std::int32_t m_u_projection{-1};
         std::int32_t m_u_texture{-1};
-        // From canvas coordinates to clip space, for the camera and the size
-        // it was last made for; remade when either changes.
+        // From canvas coordinates to clip space, for the camera and the span
+        // it was last made for. Remade at the next shape after a setter makes
+        // it stale or the span changes (a canvas following a resized window).
         Mat4 m_transform{};
         Size m_transform_size{};
+        bool m_transform_stale{true};
     };
 }

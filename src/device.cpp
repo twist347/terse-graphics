@@ -3,7 +3,6 @@
 #include "tgx/assert.h"
 #include "tgx/render_target.h"
 #include "tgx/texture.h"
-#include "tgx/window.h"
 
 #include "tgx/gl/draw.h"
 #include "tgx/gl/shader.h"
@@ -13,6 +12,7 @@
 
 #include "batch.h"
 #include "context.h"
+#include "gl/vertex_array_internal.h"
 #include "log_internal.h"
 #include "window_internal.h"
 
@@ -34,65 +34,10 @@ static_assert(
 );
 
 namespace {
-    using tgx::gl::detail::ComponentKind;
-
-    // This and the three after it serve the asserts in Device::draw alone:
-    // with asserts off nothing calls them, and [[maybe_unused]] says that is
-    // meant.
-    [[maybe_unused, nodiscard]] constexpr auto to_component_kind(
-        tgx::gl::VertexFormat format
-    ) noexcept -> ComponentKind {
-        using enum tgx::gl::VertexFormat;
-        switch (format) {
-            case uint32: return ComponentKind::uint;
-            case sint32: return ComponentKind::sint;
-            case float32:
-            case float32x2:
-            case float32x3:
-            case float32x4:
-            case unorm8x4: return ComponentKind::floating;
-        }
-        return ComponentKind::floating;
-    }
-
-    [[maybe_unused, nodiscard]] constexpr auto to_str(ComponentKind kind) noexcept -> const char * {
-        switch (kind) {
-            case ComponentKind::floating: return "float";
-            case ComponentKind::sint: return "int";
-            case ComponentKind::uint: return "uint";
-        }
-        return "unknown";
-    }
-
-    // GL feeds an input with no attribute a constant (usually 0, 0, 0, 1), and
-    // reads integers into a float input or the other way round as garbage;
-    // neither is reported. A different component count is fine: GL pads the
-    // missing ones with 0, 0, 1.
-    [[maybe_unused]] auto check_vertex_inputs(
-        const tgx::gl::Shader &shader,
-        const tgx::gl::VertexArray &vertices
-    ) noexcept -> void {
-        const auto attributes = vertices.attributes();
-        for (const auto &input: tgx::gl::detail::vertex_inputs(shader)) {
-            for (std::uint32_t slot = 0; slot < input.slots; ++slot) {
-                const std::uint32_t location = input.location + slot;
-                const auto attribute = std::ranges::find(attributes, location, &tgx::gl::VertexAttribute::location);
-                TGX_ASSERT_MSG(
-                    attribute != attributes.end(),
-                    "vertex input '{}' reads location {}, which the vertex array has no attribute for",
-                    input.name, location
-                );
-                TGX_ASSERT_MSG(
-                    to_component_kind(attribute->format) == input.kind,
-                    "vertex input '{}' at location {} is {}, but its attribute is {}",
-                    input.name, location, to_str(input.kind), to_str(to_component_kind(attribute->format))
-                );
-            }
-        }
-    }
-
     // A sampler reads its slot whether or not the draw put a texture there, and
     // gets whatever an earlier draw left, or black. Neither is reported.
+    // Serves the asserts in Device::draw alone: with asserts off nothing calls
+    // it, which [[maybe_unused]] says is meant.
     [[maybe_unused]] auto check_textures(
         const tgx::gl::Shader &shader,
         const tgx::gl::DrawParams &params
@@ -289,7 +234,7 @@ namespace tgx {
 
         TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
-            check_vertex_inputs(shader, vertices);
+            tgx::gl::detail::check_vertex_inputs(shader, vertices);
             check_textures(shader, params);
         }
 

@@ -1,15 +1,18 @@
 #pragma once
 
-// What the tests share: comparing within float rounding, and printing tgx
-// values when a check fails.
+// What the tests share: comparing within float rounding, files of their own,
+// and printing tgx values when a check fails.
 
 #include "tgx/color.h"
 #include "tgx/math.h"
 
 #include <doctest/doctest.h>
 
+#include <filesystem>
 #include <format>
+#include <random>
 #include <string>
+#include <string_view>
 
 namespace tgx_test {
     // Vectors equal to within float rounding, as trigonometry leaves them.
@@ -20,6 +23,13 @@ namespace tgx_test {
     [[nodiscard]] inline auto near(tgx::Vec4 a, tgx::Vec4 b) -> bool {
         return a.x == doctest::Approx(b.x) && a.y == doctest::Approx(b.y)
                && a.z == doctest::Approx(b.z) && a.w == doctest::Approx(b.w);
+    }
+
+    // A path in the temp directory no other run uses: Debug and Release tests
+    // running side by side do not trip over each other's files.
+    [[nodiscard]] inline auto temp_path(std::string_view name) -> std::filesystem::path {
+        static const unsigned run = std::random_device{}();
+        return std::filesystem::temp_directory_path() / std::format("tgx_tests_{:08x}_{}", run, name);
     }
 
     [[nodiscard]] inline auto string(const std::string &text) -> doctest::String {
