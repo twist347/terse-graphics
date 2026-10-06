@@ -8,6 +8,12 @@
 #include <cstddef>
 #include <filesystem>
 #include <span>
+#include <type_traits>
+#include <utility>
+
+// A const Image's pixels are read-only.
+static_assert(std::is_same_v<decltype(std::declval<tgx::Image &>().pixels()), std::span<tgx::Color>>);
+static_assert(std::is_same_v<decltype(std::declval<const tgx::Image &>().pixels()), std::span<const tgx::Color>>);
 
 namespace {
     // A 1x2 PNG: red on top, half see-through blue below it.

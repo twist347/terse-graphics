@@ -1,10 +1,11 @@
 # Math, colors, collisions, the camera, random numbers, images, sounds,
-# errors and log levels as text, measuring text, and the arithmetic under
-# drawing and input (src/core/geometry.h):
+# errors and log levels as text, measuring text, the arithmetic under drawing
+# and input (src/core/geometry.h), and what an App hands out (at compile time):
 # nothing here opens a window or an audio output, so it runs anywhere, CI
 # without a display or a sound card included.
 add_executable(tgx_tests_cpu
         main.cpp
+        app.cpp
         audio.cpp
         camera.cpp
         collision.cpp

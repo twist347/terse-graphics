@@ -42,9 +42,8 @@ namespace tgx {
 
         [[nodiscard]] auto empty() const noexcept -> bool { return m_size.empty(); }
 
-        // Row by row, width pixels each.
-        [[nodiscard]] auto pixels() noexcept -> std::span<Color> { return m_pixels; }
-        [[nodiscard]] auto pixels() const noexcept -> std::span<const Color> { return m_pixels; }
+        // Row by row, width pixels each; read-only for a const Image.
+        [[nodiscard]] auto pixels(this auto &self) noexcept -> auto { return std::span{self.m_pixels}; }
 
         // (0, 0) is the top-left pixel.
         [[nodiscard]] auto at(int x, int y) noexcept -> Color & { return m_pixels[index(x, y)]; }

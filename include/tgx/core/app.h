@@ -50,16 +50,13 @@ namespace tgx {
 
         auto swap_buffers() noexcept -> void;
 
-        [[nodiscard]] auto window() noexcept -> Window & { return m_window; }
-        [[nodiscard]] auto window() const noexcept -> const Window & { return m_window; }
+        // The parts; const for a const App (deducing this: one method for both).
+        [[nodiscard]] auto window(this auto &self) noexcept -> auto & { return self.m_window; }
         [[nodiscard]] auto input() const noexcept -> const Input & { return m_window.input(); }
-        [[nodiscard]] auto device() noexcept -> Device & { return m_device; }
-        [[nodiscard]] auto device() const noexcept -> const Device & { return m_device; }
-        [[nodiscard]] auto canvas() noexcept -> Canvas & { return m_canvas; }
-        [[nodiscard]] auto canvas() const noexcept -> const Canvas & { return m_canvas; }
+        [[nodiscard]] auto device(this auto &self) noexcept -> auto & { return self.m_device; }
+        [[nodiscard]] auto canvas(this auto &self) noexcept -> auto & { return self.m_canvas; }
         [[nodiscard]] auto clock() const noexcept -> const Clock & { return m_device.clock(); }
-        [[nodiscard]] auto audio() noexcept -> Audio & { return m_audio; }
-        [[nodiscard]] auto audio() const noexcept -> const Audio & { return m_audio; }
+        [[nodiscard]] auto audio(this auto &self) noexcept -> auto & { return self.m_audio; }
 
     private:
         App(Window window, Device device, Canvas canvas, Audio audio) noexcept;
