@@ -177,13 +177,13 @@ namespace tgx {
         if (this == &other) {
             return *this;
         }
-        destroy();
+        release();
         m_owned = std::exchange(other.m_owned, false);
         return *this;
     }
 
     Window::~Window() {
-        destroy();
+        release();
     }
 
     auto Window::poll_events() noexcept -> void {
@@ -288,7 +288,7 @@ namespace tgx {
         return s_window.handle;
     }
 
-    auto Window::destroy() noexcept -> void {
+    auto Window::release() noexcept -> void {
         if (m_owned) {
             glfwDestroyWindow(s_window.handle);
             glfwTerminate();

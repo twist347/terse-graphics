@@ -174,6 +174,7 @@ namespace tgx {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glActiveTexture(GL_TEXTURE0);
         glUseProgram(0);
+        glBindVertexArray(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         apply_clear_color(clear_color);
         apply_clear_depth(clear_depth);
@@ -260,7 +261,7 @@ namespace tgx {
                 bind_texture(slot, call.textures[slot]);
             }
         }
-        glBindVertexArray(call.vertex_array);
+        bind_vertex_array(call.vertex_array);
 
         const GLenum mode = to_gl(call.primitive);
         const auto count = static_cast<GLsizei>(call.count);
@@ -326,6 +327,19 @@ namespace tgx {
     auto detail::Context::forget_program(GlId id) noexcept -> void {
         if (id == program) {
             program = 0;
+        }
+    }
+
+    auto detail::Context::bind_vertex_array(GlId next) noexcept -> void {
+        if (next != vertex_array) {
+            glBindVertexArray(next);
+            vertex_array = next;
+        }
+    }
+
+    auto detail::Context::forget_vertex_array(GlId id) noexcept -> void {
+        if (id == vertex_array) {
+            vertex_array = 0;
         }
     }
 

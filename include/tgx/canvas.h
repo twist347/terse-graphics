@@ -132,9 +132,8 @@ namespace tgx {
         // instead of the built-in one; nullptr goes back to it. Its id is
         // taken now, as set_target() does, so the shader may move afterwards,
         // but it must exist whenever the canvas draws with it. While set, its
-        // u_projection and u_texture are the canvas's
-        // (u_projection is written on every draw, u_texture here), so do not
-        // share it with draws of your own.
+        // u_projection and u_texture are the canvas's, written on every draw
+        // of it, so do not share it with draws of your own.
         //
         // It takes what the built-in one does:
         //
@@ -148,7 +147,7 @@ namespace tgx {
         // may have no other sampler (asserted). Its other uniforms are the
         // caller's to set. Shapes keep the values set when they were added:
         // setting a uniform later, or destroying the shader, draws them first.
-        auto set_shader(gl::Shader *shader) noexcept -> void;
+        auto set_shader(const gl::Shader *shader) noexcept -> void;
 
         // Fills all of what it draws into with the color, as the first thing
         // of a frame usually; all of it even for a canvas with a viewport.
@@ -176,7 +175,10 @@ namespace tgx {
 
         // A color for each corner, blended between them: any shape made of
         // triangles can be shaded so.
-        auto triangle_gradient(Vec2 a, Vec2 b, Vec2 c, Color color_a, Color color_b, Color color_c) noexcept -> void;
+        auto triangle_gradient(
+            Vec2 a, Vec2 b, Vec2 c,
+            Color color_a, Color color_b, Color color_c
+        ) noexcept -> void;
 
         // A thickness wide band from a to b, square ends flush with them.
         auto line(Vec2 a, Vec2 b, Color color, float thickness = 1.f) noexcept -> void;
@@ -252,8 +254,10 @@ namespace tgx {
         Blend m_blend{Blend::alpha};
         // The program of the shader set, 0 for the built-in one.
         GlId m_program{0};
-        // The location of its u_projection, looked up when it was set.
+        // The locations of its u_projection, and of its u_texture or -1 when
+        // it has none, looked up when it was set.
         std::int32_t m_u_projection{-1};
+        std::int32_t m_u_texture{-1};
         // From canvas coordinates to clip space, for the camera and the size
         // it was last made for; remade when either changes.
         Mat4 m_transform{};

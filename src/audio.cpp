@@ -17,6 +17,7 @@
 #include <fstream>
 #include <ios>
 #include <memory>
+#include <new>
 #include <span>
 #include <system_error>
 #include <utility>
@@ -80,8 +81,10 @@ namespace {
         return oldest;
     }
 
+    // A Sound with no id (moved from) touches nothing shared, so loading one
+    // on another thread, where the temporary inside load goes, is safe.
     auto stop_voices(std::uint32_t owner) noexcept -> void {
-        if (!s_audio || owner == 0) {
+        if (owner == 0 || !s_audio) {
             return;
         }
         for (Voice &voice: s_audio->voices) {
@@ -344,6 +347,8 @@ namespace tgx {
     }
 
     auto Music::seek(double seconds) noexcept -> void {
+        TGX_ASSERT_MSG(std::isfinite(seconds), "seek({}): not a number", seconds);
+
         if (m_stream && m_stream->live) {
             ma_sound_seek_to_second(&m_stream->sound, static_cast<float>(std::max(seconds, 0.0)));
         }
@@ -367,7 +372,12 @@ namespace tgx {
     // Audio
 
     auto Audio::create() noexcept -> Audio {
-        auto state = std::make_unique<AudioState>();
+        // No memory for it is one more way to stay silent, not to fail.
+        std::unique_ptr<AudioState> state{new (std::nothrow) AudioState{}};
+        if (!state) {
+            detail::log_warn("audio: out of memory, sound stays silent");
+            return Audio{};
+        }
         const ma_engine_config config = ma_engine_config_init();
         if (ma_engine_init(&config, &state->engine) != MA_SUCCESS) {
             detail::log_warn("audio: no output device, sound stays silent");

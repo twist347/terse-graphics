@@ -42,9 +42,10 @@ namespace tgx::detail {
         Blend blend{Blend::alpha};
         // 0 for the built-in shader.
         GlId program{0};
-        // The location of a custom shader's u_projection; the built-in one
-        // keeps its own.
+        // The locations of a custom shader's u_projection and u_texture (-1
+        // when it has none); the built-in one keeps its own.
         std::int32_t u_projection{-1};
+        std::int32_t u_texture{-1};
         // From the vertices' coordinates to clip space: u_projection.
         Mat4 transform{};
         // The part of the target the canvas covers, in pixels from the

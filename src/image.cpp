@@ -11,6 +11,7 @@
 #include <cstring>
 #include <filesystem>
 #include <memory>
+#include <new>
 #include <span>
 #include <utility>
 #include <vector>
@@ -86,16 +87,26 @@ namespace tgx {
 
         // Encoded into memory, then written as the bytes of the file, so the
         // path goes through the same stream as reading does.
-        std::vector<std::byte> png;
-        const auto append = [](void *context, void *data, int size) {
-            auto &out = *static_cast<std::vector<std::byte> *>(context);
+        struct Encoded {
+            std::vector<std::byte> png;
+            bool out_of_memory{false};
+        } encoded;
+        // Called from C: an exception must not pass through it.
+        const auto append = [](void *context, void *data, int size) noexcept {
+            auto &out = *static_cast<Encoded *>(context);
             const auto *bytes = static_cast<const std::byte *>(data);
-            out.insert(out.end(), bytes, bytes + size);
+            try {
+                out.png.insert(out.png.end(), bytes, bytes + size);
+            } catch (const std::bad_alloc &) {
+                out.out_of_memory = true;
+            }
         };
         const int stride = m_size.width * static_cast<int>(sizeof(Color));
-        if (stbi_write_png_to_func(append, &png, m_size.width, m_size.height, 4, m_pixels.data(), stride) == 0) {
-            return std::unexpected{Error::io};
+        // stb fails only when its own allocation does.
+        if (stbi_write_png_to_func(append, &encoded, m_size.width, m_size.height, 4, m_pixels.data(), stride) == 0
+            || encoded.out_of_memory) {
+            return std::unexpected{Error::out_of_memory};
         }
-        return detail::write_file(path, png);
+        return detail::write_file(path, encoded.png);
     }
 }

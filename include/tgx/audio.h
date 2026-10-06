@@ -35,7 +35,8 @@ namespace tgx {
     //
     // Needs no Audio to be made, only to be played. Destroying it, or moving
     // another into it, stops what of it is still playing; moving it keeps
-    // it playing.
+    // it playing. It may be loaded on any thread, but is destroyed on the
+    // one that plays it.
     class Sound {
     public:
         // Reads a WAV, OGG Vorbis, MP3 or FLAC file. Fails with Error::io

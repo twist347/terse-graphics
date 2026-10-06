@@ -185,7 +185,7 @@ namespace {
 }
 
 namespace tgx {
-    auto Device::create(Window &) noexcept -> Result<Device> {
+    auto Device::create(Window &) -> Result<Device> {
         // glad 2 returns the version it loaded, so loading and checking that we
         // got the requested one is the same call.
         const int version = gladLoadGL(detail::gl_loader());

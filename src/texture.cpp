@@ -69,11 +69,6 @@ namespace {
             GL_RGBA, GL_UNSIGNED_BYTE, pixels
         );
 
-        if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
-            tgx::detail::delete_texture(id);
-            return std::unexpected{tgx::detail::to_error(err)};
-        }
-
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter(params));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter(params));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, to_gl(params.wrap));
@@ -83,6 +78,12 @@ namespace {
         // for the texture to be complete; update() rebuilds them.
         if (params.mipmaps) {
             glGenerateMipmap(GL_TEXTURE_2D);
+        }
+
+        // One check for all of the above: the levels need memory too.
+        if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
+            tgx::detail::delete_texture(id);
+            return std::unexpected{tgx::detail::to_error(err)};
         }
         return id;
     }

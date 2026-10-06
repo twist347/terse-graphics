@@ -83,6 +83,8 @@ namespace tgx::detail {
         GlId framebuffer{0};
         // What glUseProgram last made current; 0 for none.
         GlId program{0};
+        // What glBindVertexArray last bound; 0 for none.
+        GlId vertex_array{0};
         // The texture bound in each slot, 0 for none, and the slot
         // glActiveTexture last selected.
         std::array<GlId, gl::max_texture_slots> textures{};
@@ -128,6 +130,13 @@ namespace tgx::detail {
         // For a program about to be deleted: GL may hand its id to the next
         // program created, which must not pass for the current one.
         auto forget_program(GlId program) noexcept -> void;
+
+        // Binds the vertex array unless it already is.
+        auto bind_vertex_array(GlId vertex_array) noexcept -> void;
+
+        // For a vertex array about to be deleted: GL unbinds it, and its id
+        // may come back for the next one created.
+        auto forget_vertex_array(GlId vertex_array) noexcept -> void;
 
         // Binds the texture to the slot (texture unit) unless it already is
         // there, leaving that slot active. The slot is below

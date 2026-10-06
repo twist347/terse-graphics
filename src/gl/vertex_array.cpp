@@ -2,6 +2,8 @@
 
 #include "tgx/assert.h"
 
+#include "context.h"
+
 #include <glad/gl.h>
 
 #include <algorithm>
@@ -39,6 +41,7 @@ namespace {
 
 namespace tgx::gl {
     auto detail::delete_vertex_array(GlId id) noexcept -> void {
+        tgx::detail::context().forget_vertex_array(id);
         glDeleteVertexArrays(1, &id);
     }
 
@@ -75,14 +78,14 @@ namespace tgx::gl {
         GLuint id = 0;
         glGenVertexArrays(1, &id);
 
-        // Enabling is VAO state, so it needs the VAO bound. VAO 0 is restored
-        // after every edit here, so no later bind of an index buffer lands in
-        // this one by accident.
-        glBindVertexArray(id);
+        // Enabling is VAO state, so it needs the VAO bound. It stays bound:
+        // tgx binds GL_ELEMENT_ARRAY_BUFFER, the one buffer binding that is
+        // VAO state, only to attach an index buffer here, and edits buffers
+        // through GL_COPY_WRITE_BUFFER, which no VAO keeps.
+        tgx::detail::context().bind_vertex_array(id);
         for (const VertexAttribute &attribute : attributes) {
             glEnableVertexAttribArray(attribute.location);
         }
-        glBindVertexArray(0);
 
         return VertexArray{id, stride, attributes};
     }
@@ -103,7 +106,7 @@ namespace tgx::gl {
 
         // The ARRAY_BUFFER binding is not VAO state: each pointer call below
         // captures it, together with the offset and stride.
-        glBindVertexArray(m_handle.get());
+        tgx::detail::context().bind_vertex_array(m_handle.get());
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
         for (std::size_t i = 0; i < m_attribute_count; ++i) {
             const VertexAttribute &attribute = m_attributes[i];
@@ -126,15 +129,13 @@ namespace tgx::gl {
                 );
             }
         }
-        glBindVertexArray(0);
     }
 
     auto VertexArray::attach_index_buffer(GlId buffer, IndexType type, std::size_t index_count) noexcept -> void {
         // Unlike ARRAY_BUFFER, this binding is VAO state: binding it with the
         // VAO bound is what attaches it.
-        glBindVertexArray(m_handle.get());
+        tgx::detail::context().bind_vertex_array(m_handle.get());
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
-        glBindVertexArray(0);
 
         m_index_type = type;
         m_has_index_buffer = true;

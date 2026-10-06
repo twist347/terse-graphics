@@ -142,8 +142,8 @@ namespace tgx::detail {
         m_vertex_buffer.update(0, m_vertices);
         m_index_buffer.update(0, m_indices);
 
-        // Set on every draw: one matrix is cheap, and a custom shader may have
-        // been used elsewhere in between. Straight to GL rather than through
+        // Set on every draw: they are cheap, and a custom shader may have been
+        // used elsewhere in between. Straight to GL rather than through
         // Shader::set, which would come back here to flush.
         const bool custom = m_state.program != 0;
         const GlId program = custom ? m_state.program : m_shader.id();
@@ -151,6 +151,10 @@ namespace tgx::detail {
         const auto floats = std::bit_cast<std::array<float, 16> >(m_state.transform);
         context.use_program(program);
         glUniformMatrix4fv(u_projection, 1, GL_FALSE, floats.data());
+        // The built-in shader's was set once, at creation.
+        if (custom && m_state.u_texture >= 0) {
+            glUniform1i(m_state.u_texture, 0);
+        }
 
         context.draw({
             .target = m_state.target,

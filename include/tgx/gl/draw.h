@@ -85,11 +85,11 @@ namespace tgx::gl {
 
         // What is drawn into; nullptr is the window.
         const RenderTarget *target{nullptr};
+        // First vertex, or first index, to draw from.
+        std::size_t first{0};
         // Vertices, or indices when the vertex array has an index buffer. A
         // count of 0 draws nothing, so an empty batch stays empty.
         std::size_t count{all};
-        // First vertex, or first index, to draw from.
-        std::size_t first{0};
         Primitive primitive{Primitive::triangles};
         RenderState state{};
         // Empty for the whole target, which is what a draw usually wants; a

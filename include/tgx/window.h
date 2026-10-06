@@ -103,7 +103,7 @@ namespace tgx {
         Window() noexcept : m_owned{true} {
         }
 
-        auto destroy() noexcept -> void;
+        auto release() noexcept -> void;
 
         // False once moved from: the window is someone else's to close.
         bool m_owned{false};

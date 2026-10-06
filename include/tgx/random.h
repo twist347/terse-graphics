@@ -46,8 +46,10 @@ namespace tgx {
             return (shifted >> rotation) | (shifted << ((-rotation) & 31u));
         }
 
-        // In [lo, hi): lo may come up, hi never does.
+        // In [lo, hi): lo may come up, hi never does, unless they are equal.
         auto next_float(float lo, float hi) noexcept -> float {
+            TGX_ASSERT_MSG(lo <= hi, "next_float({}, {}): an empty range", lo, hi);
+
             // The top 24 bits, as many as a float holds exactly.
             const float unit = static_cast<float>(next_u32() >> 8u) * 0x1p-24f;
             const float value = lo + (hi - lo) * unit;

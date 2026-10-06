@@ -97,7 +97,7 @@ namespace {
 
     // As big as the window's framebuffer, pixel for pixel.
     [[nodiscard]] auto make_target(tgx::Size size) -> tgx::Result<tgx::RenderTarget> {
-        return tgx::RenderTarget::create({.size = size, .depth = true});
+        return tgx::RenderTarget::create(size, {.depth = true});
     }
 }
 

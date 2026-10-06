@@ -217,7 +217,7 @@ int main() {
         return 1;
     }
 
-    auto pixels = tgx::RenderTarget::create({.size = resolution, .filter = tgx::TextureFilter::nearest});
+    auto pixels = tgx::RenderTarget::create(resolution, {.filter = tgx::TextureFilter::nearest});
     if (!pixels) {
         std::println(stderr, "render target: {}", pixels.error());
         return 1;

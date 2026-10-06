@@ -318,9 +318,10 @@ namespace tgx {
         };
     }
 
-    auto Canvas::set_shader(gl::Shader *shader) noexcept -> void {
+    auto Canvas::set_shader(const gl::Shader *shader) noexcept -> void {
         m_program = shader ? shader->id() : 0;
         m_u_projection = -1;
+        m_u_texture = -1;
         if (!shader) {
             return;
         }
@@ -337,7 +338,9 @@ namespace tgx {
                 "sampler '{}': a canvas shader gets no texture but u_texture",
                 sampler.name
             );
-            shader->set(shader->uniform<gl::TextureSlot>("u_texture"), {0});
+        }
+        if (!gl::detail::samplers(*shader).empty()) {
+            m_u_texture = gl::detail::location(shader->uniform<gl::TextureSlot>("u_texture"));
         }
     }
 
@@ -346,7 +349,11 @@ namespace tgx {
     }
 
     auto Canvas::rect(Rect rect, Color color) noexcept -> void {
-        quad({rect.x, rect.y}, {rect.right(), rect.y}, {rect.right(), rect.bottom()}, {rect.x, rect.bottom()}, color);
+        quad(
+            {rect.x, rect.y}, {rect.right(), rect.y},
+            {rect.right(), rect.bottom()}, {rect.x, rect.bottom()},
+            color
+        );
     }
 
     auto Canvas::rect_lines(Rect rect, Color color, float thickness) noexcept -> void {
@@ -402,12 +409,8 @@ namespace tgx {
     }
 
     auto Canvas::triangle_gradient(
-        Vec2 a,
-        Vec2 b,
-        Vec2 c,
-        Color color_a,
-        Color color_b,
-        Color color_c
+        Vec2 a, Vec2 b, Vec2 c,
+        Color color_a, Color color_b, Color color_c
     ) noexcept -> void {
         auto [batch, first] = start(state_for(0), 3, 3);
 
@@ -420,7 +423,7 @@ namespace tgx {
     auto Canvas::line(Vec2 a, Vec2 b, Color color, float thickness) noexcept -> void {
         // A point has no direction to widen it across.
         const Vec2 along = b - a;
-        if (along == Vec2{}) {
+        if (along == Vec2{} || thickness <= 0.f) {
             return;
         }
 
@@ -691,6 +694,7 @@ namespace tgx {
             .blend = m_blend,
             .program = m_program,
             .u_projection = m_u_projection,
+            .u_texture = m_u_texture,
             .transform = m_transform,
             .viewport = pixel_viewport(m_viewport, surface),
         };

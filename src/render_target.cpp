@@ -37,11 +37,11 @@ namespace tgx {
         glDeleteRenderbuffers(1, &id);
     }
 
-    auto RenderTarget::create(const RenderTargetParams &params) noexcept -> Result<RenderTarget> {
+    auto RenderTarget::create(Size size, const RenderTargetParams &params) noexcept -> Result<RenderTarget> {
         // Its contents come from draws only: no mipmaps to rebuild after each,
         // and no updates from the CPU, whose rows run the other way.
         auto texture = Texture::create_for_target(
-            params.size,
+            size,
             {.filter = params.filter, .wrap = params.wrap, .mipmaps = false, .access = TextureAccess::immutable}
         );
         if (!texture) {
@@ -50,7 +50,7 @@ namespace tgx {
 
         detail::Handle<detail::delete_renderbuffer> depth;
         if (params.depth) {
-            auto id = make_depth(params.size);
+            auto id = make_depth(size);
             if (!id) {
                 return std::unexpected{id.error()};
             }

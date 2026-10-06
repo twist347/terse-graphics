@@ -15,7 +15,6 @@ namespace tgx {
     }
 
     struct RenderTargetParams {
-        Size size{};
         // How its texture is read when drawn larger or smaller: nearest keeps
         // pixel art square.
         TextureFilter filter{TextureFilter::linear};
@@ -30,7 +29,7 @@ namespace tgx {
     // like any texture, e.g. as a sprite scaled up for pixel art. Its
     // coordinates are its pixels, from the top-left.
     //
-    //     // pixels: RenderTarget::create({.size = {320, 180}, .filter = TextureFilter::nearest})
+    //     // pixels: RenderTarget::create({320, 180}, {.filter = TextureFilter::nearest})
     //     tgx::Canvas world = app->canvas();
     //     world.set_target(&pixels);
     //     ... draw the world ...
@@ -44,9 +43,13 @@ namespace tgx {
     // still waiting to be drawn into it are drawn first when it goes.
     class RenderTarget {
     public:
-        // Fails as Texture::create does, and with Error::unsupported when the
-        // driver cannot draw into such a texture.
-        [[nodiscard]] static auto create(const RenderTargetParams &params) noexcept -> Result<RenderTarget>;
+        // Of size pixels, which must not be empty. Fails as Texture::create
+        // does, and with Error::unsupported when the driver cannot draw into
+        // such a texture.
+        [[nodiscard]] static auto create(
+            Size size,
+            const RenderTargetParams &params = {}
+        ) noexcept -> Result<RenderTarget>;
 
         // What has been drawn into it. Its rows are bottom to top, as GL draws
         // (Texture::bottom_up()): the Canvas takes care of that, a shader of

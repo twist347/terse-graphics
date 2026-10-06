@@ -3,7 +3,7 @@
 #include <utility>
 
 namespace tgx {
-    auto App::create(const WindowParams &params) noexcept -> Result<App> {
+    auto App::create(const WindowParams &params) -> Result<App> {
         auto window = Window::create(params);
         if (!window) {
             return std::unexpected{window.error()};

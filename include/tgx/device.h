@@ -51,7 +51,7 @@ namespace tgx {
     public:
         // Loads GL functions for the window's context and, on a debug context,
         // routes driver messages to the log. Frames go to this window.
-        [[nodiscard]] static auto create(Window &window) noexcept -> Result<Device>;
+        [[nodiscard]] static auto create(Window &window) -> Result<Device>;
 
         Device(const Device &) = delete;
         auto operator=(const Device &) -> Device & = delete;

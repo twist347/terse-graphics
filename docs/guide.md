@@ -186,7 +186,7 @@ and scale it up by a whole factor with nearest filtering: every pixel stays a
 square, even along a turning line.
 
 ```cpp
-auto pixels = tgx::RenderTarget::create({.size = {320, 180}, .filter = tgx::TextureFilter::nearest});
+auto pixels = tgx::RenderTarget::create({320, 180}, {.filter = tgx::TextureFilter::nearest});
 
 tgx::Canvas world = app->canvas();
 world.set_target(&*pixels);        // set_target(nullptr): the window again
@@ -385,7 +385,7 @@ includes the viewport: the whole framebuffer unless a draw says otherwise.
 auto &device = app->device();
 device.clear({.color = tgx::colors::black, .depth = 1.f});
 device.draw(*shader, vao);
-device.draw(*shader, vao, {.count = 6, .first = 12});
+device.draw(*shader, vao, {.first = 12, .count = 6});
 device.draw(*shader, sprites, {.state = {.blend = tgx::Blend::alpha}});
 device.draw(*shader, cube, {.state = {.depth = tgx::gl::Depth::less, .cull = tgx::gl::Cull::back}});
 device.draw(*shader, minimap, {.viewport = tgx::gl::Viewport{0, 0, 256, 256}});   // pixels, from the top-left
