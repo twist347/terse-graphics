@@ -62,6 +62,12 @@ namespace tgx::detail {
     public:
         [[nodiscard]] static auto create() -> Result<Batch>;
 
+        Batch(const Batch &) = delete;
+        auto operator=(const Batch &) -> Batch & = delete;
+
+        Batch(Batch &&) noexcept = default;
+        auto operator=(Batch &&) noexcept -> Batch & = default;
+
         // Room for this many more vertices and indices drawn with the state,
         // drawing what is there first if the state differs or they would not
         // fit. Returns the index the first of the new vertices will have; push

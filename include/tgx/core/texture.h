@@ -88,6 +88,12 @@ namespace tgx {
             const TextureParams &params
         ) noexcept -> Result<Texture>;
 
+        Texture(const Texture &) = delete;
+        auto operator=(const Texture &) -> Texture & = delete;
+
+        Texture(Texture &&) noexcept = default;
+        auto operator=(Texture &&) noexcept -> Texture & = default;
+
         // Overwrites the pixels the image covers when its top-left pixel is put
         // at (x, y); only for dynamic textures, and the image must fit.
         auto update(int x, int y, const Image &image) noexcept -> void;

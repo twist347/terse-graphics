@@ -51,6 +51,12 @@ namespace tgx {
             const RenderTargetParams &params = {}
         ) noexcept -> Result<RenderTarget>;
 
+        RenderTarget(const RenderTarget &) = delete;
+        auto operator=(const RenderTarget &) -> RenderTarget & = delete;
+
+        RenderTarget(RenderTarget &&) noexcept = default;
+        auto operator=(RenderTarget &&) noexcept -> RenderTarget & = default;
+
         // What has been drawn into it. Its rows are bottom to top, as GL draws
         // (Texture::bottom_up()): the Canvas takes care of that, a shader of
         // your own reads v = 0 as its bottom.

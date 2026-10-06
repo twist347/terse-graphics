@@ -136,6 +136,12 @@ namespace tgx::gl {
             std::string *out_log = nullptr
         ) -> Result<Shader>;
 
+        Shader(const Shader &) = delete;
+        auto operator=(const Shader &) -> Shader & = delete;
+
+        Shader(Shader &&) noexcept = default;
+        auto operator=(Shader &&) noexcept -> Shader & = default;
+
         // Looks a uniform up by name, for setting it later without the name.
         // Asserts that it is active, of a GLSL type T fits and not an array
         // (arrays are not supported yet); without asserts a missing one gives a
