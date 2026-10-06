@@ -6,7 +6,7 @@
 
 TEST_CASE("Color from hex") {
     CHECK(tgx::Color::rgba(0x11223344) == tgx::Color{0x11, 0x22, 0x33, 0x44});
-    CHECK(tgx::Color::rgb(0x112233) == tgx::Color{0x11, 0x22, 0x33, 0xFF});
+    CHECK(tgx::Color::rgb(0x112233) == tgx::Color{0x11, 0x22, 0x33, 0xff});
 }
 
 TEST_CASE("Color::hsv") {

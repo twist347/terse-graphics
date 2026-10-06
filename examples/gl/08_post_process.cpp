@@ -52,10 +52,10 @@ namespace {
     constexpr std::array scene{
         SceneVertex{{-0.7f, -0.6f, -0.6f}, tgx::colors::red},
         SceneVertex{{0.7f, -0.6f, 0.6f}, tgx::colors::red},
-        SceneVertex{{0.0f, 0.7f, 0.0f}, tgx::colors::orange},
-        SceneVertex{{-0.7f, 0.6f, 0.0f}, tgx::colors::blue},
-        SceneVertex{{0.7f, 0.6f, 0.0f}, tgx::colors::blue},
-        SceneVertex{{0.0f, -0.7f, 0.0f}, tgx::colors::cyan},
+        SceneVertex{{0.f, 0.7f, 0.f}, tgx::colors::orange},
+        SceneVertex{{-0.7f, 0.6f, 0.f}, tgx::colors::blue},
+        SceneVertex{{0.7f, 0.6f, 0.f}, tgx::colors::blue},
+        SceneVertex{{0.f, -0.7f, 0.f}, tgx::colors::cyan},
     };
 
     // One triangle big enough to cover the window: the corners past it are

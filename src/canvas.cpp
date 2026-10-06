@@ -77,7 +77,7 @@ namespace {
             const std::size_t length = sequence_length(c);
             ++i;
             for (std::size_t taken = 1; taken < length && i < text.size(); ++taken, ++i) {
-                if ((static_cast<unsigned char>(text[i]) & 0xC0) != 0x80) {
+                if ((static_cast<unsigned char>(text[i]) & 0xc0) != 0x80) {
                     break;
                 }
             }

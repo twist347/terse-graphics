@@ -41,8 +41,8 @@ namespace tgx {
         // All 32 bits random.
         [[nodiscard]] auto next_u32() noexcept -> std::uint32_t {
             const std::uint64_t old = step();
-            const auto shifted = static_cast<std::uint32_t>(((old >> 18u) ^ old) >> 27u);
-            const auto rotation = static_cast<std::uint32_t>(old >> 59u);
+            const auto shifted = static_cast<std::uint32_t>(((old >> 18) ^ old) >> 27);
+            const auto rotation = static_cast<std::uint32_t>(old >> 59);
             return std::rotr(shifted, static_cast<int>(rotation));
         }
 
@@ -51,7 +51,7 @@ namespace tgx {
             TGX_ASSERT_MSG(lo <= hi, "next_float({}, {}): an empty range", lo, hi);
 
             // The top 24 bits, as many as a float holds exactly.
-            const float unit = static_cast<float>(next_u32() >> 8u) * 0x1p-24f;
+            const float unit = static_cast<float>(next_u32() >> 8) * 0x1p-24f;
             const float value = lo + (hi - lo) * unit;
             // Rounding can reach hi itself when the range is wide.
             return value < hi ? value : std::nextafter(hi, lo);
@@ -76,7 +76,7 @@ namespace tgx {
                     low = static_cast<std::uint32_t>(product);
                 }
             }
-            return static_cast<int>(static_cast<std::int64_t>(lo) + static_cast<std::int64_t>(product >> 32u));
+            return static_cast<int>(static_cast<std::int64_t>(lo) + static_cast<std::int64_t>(product >> 32));
         }
 
         // True with the probability p: chance(0.25f) about once in four.

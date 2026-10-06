@@ -42,7 +42,7 @@ namespace {
     constexpr std::array vertices{
         Vertex{{-0.6f, -0.5f}, tgx::colors::red},
         Vertex{{0.6f, -0.5f}, tgx::colors::green},
-        Vertex{{0.0f, 0.6f}, tgx::colors::blue},
+        Vertex{{0.f, 0.6f}, tgx::colors::blue},
     };
 
     // Which field feeds which `layout(location = N)` input of the shader.

@@ -38,7 +38,7 @@ namespace {
     constexpr std::array vertices{
         Vertex{{-0.4f, -0.3f}},
         Vertex{{0.4f, -0.3f}},
-        Vertex{{0.0f, 0.5f}},
+        Vertex{{0.f, 0.5f}},
     };
 
     const std::array layout{

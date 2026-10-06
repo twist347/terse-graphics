@@ -149,17 +149,17 @@ namespace {
         if (c < 0x80) {
             text += byte(c);
         } else if (c < 0x800) {
-            text += byte(0xC0 | (c >> 6));
-            text += byte(0x80 | (c & 0x3F));
+            text += byte(0xc0 | (c >> 6));
+            text += byte(0x80 | (c & 0x3f));
         } else if (c < 0x10000) {
-            text += byte(0xE0 | (c >> 12));
-            text += byte(0x80 | ((c >> 6) & 0x3F));
-            text += byte(0x80 | (c & 0x3F));
+            text += byte(0xe0 | (c >> 12));
+            text += byte(0x80 | ((c >> 6) & 0x3f));
+            text += byte(0x80 | (c & 0x3f));
         } else {
-            text += byte(0xF0 | (c >> 18));
-            text += byte(0x80 | ((c >> 12) & 0x3F));
-            text += byte(0x80 | ((c >> 6) & 0x3F));
-            text += byte(0x80 | (c & 0x3F));
+            text += byte(0xf0 | (c >> 18));
+            text += byte(0x80 | ((c >> 12) & 0x3f));
+            text += byte(0x80 | ((c >> 6) & 0x3f));
+            text += byte(0x80 | (c & 0x3f));
         }
     }
 }

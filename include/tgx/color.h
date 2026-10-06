@@ -17,16 +17,16 @@ namespace tgx {
         // 0xRRGGBBAA, the order colors are written in editors and palettes.
         [[nodiscard]] static constexpr auto rgba(std::uint32_t rgba) noexcept -> Color {
             return {
-                static_cast<std::uint8_t>((rgba >> 24u) & 0xFFu),
-                static_cast<std::uint8_t>((rgba >> 16u) & 0xFFu),
-                static_cast<std::uint8_t>((rgba >> 8u) & 0xFFu),
-                static_cast<std::uint8_t>(rgba & 0xFFu),
+                static_cast<std::uint8_t>((rgba >> 24) & 0xff),
+                static_cast<std::uint8_t>((rgba >> 16) & 0xff),
+                static_cast<std::uint8_t>((rgba >> 8) & 0xff),
+                static_cast<std::uint8_t>(rgba & 0xff),
             };
         }
 
         // 0xRRGGBB, fully opaque.
         [[nodiscard]] static constexpr auto rgb(std::uint32_t rgb) noexcept -> Color {
-            return rgba((rgb << 8u) | 0xFFu);
+            return rgba((rgb << 8) | 0xff);
         }
 
         // Hue in degrees around the color wheel (0 red, 120 green, 240 blue,
