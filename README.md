@@ -60,7 +60,7 @@ int main() {
 ```
 
 The [guide](docs/guide.md) explains how the parts fit together; every function
-is documented in its header.
+is documented in its header. What comes next: the [roadmap](docs/roadmap.md).
 
 ## Examples
 
