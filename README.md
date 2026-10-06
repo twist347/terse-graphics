@@ -113,8 +113,9 @@ cmake --build build
 ctest --test-dir build
 ```
 
-In another CMake project: `add_subdirectory(terse-graphics)` and link
-`tgx::tgx`. Options and the rest: [guide](docs/guide.md#building).
+In another CMake project: `add_subdirectory(terse-graphics)`, or
+`cmake --install` it and `find_package(tgx)`; then link `tgx::tgx`. Options
+and the rest: [guide](docs/guide.md#building).
 
 ## License
 

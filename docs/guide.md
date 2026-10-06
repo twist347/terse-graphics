@@ -538,10 +538,32 @@ part on Linux only, on Mesa's software renderer under Xvfb.
 as CI does on Linux, macOS and Windows.
 Asserts follow the build type (off where CMake defines `NDEBUG`); force them
 with `-DTGX_ASSERTS=ON` or `OFF`. The setting reaches everything that links
-`tgx::tgx`, so the library and the app always agree.
+`tgx::tgx`, so the library and the app always agree; an installed tgx keeps
+the one it was built with (with Visual Studio, which installs each
+configuration on its own, the app's configuration picks it).
 
 In another CMake project: `add_subdirectory(terse-graphics)` (or
 FetchContent) and link `tgx::tgx`. Examples and tests are then off. The
 vendored libraries build as `tgx_glad`, `tgx_miniaudio` and so on, apart from
-the project's own; a `glfw` target the project already has (3.4 or newer) is
-used instead of tgx's copy.
+the project's own, and go inside the tgx library itself, as raylib's do: there
+is one library to link. A `glfw` target the project already has (3.4 or
+newer) is used instead of tgx's copy.
+
+Or installed, as a package:
+
+```sh
+cmake --install build --prefix <dir>   # with Visual Studio: --config Release
+```
+
+```cmake
+find_package(tgx 0.1 REQUIRED)   # with -DCMAKE_PREFIX_PATH=<dir>
+target_link_libraries(game PRIVATE tgx::tgx)
+```
+
+The package is the headers, the one library and its CMake files; it asks the
+system only for threads (and for GLFW, if tgx was built with one found by
+`find_package(glfw3)`). Install each configuration into a prefix of its own.
+`TGX_INSTALL` (on when tgx is the project being built) turns the install
+off. `tests/install` is such a project; CI builds it against the package on
+every platform. Before 1.0 a package fits only programs written for the same
+minor version.

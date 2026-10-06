@@ -1,0 +1,13 @@
+# find_package(tgx) gives tgx::tgx. The libraries tgx bundles (glad, GLFW,
+# stb, miniaudio) are inside it; only what they need from the system is
+# looked for here.
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+if (NOT @TGX_OWN_GLFW@)
+    find_dependency(glfw3 3.4)
+endif ()
+
+include(${CMAKE_CURRENT_LIST_DIR}/tgxTargets.cmake)
+check_required_components(tgx)

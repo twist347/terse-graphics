@@ -8,9 +8,6 @@ show it). Back to the [README](../README.md).
 
 Infrastructure:
 
-- CMake install and export: `find_package(tgx)` and `tgx::tgx` from an
-  installed tree, the vendored libraries installed with it, a CI step that
-  builds a small project against the install.
 - The bunnymark against raylib, re-measured: one line in the README, the
   numbers and their scope in the guide.
 - A final pass over the whole API.
@@ -39,7 +36,9 @@ Features:
 - Collisions: rays with the distance to the hit, moving rectangles (swept),
   rotated rectangles and convex polygons (SAT).
 - Math: `reflect`, the angle between vectors, `Mat4` inverse and transpose.
-- Build: `BUILD_SHARED_LIBS`, clang-cl on Windows.
+- Build: `BUILD_SHARED_LIBS` (an export macro on the public API, hidden
+  symbols of the bundled libraries, a SOVERSION), clang-cl on Windows, a
+  pkg-config file for builds without CMake.
 - Loading from memory: `Texture::decode`, `Music::decode`.
 
 ## Deferred

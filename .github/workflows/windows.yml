@@ -1,6 +1,7 @@
 # Windows: builds the library, examples and tests, warnings as errors,
-# and runs the tests that need no display or sound card. One workflow per
-# platform, so each has a badge of its own in the README.
+# runs the tests that need no display or sound card, and builds a project
+# against the installed package. One workflow per platform, so each has a
+# badge of its own in the README.
 name: Windows
 
 on:
@@ -29,3 +30,15 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build -C ${{ matrix.build_type }} -L cpu --output-on-failure
+
+      # A project of its own finds the installed package, as a game would.
+      # Bash, which stops at the first command that fails; PowerShell would
+      # carry on.
+      - name: Install and build against it
+        shell: bash
+        run: |
+          prefix="$(cygpath -m "${{ runner.temp }}")/tgx"
+          cmake --install build --config ${{ matrix.build_type }} --prefix "$prefix"
+          cmake -S tests/install -B build-install -DCMAKE_PREFIX_PATH="$prefix"
+          cmake --build build-install --config ${{ matrix.build_type }}
+          build-install/${{ matrix.build_type }}/tgx_install_check.exe

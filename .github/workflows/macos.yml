@@ -1,6 +1,7 @@
 # macOS: builds the library, examples and tests, warnings as errors,
-# and runs the tests that need no display or sound card. One workflow per
-# platform, so each has a badge of its own in the README.
+# runs the tests that need no display or sound card, and builds a project
+# against the installed package. One workflow per platform, so each has a
+# badge of its own in the README.
 name: macOS
 
 on:
@@ -31,3 +32,13 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build -L cpu --output-on-failure
+
+      # A project of its own finds the installed package, as a game would.
+      - name: Install and build against it
+        run: |
+          cmake --install build --prefix "${{ runner.temp }}/tgx"
+          cmake -S tests/install -B build-install \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_PREFIX_PATH="${{ runner.temp }}/tgx"
+          cmake --build build-install
+          build-install/tgx_install_check
