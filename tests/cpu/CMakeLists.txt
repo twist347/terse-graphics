@@ -13,7 +13,7 @@ add_executable(tgx_tests_cpu
         random.cpp
         text.cpp
 )
-target_link_libraries(tgx_tests_cpu PRIVATE tgx::tgx doctest)
+target_link_libraries(tgx_tests_cpu PRIVATE tgx::tgx tgx_doctest)
 # support.h, shared by all the tests.
 target_include_directories(tgx_tests_cpu PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_compile_options(tgx_tests_cpu PRIVATE ${TGX_WARNINGS})

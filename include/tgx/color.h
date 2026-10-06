@@ -93,7 +93,7 @@ namespace tgx {
     // lerps, t is clamped to [0, 1]: past the ends a channel has nowhere to go.
     [[nodiscard]] constexpr auto lerp(Color a, Color b, float t) noexcept -> Color {
         // A NaN would pass the clamp and turn into no channel value.
-        TGX_ASSERT_MSG(std::isfinite(t), "lerp(…, {}): not a number", t);
+        TGX_ASSERT_MSG(std::isfinite(t), "lerp(a, b, {}): not a number", t);
         const float k = std::clamp(t, 0.f, 1.f);
         const auto mix = [k](std::uint8_t from, std::uint8_t to) {
             const auto f = static_cast<float>(from);

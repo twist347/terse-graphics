@@ -513,12 +513,19 @@ cmake -S . -B build
 cmake --build build
 ```
 
-Examples and tests are built by default; turn them off with
-`-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. The tests cover what
-needs no window (math, colors, collisions, the camera, images, measuring
-text) and run with `ctest --test-dir build` (`-L cpu` for only those that
-need no display).
+Examples and tests are built when tgx is the project being built; turn them
+off with `-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. The tests
+cover what needs no window (math, colors, collisions, the camera, random
+numbers, images, sounds, measuring text) and run with
+`ctest --test-dir build` (`-L cpu` for only those that need no display).
+`-DTGX_WARNINGS_AS_ERRORS=ON` fails the build on a warning in tgx's own code,
+as CI does on Linux, macOS and Windows.
 Asserts follow the build type (off where CMake defines `NDEBUG`); force them
 with `-DTGX_ASSERTS=ON` or `OFF`. The setting reaches everything that links
 `tgx::tgx`, so the library and the app always agree.
-In another CMake project: `add_subdirectory(terse-graphics)` and link `tgx::tgx`.
+
+In another CMake project: `add_subdirectory(terse-graphics)` (or
+FetchContent) and link `tgx::tgx`. Examples and tests are then off. The
+vendored libraries build as `tgx_glad`, `tgx_miniaudio` and so on, apart from
+the project's own; a `glfw` target the project already has (3.4 or newer) is
+used instead of tgx's copy.

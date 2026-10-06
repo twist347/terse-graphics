@@ -1,5 +1,5 @@
-# Builds the library, examples and tests, and runs the tests that need no
-# display or sound card.
+# Builds the library, examples and tests on Linux, macOS and Windows, warnings
+# as errors, and runs the tests that need no display or sound card.
 name: CI
 
 on:
@@ -37,9 +37,56 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }}
           -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+          -DTGX_WARNINGS_AS_ERRORS=ON
 
       - name: Build
         run: cmake --build build --parallel
 
       - name: Test
         run: ctest --test-dir build -L cpu --output-on-failure
+
+  macos:
+    name: macOS, Apple Clang, ${{ matrix.build_type }}
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Everything needed comes with Xcode: GL and Cocoa are system frameworks.
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DTGX_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build -L cpu --output-on-failure
+
+  windows:
+    name: Windows, MSVC, ${{ matrix.build_type }}
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Visual Studio generator builds every configuration from one
+      # tree, so the configuration is picked at build and test time.
+      - name: Configure
+        run: cmake -S . -B build -DTGX_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --parallel --config ${{ matrix.build_type }}
+
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.build_type }} -L cpu --output-on-failure
