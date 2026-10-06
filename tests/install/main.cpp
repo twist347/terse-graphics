@@ -9,6 +9,9 @@
 #include <print>
 
 static_assert(TGX_ENABLE_ASSERTS == 0 || TGX_ENABLE_ASSERTS == 1);
+#if !TGX_VERSION_AT_LEAST(0, 1, 0)
+#error "the installed tgx is older than this check"
+#endif
 
 int main(int argc, char **) {
     if (argc > 1) {
@@ -23,6 +26,6 @@ int main(int argc, char **) {
         std::println(stderr, "tgx install check: wrong results");
         return 1;
     }
-    std::println("tgx install check: ok (asserts {})", TGX_ENABLE_ASSERTS != 0 ? "on" : "off");
+    std::println("tgx install check: ok (tgx {}, asserts {})", TGX_VERSION_STRING, TGX_ENABLE_ASSERTS != 0 ? "on" : "off");
     return 0;
 }

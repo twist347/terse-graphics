@@ -16,7 +16,8 @@ namespace {
 }
 
 int main() {
-    // Info also prints which GL context the driver gave.
+    // Info also prints what it runs on: tgx and the window, the GL context,
+    // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
     auto app = tgx::App::create({.title = "tgx - 08 blend"});

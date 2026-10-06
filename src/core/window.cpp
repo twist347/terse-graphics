@@ -1,6 +1,7 @@
 #include "tgx/core/window.h"
 
 #include "tgx/core/assert.h"
+#include "tgx/core/version.h"
 
 #include "tgx/gl/version.h"
 
@@ -11,6 +12,10 @@
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
+#include <filesystem>
+#include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
 
 namespace {
@@ -109,6 +114,51 @@ namespace {
     auto on_glfw_error(int code, const char *desc) noexcept -> void {
         tgx::detail::log_error("glfw {}: {}", code, desc);
     }
+
+    [[nodiscard]] auto platform_name() noexcept -> std::string_view {
+        switch (glfwGetPlatform()) {
+            case GLFW_PLATFORM_WIN32: return "Win32";
+            case GLFW_PLATFORM_COCOA: return "Cocoa";
+            case GLFW_PLATFORM_WAYLAND: return "Wayland";
+            case GLFW_PLATFORM_X11: return "X11";
+            default: return "another platform";
+        }
+    }
+
+    // What a bug report needs first: which tgx, on which windowing system,
+    // the sizes the window got (a scaled display makes the framebuffer
+    // larger), the monitor, and where relative paths start from.
+    auto log_window_info() noexcept -> void {
+        if (!tgx::detail::log_enabled(tgx::LogLevel::info)) {
+            return;
+        }
+        int major = 0;
+        int minor = 0;
+        int revision = 0;
+        glfwGetVersion(&major, &minor, &revision);
+        tgx::detail::log_info("tgx {}, GLFW {}.{}.{} on {}", TGX_VERSION_STRING, major, minor, revision, platform_name());
+        tgx::detail::log_info(
+            "  window:   {}x{}, framebuffer {}x{}, vsync {}",
+            s_window.size.width, s_window.size.height,
+            s_window.framebuffer_size.width, s_window.framebuffer_size.height,
+            s_window.vsync ? "on" : "off"
+        );
+        if (GLFWmonitor *monitor = glfwGetPrimaryMonitor()) {
+            if (const GLFWvidmode *mode = glfwGetVideoMode(monitor)) {
+                const char *name = glfwGetMonitorName(monitor);
+                tgx::detail::log_info(
+                    "  monitor:  {}, {}x{} at {} Hz",
+                    name ? name : "unnamed", mode->width, mode->height, mode->refreshRate
+                );
+            }
+        }
+        std::error_code err;
+        const std::filesystem::path cwd = std::filesystem::current_path(err);
+        if (!err) {
+            const std::u8string utf8 = cwd.u8string();
+            tgx::detail::log_info("  cwd:      {}", std::string_view{reinterpret_cast<const char *>(utf8.data()), utf8.size()});
+        }
+    }
 }
 
 namespace tgx {
@@ -170,6 +220,7 @@ namespace tgx {
         glfwSetWindowIconifyCallback(handle, on_minimize);
 
         detail::attach_input(handle);
+        log_window_info();
         return Window{};
     }
 

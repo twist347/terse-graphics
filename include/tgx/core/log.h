@@ -37,7 +37,9 @@ namespace tgx {
 
     // Messages below the level are dropped before they are formatted. The
     // default is warn: quiet unless something is wrong. Set info to also see
-    // the context the driver gave at startup.
+    // at startup what it runs on: the tgx and GLFW versions and the windowing
+    // system, the window's sizes, the monitor, the working directory, the GL
+    // context the driver gave and the audio output.
     auto set_log_level(LogLevel level) noexcept -> void;
 
     [[nodiscard]] auto log_level() noexcept -> LogLevel;

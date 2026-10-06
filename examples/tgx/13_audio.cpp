@@ -43,7 +43,8 @@ namespace {
 }
 
 int main(int argc, char **argv) {
-    // Info also prints which GL context the driver gave, and the audio output.
+    // Info also prints what it runs on: tgx and the window, the GL context,
+    // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
     auto app = tgx::App::create({.title = "tgx - 13 audio"});

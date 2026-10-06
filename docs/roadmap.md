@@ -11,6 +11,9 @@ Infrastructure:
 - The bunnymark against raylib, re-measured: one line in the README, the
   numbers and their scope in the guide.
 - A final pass over the whole API.
+- The first release: tag 0.1.0 and start `CHANGELOG.md` with it (added,
+  changed, fixed per version, as in terse-dsa), bumping `tgx/core/version.h`
+  from then on.
 
 Features:
 

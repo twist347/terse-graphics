@@ -91,6 +91,11 @@ namespace {
         tgx::detail::log_info("  renderer: {}", gl_string(GL_RENDERER));
         tgx::detail::log_info("  vendor:   {}", gl_string(GL_VENDOR));
         tgx::detail::log_info("  glsl:     {}", gl_string(GL_SHADING_LANGUAGE_VERSION));
+        // What a texture or render target may be at most: past it, creating
+        // one fails as unsupported.
+        GLint max_size = 0;
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_size);
+        tgx::detail::log_info("  textures: up to {}x{}", max_size, max_size);
     }
 
     // Logs its outcome as the last line of the context info block: with the

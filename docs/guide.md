@@ -97,7 +97,7 @@ Not yet: fonts of your own (TTF).
 | Object        | Owns                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
 | `App`         | The simple way in: creates the `Window`, `Device`, `Canvas` and `Audio` in the right order as one call that fails as one (the audio never fails it), owns them, tears them down in reverse, and gives the frame loop in three words (`should_close`, `poll_events`, `swap_buffers`). |
-| `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, polling events, size (kept up to date as GLFW reports it) and whether it changed, focus, being minimized, title, vsync, fullscreen, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
+| `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, logging what it runs on, polling events, size (kept up to date as GLFW reports it) and whether it changed, focus, being minimized, title, vsync, fullscreen, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
 | `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames and timing them (`Clock`), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
 | `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how and where to draw (size, viewport, target, camera, blend, shader): a plain value to copy. |
 | `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
@@ -503,7 +503,7 @@ stderr, one line each, prefixed with `[tgx] <level>:`. Both the level and the
 destination are configurable, before creating the `App`:
 
 ```cpp
-tgx::set_log_level(tgx::LogLevel::info);   // also show the GL context at startup; off drops all
+tgx::set_log_level(tgx::LogLevel::info);   // also show what it runs on at startup; off drops all
 tgx::set_log_sink([](tgx::LogLevel level, std::string_view msg, void *) noexcept {
     // forward to your own logger
 });
@@ -512,6 +512,26 @@ tgx::set_log_sink([](tgx::LogLevel level, std::string_view msg, void *) noexcept
 A sink is called on the thread that made the tgx call, GL driver messages
 included: they are delivered synchronously. Passing `nullptr` restores the
 default.
+
+At `info`, startup shows what the program runs on, the first thing a bug
+report needs:
+
+```
+[tgx] info: tgx 0.1.0, GLFW 3.5.1 on Wayland
+[tgx] info:   window:   1280x720, framebuffer 1280x720, vsync on
+[tgx] info:   monitor:  DP-3, 2560x1440 at 180 Hz
+[tgx] info:   cwd:      /home/me/game
+[tgx] info: OpenGL 3.3.0 NVIDIA 595.91.07
+[tgx] info:   renderer: NVIDIA GeForce RTX 3060/PCIe/SSE2
+[tgx] info:   vendor:   NVIDIA Corporation
+[tgx] info:   glsl:     3.30 NVIDIA via Cg compiler
+[tgx] info:   textures: up to 32768x32768
+[tgx] info:   debug:    on
+[tgx] info: audio: Built-in Audio Analog Stereo via PulseAudio, 48000 Hz, 2 channels
+```
+
+A framebuffer larger than the window means a scaled display; `cwd` is where
+relative paths such as `"player.png"` start from.
 
 Driver messages are logged by their severity, except performance hints, which
 are advice rather than faults and go to `info`. A debug context, and with it the
@@ -567,6 +587,9 @@ The package is the headers, the one library and its CMake files; it asks the
 system only for threads (and for GLFW, if tgx was built with one found by
 `find_package(glfw3)`). Install each configuration into a prefix of its own.
 `TGX_INSTALL` (on when tgx is the project being built) turns the install
-off. `tests/install` is such a project; CI builds it against the package on
+off. The version is written once, in `tgx/core/version.h`, and CMake reads it from
+there: `TGX_VERSION_MAJOR`, `_MINOR`, `_PATCH`, `TGX_VERSION_STRING`
+(`"0.1.0"`), and `TGX_VERSION` as one number for
+`#if TGX_VERSION_AT_LEAST(0, 2, 0)`. `tests/install` is such a project; CI builds it against the package on
 every platform. Before 1.0 a package fits only programs written for the same
 minor version.

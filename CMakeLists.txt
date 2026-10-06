@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(terse-graphics VERSION 0.1.0 LANGUAGES C CXX)
+# The version is written once, in tgx/core/version.h, and read back from there.
+file(STRINGS include/tgx/core/version.h tgx_version_defines
+        REGEX "^#define TGX_VERSION_(MAJOR|MINOR|PATCH) +[0-9]+$")
+foreach (part MAJOR MINOR PATCH)
+    string(REGEX MATCH "TGX_VERSION_${part} +([0-9]+)" _ "${tgx_version_defines}")
+    set(tgx_version_${part} ${CMAKE_MATCH_1})
+endforeach ()
+
+project(terse-graphics
+        VERSION ${tgx_version_MAJOR}.${tgx_version_MINOR}.${tgx_version_PATCH}
+        LANGUAGES C CXX
+)
 
 # On when tgx is the project being built, off when another project adds it
 # with add_subdirectory or FetchContent.
@@ -173,4 +184,33 @@ endif ()
 if (TGX_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif ()
+
+# What this configuration builds, when tgx is the project being built; as a
+# subproject it keeps quiet.
+if (PROJECT_IS_TOP_LEVEL)
+    if (tgx_multi_config)
+        set(tgx_shown_build_type "picked at build time")
+    elseif (CMAKE_BUILD_TYPE STREQUAL "")
+        set(tgx_shown_build_type "none")
+    else ()
+        set(tgx_shown_build_type "${CMAKE_BUILD_TYPE}")
+    endif ()
+    if (tgx_multi_config AND tgx_asserts STREQUAL "")
+        set(tgx_shown_asserts "off in release configurations")
+    elseif (tgx_installed_asserts)
+        set(tgx_shown_asserts ON)
+    else ()
+        set(tgx_shown_asserts OFF)
+    endif ()
+    message(STATUS "")
+    message(STATUS "tgx configuration:")
+    message(STATUS "  version   : ${PROJECT_VERSION}")
+    message(STATUS "  build type: ${tgx_shown_build_type}")
+    message(STATUS "  compiler  : ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+    message(STATUS "  asserts   : ${tgx_shown_asserts}")
+    message(STATUS "  examples  : ${TGX_BUILD_EXAMPLES}")
+    message(STATUS "  tests     : ${TGX_BUILD_TESTS}")
+    message(STATUS "  install   : ${TGX_INSTALL}")
+    message(STATUS "")
 endif ()

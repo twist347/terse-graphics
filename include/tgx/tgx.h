@@ -27,6 +27,7 @@
 #include "tgx/core/random.h"
 #include "tgx/core/render_target.h"
 #include "tgx/core/texture.h"
+#include "tgx/core/version.h"
 #include "tgx/core/window.h"
 
 #include "tgx/gl/buffer.h"
