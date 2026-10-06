@@ -54,7 +54,7 @@ namespace tgx_test {
                 )"
             );
             REQUIRE(shader.has_value());
-            constexpr std::array<Vertex, 3> corners{Vertex{{-1, -1}}, Vertex{{3, -1}}, Vertex{{-1, 3}}};
+            constexpr std::array corners{Vertex{{-1, -1}}, Vertex{{3, -1}}, Vertex{{-1, 3}}};
             auto buffer = tgx::gl::Buffer<Vertex>::create(corners);
             REQUIRE(buffer.has_value());
             auto vertices = tgx::gl::VertexArray::create<Vertex>(

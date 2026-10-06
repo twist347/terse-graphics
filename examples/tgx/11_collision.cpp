@@ -22,11 +22,11 @@ int main() {
     const auto &input = app->input();
     auto &canvas = app->canvas();
 
-    std::array<tgx::Rect, 3> rects{{
-        {100, 100, 300, 200},
-        {500, 150, 120, 300},
-        {750, 400, 250, 120},
-    }};
+    std::array rects{
+        tgx::Rect{100, 100, 300, 200},
+        tgx::Rect{500, 150, 120, 300},
+        tgx::Rect{750, 400, 250, 120},
+    };
     std::array<bool, 3> marked{};
     constexpr std::array circles{
         tgx::Circle{{900, 180}, 80},

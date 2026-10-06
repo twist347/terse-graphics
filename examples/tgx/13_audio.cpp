@@ -36,10 +36,10 @@ namespace {
     }
 
     // A pentatonic scale: each pitch a ratio to the note as made.
-    constexpr std::array<tgx::Key, 5> keys{
+    constexpr std::array keys{
         tgx::Key::digit1, tgx::Key::digit2, tgx::Key::digit3, tgx::Key::digit4, tgx::Key::digit5,
     };
-    constexpr std::array<float, 5> pitches{1.f, 9.f / 8.f, 5.f / 4.f, 3.f / 2.f, 5.f / 3.f};
+    constexpr std::array pitches{1.f, 9.f / 8.f, 5.f / 4.f, 3.f / 2.f, 5.f / 3.f};
 }
 
 int main(int argc, char **argv) {

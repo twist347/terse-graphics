@@ -68,6 +68,7 @@ def main() -> None:
         "#pragma once",
         "",
         "#include <array>",
+        "#include <cstddef>",
         "#include <cstdint>",
         "",
         "namespace tgx::detail::default_font {",
@@ -84,13 +85,14 @@ def main() -> None:
         "        std::uint8_t width;",
         "    };",
         "",
-        f"    inline constexpr std::array<Glyph, {len(glyphs)}> glyphs{{{{",
+        "    inline constexpr std::array glyphs{",
     ]
     for code, (gx, w) in zip(range(FIRST, LAST + 1), glyphs):
         shown = {" ": "space", "\\": "backslash"}.get(chr(code), chr(code))
-        lines.append(f"        {{{gx}, {w}}},  // {shown}")
+        lines.append(f"        Glyph{{{gx}, {w}}},  // {shown}")
     lines += [
-        "    }};",
+        "    };",
+        "    static_assert(glyphs.size() == static_cast<std::size_t>(last - first + 1));",
         "",
         "    // The atlas: the glyphs in a row, then a white block for shapes at",
         "    // (white_x, 0).",

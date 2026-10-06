@@ -327,13 +327,13 @@ namespace tgx {
         Color bottom_right,
         Color bottom_left
     ) noexcept -> void {
-        const std::array<Vec2, 4> corners{
+        const std::array corners{
             Vec2{rect.x, rect.y},
             Vec2{rect.right(), rect.y},
             Vec2{rect.right(), rect.bottom()},
             Vec2{rect.x, rect.bottom()},
         };
-        const std::array<Color, 4> colors{top_left, top_right, bottom_right, bottom_left};
+        const std::array colors{top_left, top_right, bottom_right, bottom_left};
         if (detail::blends_flat(colors)) {
             quad(corners, colors);
             return;
@@ -532,10 +532,10 @@ namespace tgx {
             v0 = 1.f - v0;
             v1 = 1.f - v1;
         }
-        const std::array<Vec2, 4> uvs{Vec2{u0, v0}, Vec2{u1, v0}, Vec2{u1, v1}, Vec2{u0, v1}};
+        const std::array uvs{Vec2{u0, v0}, Vec2{u1, v0}, Vec2{u1, v1}, Vec2{u0, v1}};
 
         // Corners relative to the origin, turned, then put at the position.
-        std::array<Vec2, 4> corners{
+        std::array corners{
             Vec2{-sprite.origin.x, -sprite.origin.y},
             Vec2{width - sprite.origin.x, -sprite.origin.y},
             Vec2{width - sprite.origin.x, height - sprite.origin.y},

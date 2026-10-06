@@ -14,7 +14,7 @@ namespace {
     using Vertex = tgx_test::Cover::Vertex;
 
     // A vertex far outside, then the triangle over all of clip space.
-    constexpr std::array<Vertex, 4> vertices{Vertex{{9, 9}}, Vertex{{-1, -1}}, Vertex{{3, -1}}, Vertex{{-1, 3}}};
+    constexpr std::array vertices{Vertex{{9, 9}}, Vertex{{-1, -1}}, Vertex{{3, -1}}, Vertex{{-1, 3}}};
 
     [[nodiscard]] auto layout() -> tgx::gl::VertexArray {
         return tgx::gl::VertexArray::create<Vertex>(std::array{tgx::gl::VertexAttribute::of(0, &Vertex::position)});
