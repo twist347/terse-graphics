@@ -71,6 +71,16 @@ namespace tgx {
         // letter: for Backspace in a text field or stepping through a menu.
         [[nodiscard]] auto repeated(Key key) const noexcept -> bool;
 
+        // Where the held keys point, of length 1 or 0: WASD or the arrows,
+        // y down as on screen. A diagonal is as fast as a straight line, and
+        // opposite keys cancel out.
+        //
+        //     player += input.direction() * speed * dt;
+        [[nodiscard]] auto direction() const noexcept -> Vec2;
+
+        // The same with four keys of your own.
+        [[nodiscard]] auto direction(Key left, Key right, Key up, Key down) const noexcept -> Vec2;
+
         [[nodiscard]] auto down(MouseButton button) const noexcept -> bool;
         [[nodiscard]] auto pressed(MouseButton button) const noexcept -> bool;
         [[nodiscard]] auto released(MouseButton button) const noexcept -> bool;

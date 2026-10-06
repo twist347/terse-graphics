@@ -44,18 +44,12 @@ int main() {
 
     while (!app->should_close()) {
         app->poll_events();
-        const float speed = 300 * app->clock().delta();
-        if (app->input().down(tgx::Key::left)) {
-            player.x -= speed;
-        }
-        if (app->input().down(tgx::Key::right)) {
-            player.x += speed;
-        }
+        player += app->input().direction() * 300 * app->clock().delta();
 
         canvas.clear(tgx::colors::dark_gray);
         canvas.rect_gradient({0, 0, 1280, 360}, tgx::colors::blue, tgx::colors::dark_gray);
         canvas.circle(player, 20, tgx::colors::yellow);
-        canvas.text({20, 40}, "arrows to move", tgx::colors::white);
+        canvas.text({20, 40}, "WASD or arrows to move", tgx::colors::white);
 
         app->swap_buffers();
     }

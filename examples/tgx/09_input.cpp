@@ -32,15 +32,9 @@ int main() {
     while (!app->should_close()) {
         app->poll_events();
 
-        // down: held now, so it moves every frame the key is held.
-        tgx::Vec2 direction{};
-        if (input.down(tgx::Key::a) || input.down(tgx::Key::left)) { direction.x -= 1; }
-        if (input.down(tgx::Key::d) || input.down(tgx::Key::right)) { direction.x += 1; }
-        if (input.down(tgx::Key::w) || input.down(tgx::Key::up)) { direction.y -= 1; }
-        if (input.down(tgx::Key::s) || input.down(tgx::Key::down)) { direction.y += 1; }
-        // Unit length, so a diagonal is not sqrt(2) times faster.
-        if (direction != tgx::Vec2{}) { direction = normalize(direction); }
-        player +=direction * speed * app->clock().delta();
+        // direction: from the keys held now (WASD or arrows), length 1, so a
+        // diagonal is not faster.
+        player += input.direction() * speed * app->clock().delta();
 
         // pressed: once, on the frame the key goes down.
         if (input.pressed(tgx::Key::escape)) {

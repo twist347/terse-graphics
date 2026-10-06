@@ -40,7 +40,8 @@ In `tgx`:
   presented (`clock()`: delta, elapsed, fps), and `canvas.fps(pos)` to show
   them.
 - **Input**: keyboard and mouse as of the last poll: keys and buttons held,
-  pressed or released this frame, keys repeated by the OS while held, the
+  pressed or released this frame, keys repeated by the OS while held, a
+  direction from WASD or the arrows (`direction()`, length 1), the
   mouse in window coordinates (and through `Canvas::to_world` in the world),
   the wheel, typed text in UTF-8.
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles and

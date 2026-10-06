@@ -161,6 +161,15 @@ namespace {
             text += byte(0x80 | (c & 0x3F));
         }
     }
+
+    // Of length 1, or 0 when nothing is held or opposite sides cancel out.
+    auto unit_direction(bool left, bool right, bool up, bool down) noexcept -> tgx::Vec2 {
+        const tgx::Vec2 direction{
+            static_cast<float>(right) - static_cast<float>(left),
+            static_cast<float>(down) - static_cast<float>(up),
+        };
+        return direction == tgx::Vec2{} ? direction : normalize(direction);
+    }
 }
 
 namespace tgx {
@@ -178,6 +187,18 @@ namespace tgx {
 
     auto Input::repeated(Key key) const noexcept -> bool {
         return (s_input.keys[static_cast<std::size_t>(key)] & bit_repeated) != 0;
+    }
+
+    auto Input::direction() const noexcept -> Vec2 {
+        const auto held = [this](Key a, Key b) noexcept { return down(a) || down(b); };
+        return unit_direction(
+            held(Key::a, Key::left), held(Key::d, Key::right),
+            held(Key::w, Key::up), held(Key::s, Key::down)
+        );
+    }
+
+    auto Input::direction(Key left, Key right, Key up, Key down) const noexcept -> Vec2 {
+        return unit_direction(this->down(left), this->down(right), this->down(up), this->down(down));
     }
 
     auto Input::down(MouseButton button) const noexcept -> bool {
