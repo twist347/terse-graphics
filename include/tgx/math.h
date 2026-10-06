@@ -120,6 +120,9 @@ namespace tgx {
     // The same, scaled by the largest whole factor that fits (at least 1)
     // and at a whole position, so every pixel of pixel art stays a square of
     // the same size: 320x180 in 1366x768 is 1280x720 at (43, 24).
+    // Whole in the units of area: in window().size() that is whole pixels
+    // only while the display scales by a whole factor. At 1.25, fit into
+    // window().framebuffer_size() and draw with a canvas set_size to it.
     [[nodiscard]] constexpr auto fit_whole(Size content, Size area) noexcept -> Rect {
         if (content.empty() || area.empty()) {
             return {};

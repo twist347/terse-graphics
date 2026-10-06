@@ -93,10 +93,12 @@ namespace tgx {
         }
 
         // One of the items of an array, a vector, a span, each as likely;
-        // there must be at least one.
+        // there must be at least one. Given by reference, so not from a
+        // temporary container, which is gone by the time it is used.
         //
         //     const tgx::Color color = random.pick(palette);
         template<std::ranges::random_access_range Items>
+            requires std::ranges::borrowed_range<Items>
         auto pick(Items &&items) noexcept -> std::ranges::range_reference_t<Items> {
             TGX_ASSERT_MSG(!std::ranges::empty(items), "picking from no items");
 

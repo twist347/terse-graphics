@@ -40,6 +40,11 @@ namespace tgx {
         if (!file.write(reinterpret_cast<const char *>(bytes.data()), static_cast<std::streamsize>(bytes.size()))) {
             return std::unexpected{Error::io};
         }
+        // The last of it reaches the disk only now: a full disk shows here.
+        file.close();
+        if (!file) {
+            return std::unexpected{Error::io};
+        }
         return {};
     }
 }

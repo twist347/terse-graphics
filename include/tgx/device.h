@@ -74,7 +74,9 @@ namespace tgx {
         // leaves the next one to be drawn anew. Draws what is waiting first
         // and waits for the GPU to finish: not for every frame.
         //
-        //     if (input.pressed(tgx::Key::f12)) {
+        // A minimized window has nothing to read: the Image is empty.
+        //
+        //     if (input.pressed(tgx::Key::f12) && !app->window().minimized()) {
         //         const auto saved = app->device().read().save("screenshot.png");
         //     }
         [[nodiscard]] auto read() -> Image;

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -122,6 +123,11 @@ namespace {
         if (ma_decoder_init_memory(encoded.data(), encoded.size(), &config, &decoder) != MA_SUCCESS) {
             return std::unexpected{tgx::Error::decode};
         }
+        // Let go however this ends, a failed resize below included.
+        struct DecoderGuard {
+            ma_decoder &decoder;
+            ~DecoderGuard() { ma_decoder_uninit(&decoder); }
+        } guard{decoder};
 
         ma_uint32 channels = 0;
         ma_uint32 rate = 0;
@@ -140,7 +146,6 @@ namespace {
                 break;
             }
         }
-        ma_decoder_uninit(&decoder);
 
         if (samples.empty() || channels == 0 || rate == 0) {
             return std::unexpected{tgx::Error::decode};
@@ -330,6 +335,9 @@ namespace tgx {
     }
 
     auto Music::set_volume(float volume) noexcept -> void {
+        // One NaN reaches the shared mix and silences everything.
+        TGX_ASSERT_MSG(std::isfinite(volume), "volume {}: not a number", volume);
+
         if (m_stream && m_stream->live) {
             ma_sound_set_volume(&m_stream->sound, std::max(volume, 0.f));
         }
@@ -402,6 +410,9 @@ namespace tgx {
     auto Audio::play(const Sound &sound, const PlayParams &params) noexcept -> void {
         // miniaudio would keep the pitch it had without a word.
         TGX_ASSERT_MSG(params.pitch > 0.f, "pitch {}: playing at no speed or backwards", params.pitch);
+        // One NaN reaches the shared mix and silences everything.
+        TGX_ASSERT_MSG(std::isfinite(params.volume), "volume {}: not a number", params.volume);
+        TGX_ASSERT_MSG(std::isfinite(params.pan), "pan {}: not a number", params.pan);
 
         if (!s_audio || sound.m_id == 0 || sound.m_samples.empty()) {
             return;
@@ -445,6 +456,9 @@ namespace tgx {
     }
 
     auto Audio::set_volume(float volume) noexcept -> void {
+        // One NaN reaches the shared mix and silences everything.
+        TGX_ASSERT_MSG(std::isfinite(volume), "volume {}: not a number", volume);
+
         s_volume = std::max(volume, 0.f);
         if (s_audio) {
             ma_engine_set_volume(&s_audio->engine, s_volume);

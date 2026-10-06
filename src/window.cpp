@@ -32,7 +32,6 @@ namespace {
         // Set again after leaving or entering fullscreen: some drivers reset
         // the swap interval when the window changes monitor.
         bool vsync{true};
-        bool fullscreen{false};
         // Where the window was and how big, to go back to from fullscreen.
         int windowed_x{0};
         int windowed_y{0};
@@ -135,9 +134,10 @@ namespace tgx {
         // profiles have no deprecated functions left to remove anyway.
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, params.debug_context ? GLFW_TRUE : GLFW_FALSE);
-        // A fullscreen window would otherwise minimize when it loses focus:
-        // alt-tab out of a game would hide it.
-        glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
+        // GLFW_AUTO_ICONIFY stays on: a fullscreen window minimizes when it
+        // loses focus. GLFW keeps a fullscreen window above all others
+        // (Windows, macOS) and lowers it only when it minimizes, so without
+        // that alt-tab would leave the game covering the monitor.
 
         GLFWwindow *handle = glfwCreateWindow(
             params.width, params.height, params.title, nullptr, nullptr
@@ -233,11 +233,16 @@ namespace tgx {
     }
 
     auto Window::set_fullscreen(bool fullscreen) noexcept -> void {
-        if (fullscreen == s_window.fullscreen) {
+        if (fullscreen == this->fullscreen()) {
             return;
         }
 
         if (fullscreen) {
+            // A minimized window has no size to go back to (0x0 on Windows).
+            if (s_window.minimized) {
+                glfwRestoreWindow(s_window.handle);
+                refresh_sizes();
+            }
             if (positions_known()) {
                 glfwGetWindowPos(s_window.handle, &s_window.windowed_x, &s_window.windowed_y);
             }
@@ -263,12 +268,13 @@ namespace tgx {
                 GLFW_DONT_CARE
             );
         }
-        s_window.fullscreen = fullscreen;
         set_swap_interval(s_window.vsync);
     }
 
+    // Asked of GLFW rather than kept: the OS may take the window out of
+    // fullscreen on its own.
     auto Window::fullscreen() const noexcept -> bool {
-        return s_window.fullscreen;
+        return glfwGetWindowMonitor(s_window.handle) != nullptr;
     }
 
     auto Window::size() const noexcept -> Size {

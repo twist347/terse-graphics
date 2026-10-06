@@ -65,11 +65,15 @@ namespace {
             // continuation byte counts as a character of its own. Only
             // continuation bytes are taken after it, so a sequence cut short
             // does not swallow the next character.
-            const std::size_t length = c < 0x80 ? 1
-                : (c >> 5) == 0x6 ? 2
-                : (c >> 4) == 0xE ? 3
-                : (c >> 3) == 0x1E ? 4
-                : 1;
+            const std::size_t length = c < 0x80
+                                           ? 1
+                                           : (c >> 5) == 0x6
+                                                 ? 2
+                                                 : (c >> 4) == 0xE
+                                                       ? 3
+                                                       : (c >> 3) == 0x1E
+                                                             ? 4
+                                                             : 1;
             ++i;
             for (std::size_t taken = 1; taken < length && i < text.size(); ++taken, ++i) {
                 if ((static_cast<unsigned char>(text[i]) & 0xC0) != 0x80) {
@@ -154,8 +158,9 @@ namespace {
 
     // Where two lines of a strip meet at a corner: the points both share on
     // either side, plus along the first line's perpendicular, minus the
-    // other way. Not mitered when the corner is too sharp for that, or turns
-    // straight back: the lines then end square at it.
+    // other way. Not mitered when the corner is too sharp for that, turns
+    // straight back, or would reach along a line more than room: the lines
+    // then end square at it.
     struct Joint {
         tgx::Vec2 plus;
         tgx::Vec2 minus;
@@ -167,7 +172,7 @@ namespace {
     // from tip to tip.
     constexpr float miter_limit = 4.f;
 
-    [[nodiscard]] auto joint(tgx::Vec2 at, tgx::Vec2 in, tgx::Vec2 out, float half) noexcept -> Joint {
+    [[nodiscard]] auto joint(tgx::Vec2 at, tgx::Vec2 in, tgx::Vec2 out, float half, float room) noexcept -> Joint {
         const tgx::Vec2 sum = tgx::perpendicular(in) + tgx::perpendicular(out);
         if (tgx::dot(sum, sum) < 1e-6f) {
             return {at, at, false};
@@ -178,7 +183,32 @@ namespace {
         if (reach > half * miter_limit) {
             return {at, at, false};
         }
-        return {at + miter * reach, at - miter * reach, true};
+        // The inside point slides back along both lines; past the far end of
+        // a short one, its band would twist over itself.
+        const tgx::Vec2 offset = miter * reach;
+        if (std::abs(tgx::dot(offset, out)) > room) {
+            return {at, at, false};
+        }
+        return {at + offset, at - offset, true};
+    }
+
+    // Whether the colors of a quad's corners (clockwise) blend between them
+    // as two triangles split along a to c would: when a and c add up to the
+    // same as b and d, channel by channel. Then the diagonal does not show.
+    [[nodiscard]] auto blends_flat(const std::array<tgx::Color, 4> &colors) noexcept -> bool {
+        const auto flat = [&](std::uint8_t tgx::Color::*channel) noexcept {
+            return colors[0].*channel + colors[2].*channel == colors[1].*channel + colors[3].*channel;
+        };
+        return flat(&tgx::Color::r) && flat(&tgx::Color::g) && flat(&tgx::Color::b) && flat(&tgx::Color::a);
+    }
+
+    // The four corners' colors mixed evenly, rounded.
+    [[nodiscard]] auto average(const std::array<tgx::Color, 4> &colors) noexcept -> tgx::Color {
+        const auto mix = [&](std::uint8_t tgx::Color::*channel) noexcept {
+            const int sum = colors[0].*channel + colors[1].*channel + colors[2].*channel + colors[3].*channel;
+            return static_cast<std::uint8_t>((sum + 2) / 4);
+        };
+        return {mix(&tgx::Color::r), mix(&tgx::Color::g), mix(&tgx::Color::b), mix(&tgx::Color::a)};
     }
 
     [[nodiscard]] auto segments_for(float pixel_radius) noexcept -> std::size_t {
@@ -343,7 +373,20 @@ namespace tgx {
             Vec2{rect.right(), rect.bottom()},
             Vec2{rect.x, rect.bottom()},
         };
-        quad(corners, {top_left, top_right, bottom_right, bottom_left});
+        const std::array<Color, 4> colors{top_left, top_right, bottom_right, bottom_left};
+        if (blends_flat(colors)) {
+            quad(corners, colors);
+            return;
+        }
+
+        // Four triangles around the middle, so no one diagonal shows: red
+        // and green crossed would otherwise leave a band along it.
+        auto [batch, first] = start(state_for(0), 5, 12);
+        batch.push_vertex({rect.center(), white_uv, average(colors)});
+        for (std::size_t i = 0; i < 4; ++i) {
+            batch.push_vertex({corners[i], white_uv, colors[i]});
+        }
+        push_indices(batch, first, {0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1});
     }
 
     auto Canvas::triangle(Vec2 a, Vec2 b, Vec2 c, Color color) noexcept -> void {
@@ -395,16 +438,20 @@ namespace tgx {
         std::size_t a = 0;
         std::size_t b = next_distinct(a);
         Vec2 previous{};
+        float previous_length = 0.f;
         bool has_previous = false;
         while (b < points.size()) {
             const std::size_t c = next_distinct(b);
-            const Vec2 direction = normalize(points[b] - points[a]);
+            const float length = tgx::length(points[b] - points[a]);
+            const Vec2 direction = (points[b] - points[a]) / length;
             const Vec2 side = perpendicular(direction) * half;
 
             // Its start: where the joint before left it, or square.
             Joint start{points[a] + side, points[a] - side, true};
             if (has_previous) {
-                start = joint(points[a], previous, direction, half);
+                // Half of either line each, so the joints at its two ends
+                // cannot cross.
+                start = joint(points[a], previous, direction, half, std::min(previous_length, length) / 2.f);
                 if (!start.mitered) {
                     start = {points[a] + side, points[a] - side, true};
                 }
@@ -414,8 +461,11 @@ namespace tgx {
             // square otherwise, with the corner's outside filled in.
             Joint end{points[b] + side, points[b] - side, true};
             if (c < points.size()) {
-                const Vec2 next = normalize(points[c] - points[b]);
-                const Joint corner = joint(points[b], direction, next, half);
+                const float next_length = tgx::length(points[c] - points[b]);
+                const Vec2 next = (points[c] - points[b]) / next_length;
+                const Joint corner = joint(
+                    points[b], direction, next, half, std::min(length, next_length) / 2.f
+                );
                 if (corner.mitered) {
                     end = corner;
                 } else {
@@ -430,6 +480,7 @@ namespace tgx {
             quad(start.plus, end.plus, end.minus, start.minus, color);
 
             previous = direction;
+            previous_length = length;
             has_previous = true;
             a = b;
             b = c;

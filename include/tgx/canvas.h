@@ -182,10 +182,11 @@ namespace tgx {
         auto line(Vec2 a, Vec2 b, Color color, float thickness = 1.f) noexcept -> void;
 
         // Lines from one point to the next, thickness wide, their corners
-        // joined without a gap; where they turn back sharply the corner is
-        // cut off rather than drawn as a long spike. The two ends are square,
-        // as line()'s: ending at the first point again closes the shape, but
-        // leaves that one corner unjoined.
+        // joined without a gap; where they turn back sharply, or a line is too
+        // short for its corner, the corner is cut off rather than drawn as a
+        // long spike. The two ends are square, as line()'s: ending at the
+        // first point again closes the shape, but leaves that one corner
+        // unjoined.
         auto line_strip(std::span<const Vec2> points, Color color, float thickness = 1.f) noexcept -> void;
 
         // As many segments as keep the edge within a quarter pixel of a true

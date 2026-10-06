@@ -192,16 +192,21 @@ tgx::Canvas world = app->canvas();
 world.set_target(&*pixels);        // set_target(nullptr): the window again
 world.circle({160, 90}, 20, tgx::colors::yellow);
 
-// The largest whole multiple that fits the window, in its middle.
+// The largest whole multiple that fits the window, in its middle. Whole
+// pixels while the display's scale is whole; at 1.25, fit into
+// framebuffer_size() and draw with a canvas set_size to it.
 const tgx::Rect r = tgx::fit_whole({320, 180}, app->window().size());
 app->canvas().sprite(pixels->texture(), {.position = {r.x, r.y}, .size = {r.width, r.height}});
 ```
 
 What has been drawn into the window this frame can be read back the same
-way, as a screenshot, before the frame is presented:
+way, as a screenshot, before the frame is presented (a minimized window has
+nothing to read):
 
 ```cpp
-const auto saved = app->device().read().save("screenshot.png");
+if (!app->window().minimized()) {
+    const auto saved = app->device().read().save("screenshot.png");
+}
 ```
 
 A target's see-through parts hold premultiplied colors, as `Blend::alpha`

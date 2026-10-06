@@ -5,6 +5,8 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <span>
+#include <utility>
 #include <vector>
 
 TEST_CASE("a seed gives the same numbers everywhere") {
@@ -64,6 +66,11 @@ TEST_CASE("chance, points and directions") {
     }
 }
 
+namespace {
+    template<typename Items>
+    concept pickable = requires(tgx::Random random, Items &&items) { random.pick(std::forward<Items>(items)); };
+}
+
 TEST_CASE("pick takes from arrays and vectors alike") {
     tgx::Random random{4};
     const std::array colors{tgx::colors::red, tgx::colors::green, tgx::colors::blue};
@@ -73,4 +80,9 @@ TEST_CASE("pick takes from arrays and vectors alike") {
     std::vector<int> items{7};
     random.pick(items) = 8;   // a reference into the vector
     CHECK(items[0] == 8);
+
+    // A temporary container would be gone before its item is used.
+    static_assert(!pickable<std::vector<int>>);
+    static_assert(pickable<std::vector<int> &>);
+    static_assert(pickable<std::span<const int>>);
 }

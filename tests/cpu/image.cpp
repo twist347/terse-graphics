@@ -82,4 +82,12 @@ TEST_CASE("Image::save writes what Image::load reads back") {
     const auto nowhere = image.save("there/is/no/such/folder/image.png");
     REQUIRE_FALSE(nowhere.has_value());
     CHECK(nowhere.error() == tgx::Error::io);
+
+#ifdef __linux__
+    // Always full: the bytes fit in the stream's buffer and fail only as it
+    // closes.
+    const auto full = image.save("/dev/full");
+    REQUIRE_FALSE(full.has_value());
+    CHECK(full.error() == tgx::Error::io);
+#endif
 }
