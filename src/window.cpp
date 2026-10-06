@@ -113,7 +113,7 @@ namespace {
 
 namespace tgx {
     auto Window::create(const WindowParams &params) noexcept -> Result<Window> {
-        TGX_ASSERT_MSG(params.width > 0 && params.height > 0, "window of size {}x{}", params.width, params.height);
+        TGX_ASSERT_MSG(!params.size.empty(), "window of size {}x{}", params.size.width, params.size.height);
         TGX_ASSERT(params.title);
 
         glfwSetErrorCallback(on_glfw_error);
@@ -140,7 +140,7 @@ namespace tgx {
         // that alt-tab would leave the game covering the monitor.
 
         GLFWwindow *handle = glfwCreateWindow(
-            params.width, params.height, params.title, nullptr, nullptr
+            params.size.width, params.size.height, params.title, nullptr, nullptr
         );
         if (!handle) {
             // The hints above are a hard requirement: GLFW refuses rather than
@@ -232,6 +232,10 @@ namespace tgx {
         set_swap_interval(enabled);
     }
 
+    auto Window::vsync() const noexcept -> bool {
+        return s_window.vsync;
+    }
+
     auto Window::set_fullscreen(bool fullscreen) noexcept -> void {
         if (fullscreen == this->fullscreen()) {
             return;
@@ -273,7 +277,7 @@ namespace tgx {
 
     // Asked of GLFW rather than kept alongside it: one place to be true.
     auto Window::fullscreen() const noexcept -> bool {
-        return glfwGetWindowMonitor(s_window.handle) != nullptr;
+        return static_cast<bool>(glfwGetWindowMonitor(s_window.handle));
     }
 
     auto Window::size() const noexcept -> Size {
@@ -290,6 +294,7 @@ namespace tgx {
 
     auto Window::release() noexcept -> void {
         if (m_owned) {
+            detail::detach_input();
             glfwDestroyWindow(s_window.handle);
             glfwTerminate();
             s_window = {};

@@ -36,8 +36,10 @@ namespace tgx {
         [[nodiscard]] constexpr auto operator==(const Vec4 &) const noexcept -> bool = default;
     };
 
-    // Width and height in pixels. Signed, like the windowing and GL APIs these
-    // come from and go to.
+    // Whole width and height, in the units of what it measures: pixels for
+    // images, textures and framebuffers, screen coordinates for the window
+    // (Window::size()), canvas units for a Canvas. Signed, like the windowing
+    // and GL APIs these come from and go to.
     struct Size {
         int width{0};
         int height{0};

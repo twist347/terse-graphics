@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
         if (music) {
             canvas.text({40, 260}, "M: play / pause the music", tgx::colors::light_gray);
             const char *state = music->playing() ? "playing" : "paused";
-            const std::string where = std::format("{} {:.1f} / {:.1f} s", state, music->position(), music->length());
+            const std::string where = std::format("{} {:.1f} / {:.1f} s", state, music->position(), music->duration());
             canvas.text({40, 290}, where, tgx::colors::white);
         } else {
             canvas.text({40, 260}, "no music file given", tgx::colors::light_gray);

@@ -18,7 +18,6 @@
 
 #include <glad/gl.h>
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -230,11 +229,9 @@ namespace tgx {
         const gl::VertexArray &vertices,
         const gl::DrawParams &params
     ) noexcept -> void {
-        detail::context().flush();
-
         TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
-            tgx::gl::detail::check_vertex_inputs(shader, vertices);
+            gl::detail::check_vertex_inputs(shader, vertices);
             check_textures(shader, params);
         }
 

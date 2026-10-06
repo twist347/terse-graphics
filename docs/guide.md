@@ -100,7 +100,7 @@ Not yet: fonts of your own (TTF).
 | `RenderTarget`| A texture to draw into instead of the window, with the GL framebuffer that makes it one and an optional depth buffer. The `Canvas` (`set_target`) and `Device::draw`/`clear` (`target`) draw into it; `read()` brings it back as an `Image`. |
 | `Audio`       | The sound output (miniaudio's engine on the system's default device): plays `Sound`s, mixes them with `Music`, the overall volume. Silent, and saying so in the log, when there is no device. |
 | `Sound`, `Music` | A sound decoded whole into memory, played as often as asked; a piece streamed from its file. `Sound`s need no `Audio` to load; `Music` lives inside it, as GPU resources live inside the `Device`. |
-| `gl::*`       | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing may bind the resource (3.3 has no DSA), but never where a draw would read it. |
+| `gl::*`       | Raw resources (`Buffer`, `VertexArray`, `Shader`): create, fill, destroy. Editing binds through the `Device`'s cache (3.3 has no DSA), a buffer to a target no draw reads. |
 
 GPU resources (`Texture`, `RenderTarget`, `gl::*`) are created without naming
 the `Device`, but only while it exists, and destroyed before it. Declare them
@@ -221,23 +221,20 @@ overlay.sprite(layer->texture(), {});
 ```
 
 `pixels->read()` gives its contents back as an `Image`, rows top to bottom
-(see-through pixels premultiplied).
-Its texture's rows run bottom to top, as GL draws (`Texture::bottom_up()`):
-sprites come out the right way up anyway, a shader of your own reads `v = 0`
-as its bottom.
+(see-through pixels premultiplied). Its texture's rows run bottom to top, as GL
+draws (`Texture::bottom_up()`): sprites come out the right way up anyway, a
+shader of your own reads `v = 0` as its bottom.
 
 Outlines lie inside the shape they outline, so a frame and a fill of the same
 rectangle cover the same area.
 
 Shapes are collected and drawn together, but the picture always follows the
 order of the calls: the `Device` collects them and draws them before any draw
-or clear of its own and before presenting the frame.
-Nothing the shapes use is read later than the calls that made them: a texture
-updated or destroyed, or a uniform of the canvas shader set, has the
-shapes waiting on it drawn first. `device.flush()` is only needed before raw
-GL calls, and those must leave the bindings (program, vertex array, textures,
-framebuffer) as they found them: the `Device` caches them and skips a bind it
-thinks is in place.
+or clear of its own and before presenting the frame. Nothing the shapes use is
+read later than the calls that made them: a texture updated or destroyed, or a
+uniform of the canvas shader set, has the shapes waiting on it drawn first.
+`device.flush()` is only needed before raw GL calls, and those must leave GL as
+they found it (see [Rules](#rules)).
 
 Textures load from image files in one call; `Image` is for pixels made in code
 or read on the CPU, rows top to bottom. A sprite needs only a position: by
@@ -297,9 +294,10 @@ are one draw. It is baked into the library by `tools/bake_font.py` from
 `thirdparty/unscii/`.
 
 Shapes in a row with the same target, viewport, size, camera, texture, blend
-and shader go out as one draw; a change of any of them starts the next. So
-many sprites from one texture (an atlas) cost one draw. A texture updated or destroyed while its sprites wait
-has them drawn first; moving one changes nothing.
+and shader go out as one draw; a change of any of them starts the next. So many
+sprites from one texture (an atlas) cost one draw. A texture updated or
+destroyed while its sprites wait has them drawn first; moving one changes
+nothing.
 
 Gradients come for rectangles (top to bottom, or a color in each corner),
 triangles (a color in each corner) and circles (center to edge):
@@ -325,7 +323,7 @@ frame:
 ```cpp
 auto music = tgx::Music::load("theme.ogg");
 music->set_looping(true);
-music->play();                     // pause(), stop(), seek(seconds), position(), length()
+music->play();                     // pause(), stop(), seek(seconds), position(), duration()
 ```
 
 Without an output device (no sound card, a machine with no display) the audio
@@ -419,10 +417,14 @@ last takes premultiplied colors, as `premultiplied` does:
 
 ## Rules
 
-- **Only `Device` binds for drawing.** Resources have no `bind()`. They may bind
-  themselves to be edited, so `Device` assumes nothing about what they leave
-  bound; it only skips what it set itself and knows to be current (the
-  framebuffer, the program, the textures in their slots, the render state).
+- **Only `Device` binds for drawing.** Resources have no `bind()`. Editing one
+  binds it through the `Device`'s cache (a buffer, to a target no draw reads),
+  so the cache stays true.
+- **Raw GL leaves GL as it found it.** The `Device` skips setting what it knows
+  to be set: the framebuffer, the program, the vertex array, the textures in
+  their slots and the active slot, the viewport, the clear values, the render
+  state. The rest it assumes at GL's defaults: no scissor or stencil test,
+  every color channel written.
 - **A resource is an object; `Device` is how and with what we draw right now.**
 - **Everything counts from the top-left, y down**: image rows, texture
   coordinates, the `Canvas`, `gl::Viewport`. Where GL counts from the
@@ -438,16 +440,19 @@ last takes premultiplied colors, as `premultiplied` does:
 - **Out of memory: GPU memory is a failure, host memory is fatal.** A buffer or
   texture the driver has no room for comes back as `Error::out_of_memory`. Host
   memory running out is not reported: the functions that allocate as much as
-  their input asks for (`Image::create`, `from_pixels`, `load`, `decode`,
-  `Texture::load`, `gl::Shader::from_source`) may throw `std::bad_alloc`, and
-  everywhere else, `noexcept` included, it ends the program.
-- **One `Window`, one `Device`.** They are one per process by
-  nature (GLFW, the GL context of the one window), so tgx keeps their state in
-  one place each and the objects only own it.
-- **Lifetimes nest**: `Window` > `Device` > GPU resources, each
-  created after and destroyed before the one it lives in. `App` declares them in
-  that order. Like the standard library, tgx does not check this, nor calls on
-  moved-from objects: asserts are for arguments, not for bookkeeping.
+  their input asks for (`Image::create`, `from_pixels`, `load`, `decode`;
+  `Sound::load`, `decode`, `from_samples`; `Music::load`; `Texture::load`;
+  `Device::read`, `RenderTarget::read`; `gl::Shader::from_source`) may throw
+  `std::bad_alloc`, and everywhere else, `noexcept` included, it ends the
+  program.
+- **One `Window`, one `Device`, one `Audio`.** They are one per process by
+  nature (GLFW, the GL context of the one window, the one sound output), so tgx
+  keeps their state in one place each and the objects only own it.
+- **Lifetimes nest**: `Window` > `Device` > GPU resources, and `Audio` >
+  `Music`, each created after and destroyed before the one it lives in. `App`
+  declares them in that order. Like the standard library, tgx does not check
+  this, nor calls on moved-from objects: asserts are for arguments, not for
+  bookkeeping.
 - **tgx does not log what it returns.** A failure goes out as a `Result` only;
   the log is for what a `Result` cannot carry. Messages from the GL driver and
   GLFW always go to the log, even when the same failure also comes back as a
@@ -456,7 +461,7 @@ last takes premultiplied colors, as `premultiplied` does:
 ## What the asserts catch
 
 GL accepts most mistakes without a word and draws garbage, or nothing. With
-asserts on, tgx stops at the call instead:
+asserts on, tgx stops at the call instead; the main cases:
 
 - a draw reading past the end of its vertex or index buffer;
 - a vertex shader input with no attribute in the vertex array, or an integer
@@ -472,11 +477,16 @@ asserts on, tgx stops at the call instead:
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
 - a pixel outside an `Image`, or saving an empty one;
-- `Random::next_int` with an empty range, a pick from no items;
+- `Random::next_int` or `next_float` with an empty range, a pick from no
+  items;
 - a sound made of samples that do not split into its channels, or of more
   than 254 of them; a sound played at a pitch of 0 or less;
 - a canvas shader without `u_projection`, or with a sampler other than
-  `u_texture`.
+  `u_texture`; a camera with zoom 0;
+- a texture made without pixels that is not dynamic;
+- a window of no size;
+- a number that is not one (NaN) where it would go on unnoticed: a color's
+  hue, alpha or mix, a volume, a pan, a seek.
 
 Asserts cost nothing when off: the checks that need extra bookkeeping (such as
 reading the shader's inputs) are skipped altogether.
@@ -496,7 +506,8 @@ tgx::set_log_sink([](tgx::LogLevel level, std::string_view msg, void *) noexcept
 ```
 
 A sink is called on the thread that made the tgx call, GL driver messages
-included: they are delivered synchronously. Passing `nullptr` restores the default.
+included: they are delivered synchronously. Passing `nullptr` restores the
+default.
 
 Driver messages are logged by their severity, except performance hints, which
 are advice rather than faults and go to `info`. A debug context, and with it the

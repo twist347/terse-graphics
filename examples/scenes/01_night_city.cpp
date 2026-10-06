@@ -75,15 +75,15 @@ namespace {
         }
     )";
 
-    // A lit window flickers off now and then, and back.
-    struct Window {
+    // A window of a building; a lit one flickers off now and then, and back.
+    struct Pane {
         tgx::Rect rect;
         bool lit;
     };
 
     struct Building {
         tgx::Rect rect;
-        std::vector<Window> windows;
+        std::vector<Pane> panes;
     };
 
     // A band of buildings twice as wide as the view, drawn twice side by side
@@ -115,7 +115,7 @@ namespace {
             // Windows of 2x3 pixels in a grid, inset from the walls.
             for (float wy = road_y - h + 4.f; wy < road_y - 6.f; wy += 6.f) {
                 for (float wx = x + 3.f; wx + 2.f < x + w - 2.f; wx += 5.f) {
-                    building.windows.push_back({{wx, wy, 2.f, 3.f}, rng.chance(lit)});
+                    building.panes.push_back({{wx, wy, 2.f, 3.f}, rng.chance(lit)});
                 }
             }
             layer.buildings.push_back(std::move(building));
@@ -165,9 +165,9 @@ namespace {
                     continue;
                 }
                 canvas.rect({r.x + base, r.y, r.width, r.height}, layer.wall);
-                for (const Window &window: building.windows) {
-                    if (window.lit) {
-                        const tgx::Rect w = window.rect;
+                for (const Pane &pane: building.panes) {
+                    if (pane.lit) {
+                        const tgx::Rect w = pane.rect;
                         // A slow shimmer, as of a television inside.
                         const float glow = 0.85f + 0.15f * std::sin(time * 3.f + w.x * 0.7f + w.y);
                         canvas.rect({w.x + base, w.y, w.width, w.height}, layer.window.fade(glow));
@@ -213,7 +213,7 @@ int main() {
     // Info also prints which GL context the driver gave.
     tgx::set_log_level(tgx::LogLevel::info);
 
-    auto app = tgx::App::create({.title = "tgx - night city"});
+    auto app = tgx::App::create({.title = "scenes - 01 night city"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;
@@ -307,7 +307,7 @@ int main() {
         // Windows go dark and light up again, a few a second.
         for (Layer &layer: layers) {
             for (Building &building: layer.buildings) {
-                for (Window &w: building.windows) {
+                for (Pane &w: building.panes) {
                     if (rng.chance(0.02f * dt)) {
                         w.lit = !w.lit;
                     }
@@ -391,7 +391,7 @@ int main() {
         screen.fps({10, 10});
 
         // The frame as it is now, before it goes to the display.
-        if (app->input().pressed(tgx::Key::f12)) {
+        if (app->input().pressed(tgx::Key::f12) && !app->window().minimized()) {
             const auto saved = app->device().read().save("night_city.png");
             std::println("screenshot: {}", saved ? "night_city.png" : tgx::to_str(saved.error()));
         }

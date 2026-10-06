@@ -18,7 +18,7 @@ namespace {
     // The same calls for both views: each canvas puts them where it shows.
     auto draw_world(tgx::Canvas &canvas, tgx::Vec2 player) noexcept -> void {
         canvas.rect({0, 0, world_size.x, world_size.y}, tgx::colors::black);
-        for (const tgx::Vec2 tree : trees) {
+        for (const tgx::Vec2 tree: trees) {
             canvas.circle(tree, 40, tgx::colors::green);
         }
         canvas.rect({player.x - 10, player.y - 10, 20, 20}, tgx::colors::yellow);

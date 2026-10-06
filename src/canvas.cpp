@@ -39,7 +39,7 @@ namespace {
     namespace font = tgx::detail::default_font;
 
     // Where shapes sample the built-in texture: the middle texel of its white
-    // block, whose neighbours are white too.
+    // block, whose neighbors are white too.
     constexpr tgx::Vec2 white_uv{
         (static_cast<float>(font::white_x) + font::white_size / 2.f) / font::atlas_width,
         (font::white_size / 2.f) / font::atlas_height,
@@ -276,14 +276,15 @@ namespace tgx {
 
         // The texture is optional: a shader may ignore it. The batch draws
         // without Device::draw's checks, so the one on its samplers is here.
-        for (const auto &sampler: gl::detail::samplers(*shader)) {
+        const auto samplers = gl::detail::samplers(*shader);
+        for (const auto &sampler: samplers) {
             TGX_ASSERT_MSG(
                 sampler.name == "u_texture",
                 "sampler '{}': a canvas shader gets no texture but u_texture",
                 sampler.name
             );
         }
-        if (!gl::detail::samplers(*shader).empty()) {
+        if (!samplers.empty()) {
             m_u_texture = gl::detail::location(shader->uniform<gl::TextureSlot>("u_texture"));
         }
     }

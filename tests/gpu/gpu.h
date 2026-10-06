@@ -1,12 +1,11 @@
 #pragma once
 
 // What the GPU tests share: the one App of the run, render targets to draw
-// into and read back, and a draw of their own that fills what it is drawn into.
-// Most tests draw into a render target of their own: its size is theirs to
-// pick, whatever the window and the display's scale are.
+// into and read back, and a draw of their own that covers what it is drawn
+// into. Most tests draw into a render target of their own: its size is theirs
+// to pick, whatever the window and the display's scale are.
 
 #include "tgx/gl.h"
-#include "tgx/tgx.h"
 
 #include <doctest/doctest.h>
 
@@ -32,9 +31,9 @@ namespace tgx_test {
         return canvas;
     }
 
-    // One triangle over all of clip space, green: a Device::draw that fills
+    // One triangle over all of clip space, green: a Device::draw that covers
     // what it is drawn into, or the viewport it is given.
-    struct Fill {
+    struct Cover {
         struct Vertex {
             tgx::Vec2 position;
         };
@@ -43,7 +42,7 @@ namespace tgx_test {
         tgx::gl::Buffer<Vertex> buffer;
         tgx::gl::VertexArray vertices;
 
-        [[nodiscard]] static auto create() -> Fill {
+        [[nodiscard]] static auto create() -> Cover {
             auto shader = tgx::gl::Shader::from_source(
                 TGX_GLSL_VERSION R"(
                     layout(location = 0) in vec2 in_position;

@@ -17,7 +17,7 @@ FIRST, LAST = 32, 126
 # Where the font comes from and on what terms, for the generated file.
 CREDIT = "unscii-16 by Viznut, public domain: http://viznut.fi/unscii/"
 
-GAP = 1     # transparent columns between glyphs, so none samples its neighbour
+GAP = 1     # transparent columns between glyphs, so none samples its neighbor
 WHITE = 3   # the white block's side; shapes sample its middle texel
 
 

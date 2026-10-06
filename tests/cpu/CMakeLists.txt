@@ -1,5 +1,6 @@
-# Math, colors, collisions, the camera, images, sounds, measuring text, and
-# the arithmetic under drawing and input (src/geometry.h):
+# Math, colors, collisions, the camera, random numbers, images, sounds,
+# errors and log levels as text, measuring text, and the arithmetic under
+# drawing and input (src/geometry.h):
 # nothing here opens a window or an audio output, so it runs anywhere, CI
 # without a display or a sound card included.
 add_executable(tgx_tests_cpu

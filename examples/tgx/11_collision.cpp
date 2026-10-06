@@ -57,7 +57,7 @@ int main() {
                 canvas.rect_lines(rects[i], tgx::colors::yellow, 4);
             }
         }
-        for (const tgx::Circle &circle : circles) {
+        for (const tgx::Circle &circle: circles) {
             const tgx::Color color = tgx::overlaps(circle, cursor) ? tgx::colors::red : tgx::colors::gray;
             canvas.circle(circle.center, circle.radius, color);
         }

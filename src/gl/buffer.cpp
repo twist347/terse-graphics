@@ -47,7 +47,7 @@ namespace tgx::gl {
 
         // Any error leaves the buffer without storage, so none is survivable.
         if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
-            glDeleteBuffers(1, &id);
+            detail::delete_buffer(id);
             return std::unexpected{tgx::detail::to_error(err)};
         }
         return id;

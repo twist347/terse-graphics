@@ -134,8 +134,12 @@ namespace tgx {
         // Starts over at its end; off by default.
         auto set_looping(bool looping) noexcept -> void;
 
-        // 1 as recorded, 0 silent.
+        [[nodiscard]] auto looping() const noexcept -> bool;
+
+        // 1 as recorded (the default), 0 silent.
         auto set_volume(float volume) noexcept -> void;
+
+        [[nodiscard]] auto volume() const noexcept -> float;
 
         // Moves to the second, playing or not.
         auto seek(double seconds) noexcept -> void;
@@ -144,7 +148,7 @@ namespace tgx {
         [[nodiscard]] auto position() const noexcept -> double;
 
         // In seconds; 0 if the file does not tell.
-        [[nodiscard]] auto length() const noexcept -> double;
+        [[nodiscard]] auto duration() const noexcept -> double;
 
     private:
         explicit Music(std::unique_ptr<detail::MusicStream> stream) noexcept;

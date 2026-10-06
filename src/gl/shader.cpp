@@ -169,7 +169,7 @@ namespace {
 
     [[nodiscard]] auto collect_samplers(std::span<const ShaderUniform> uniforms) -> std::vector<ShaderSampler> {
         std::vector<ShaderSampler> samplers;
-        for (const auto &uniform : uniforms) {
+        for (const auto &uniform: uniforms) {
             if (uniform.gl_type == GL_SAMPLER_2D) {
                 samplers.push_back({uniform.name, uniform.location});
             }

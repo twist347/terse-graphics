@@ -18,10 +18,10 @@ TEST_CASE("shapes waiting are drawn before a Device clear") {
 TEST_CASE("shapes waiting are drawn before a Device draw, and later ones after it") {
     const tgx::RenderTarget target = tgx_test::target({64, 64});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
-    const auto fill = tgx_test::Fill::create();
+    const auto cover = tgx_test::Cover::create();
 
     canvas.rect({0, 0, 64, 64}, tgx::colors::red);
-    fill.draw({.target = &target});
+    cover.draw({.target = &target});
     canvas.rect({0, 0, 20, 20}, tgx::colors::white);
 
     const tgx::Image image = target.read();

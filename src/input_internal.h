@@ -9,6 +9,9 @@ namespace tgx::detail {
     // mouse where it is.
     auto attach_input(GLFWwindow *handle) noexcept -> void;
 
+    // Forgets everything, for the window about to go: the callbacks go with it.
+    auto detach_input() noexcept -> void;
+
     // Forgets what happened since the poll before (presses, releases, mouse
     // movement, wheel, text); called right before polling events.
     auto begin_input_frame() noexcept -> void;

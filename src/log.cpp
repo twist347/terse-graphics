@@ -1,3 +1,5 @@
+#include "tgx/log.h"
+
 #include "log_internal.h"
 
 #include <atomic>
@@ -39,6 +41,10 @@ namespace tgx {
 
     auto set_log_level(LogLevel level) noexcept -> void {
         s_level.store(level, std::memory_order_relaxed);
+    }
+
+    auto log_level() noexcept -> LogLevel {
+        return s_level.load(std::memory_order_relaxed);
     }
 
     auto detail::log_enabled(LogLevel level) noexcept -> bool {

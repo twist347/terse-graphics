@@ -109,9 +109,13 @@ namespace tgx::detail {
         // Draws the batch first. Clears all of the target.
         auto clear(const ClearCall &call) noexcept -> void;
 
-        // Neither draws the batch first nor checks anything: the callers do
-        // what they need of both.
+        // Draws the batch first, then the call; checks nothing, the callers
+        // do what they need of that.
         auto draw(const DrawCall &call) noexcept -> void;
+
+        // The call alone, without drawing the batch first: for the batch
+        // drawing itself.
+        auto submit(const DrawCall &call) noexcept -> void;
 
         // Draws the batch first, then the target's pixels back on the CPU,
         // rows top to bottom as in any Image (GL hands them bottom up).
@@ -159,6 +163,7 @@ namespace tgx::detail {
     auto flush_shader_use(GlId program) noexcept -> void;
 
     // For a render target about to go: shapes waiting to be drawn into it are.
-    // Its texture going first does the same (flush_texture_use).
+    // Whichever of its framebuffer and its texture goes first draws them
+    // (flush_texture_use covers the texture).
     auto flush_target_use(GlId framebuffer) noexcept -> void;
 }

@@ -5,12 +5,13 @@
 #include "tgx/handle.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <span>
 #include <type_traits>
 
 namespace tgx::gl {
-    enum class BufferAccess {
+    enum class BufferAccess : std::int32_t {
         // Contents are fixed at creation.
         immutable,
         // Contents can be rewritten with Buffer::update.
@@ -25,7 +26,7 @@ namespace tgx::gl {
         auto delete_buffer(GlId id) noexcept -> void;
 
         // The untyped core of Buffer<T>, in bytes. data may be null for
-        // uninitialised storage.
+        // uninitialized storage.
         [[nodiscard]] auto create_buffer(
             std::size_t byte_size,
             const void *data,
@@ -47,7 +48,7 @@ namespace tgx::gl {
     template<BufferElement T>
     class Buffer {
     public:
-        // Uninitialised storage for count Ts, to be filled with update(): always
+        // Uninitialized storage for count Ts, to be filled with update(): always
         // dynamic, as an immutable one could never be filled.
         [[nodiscard]] static auto create(std::size_t count) noexcept -> Result<Buffer> {
             return make(count, nullptr, BufferAccess::dynamic);

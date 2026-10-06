@@ -21,7 +21,7 @@ auto tgx_test::app() -> tgx::App & {
 int main(int argc, char **argv) {
     // The GL info, so a run's log shows which driver it checked.
     tgx::set_log_level(tgx::LogLevel::info);
-    auto app = tgx::App::create({.width = 640, .height = 360, .title = "tgx gpu tests", .vsync = false});
+    auto app = tgx::App::create({.size = {640, 360}, .title = "tgx gpu tests", .vsync = false});
     if (!app) {
         std::println(stderr, "tgx gpu tests: no window with a GL 3.3 context ({})", app.error());
         return 1;

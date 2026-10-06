@@ -68,7 +68,7 @@ TEST_CASE("chance, points and directions") {
 
 namespace {
     template<typename Items>
-    concept pickable = requires(tgx::Random random, Items &&items) { random.pick(std::forward<Items>(items)); };
+    concept Pickable = requires(tgx::Random random, Items &&items) { random.pick(std::forward<Items>(items)); };
 }
 
 TEST_CASE("pick takes from arrays and vectors alike") {
@@ -82,7 +82,7 @@ TEST_CASE("pick takes from arrays and vectors alike") {
     CHECK(items[0] == 8);
 
     // A temporary container would be gone before its item is used.
-    static_assert(!pickable<std::vector<int>>);
-    static_assert(pickable<std::vector<int> &>);
-    static_assert(pickable<std::span<const int>>);
+    static_assert(!Pickable<std::vector<int>>);
+    static_assert(Pickable<std::vector<int> &>);
+    static_assert(Pickable<std::span<const int>>);
 }

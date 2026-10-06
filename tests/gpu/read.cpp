@@ -1,5 +1,5 @@
 // The window itself: Device::read, a Device draw's viewport and the canvas
-// on it, in the window's screen coordinates.
+// on it, in the window's screen coordinates; its settings.
 
 #include "gpu.h"
 
@@ -46,10 +46,10 @@ TEST_CASE("a Device draw with a viewport counts it from the window's top-left") 
     auto &app = tgx_test::app();
     const tgx::Size pixels = app.window().framebuffer_size();
     const tgx::Size size = app.window().size();
-    const auto fill = tgx_test::Fill::create();
+    const auto cover = tgx_test::Cover::create();
 
     app.device().clear({.color = tgx::colors::black});
-    fill.draw({.viewport = tgx::gl::Viewport{0, 0, pixels.width / 2, pixels.height / 2}});
+    cover.draw({.viewport = tgx::gl::Viewport{0, 0, pixels.width / 2, pixels.height / 2}});
 
     const tgx::Image image = app.device().read();
     const float w = static_cast<float>(size.width);
@@ -73,4 +73,12 @@ TEST_CASE("a screenshot saved and loaded back is the same picture") {
     CHECK(back->size() == shot.size());
     CHECK(at(*back, {5, 5}) == tgx::colors::green);
     CHECK(at(*back, {30, 30}) == tgx::colors::black);
+}
+
+TEST_CASE("Window::vsync reads back as set") {
+    tgx::Window &window = tgx_test::app().window();
+    CHECK_FALSE(window.vsync());
+    window.set_vsync(true);
+    CHECK(window.vsync());
+    window.set_vsync(false);
 }

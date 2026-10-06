@@ -22,6 +22,7 @@ namespace tgx {
     // more methods here.
     class App {
     public:
+        // Fails as Window::create, then Device::create do.
         [[nodiscard]] static auto create(const WindowParams &params = {}) -> Result<App>;
 
         App(App &&) noexcept = default;

@@ -136,10 +136,10 @@ TEST_CASE("a target moved and move-assigned while shapes for it wait") {
 TEST_CASE("a target with a depth buffer takes a draw with a depth test") {
     const tgx::RenderTarget target = tgx_test::target({32, 32}, true);
     CHECK(target.has_depth());
-    const auto fill = tgx_test::Fill::create();
+    const auto cover = tgx_test::Cover::create();
 
     tgx_test::app().device().clear({.target = &target, .color = tgx::colors::black, .depth = 1.f});
-    fill.draw({.target = &target, .state = {.depth = tgx::gl::Depth::less}});
+    cover.draw({.target = &target, .state = {.depth = tgx::gl::Depth::less}});
     CHECK(target.read().at(5, 5) == tgx::colors::green);
 }
 
@@ -163,7 +163,7 @@ TEST_CASE("see-through parts of a target are premultiplied") {
         screen.clear(tgx::colors::black);
         screen.set_blend(blend);
         screen.sprite(layer.texture(), {.size = {8, 8}});
-        // Alpha applies the alpha a second time: a quarter grey, not half.
+        // Alpha applies the alpha a second time: a quarter gray, not half.
         const tgx::Color expected = blend == tgx::Blend::alpha ? tgx::Color{64, 64, 64, 255} : tgx::Color{128, 128, 128, 255};
         CHECK(out.read().at(2, 2) == expected);
     }

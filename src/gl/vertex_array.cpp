@@ -12,8 +12,6 @@
 #include <algorithm>
 
 namespace {
-    using tgx::gl::VertexArray;
-
     // GL 3.3 has no stride limit to query; this is the lower bound 4.4+ drivers
     // guarantee for GL_MAX_VERTEX_ATTRIB_STRIDE, so a layout within it stays
     // portable to them too.
@@ -101,7 +99,7 @@ namespace tgx::gl {
         // VAO state, only to attach an index buffer here, and edits buffers
         // through GL_COPY_WRITE_BUFFER, which no VAO keeps.
         tgx::detail::context().bind_vertex_array(id);
-        for (const VertexAttribute &attribute : attributes) {
+        for (const VertexAttribute &attribute: attributes) {
             glEnableVertexAttribArray(attribute.location);
         }
 

@@ -1,8 +1,8 @@
 # Each example builds as <folder>_<name>, e.g. tgx_01_window, gl_01_triangle,
 # scenes_01_night_city.
-function(tgx_add_example level name)
-    set(target ${level}_${name})
-    add_executable(${target} ${level}/${name}.cpp)
+function(tgx_add_example folder name)
+    set(target ${folder}_${name})
+    add_executable(${target} ${folder}/${name}.cpp)
     target_link_libraries(${target} PRIVATE tgx::tgx)
     target_compile_options(${target} PRIVATE ${TGX_WARNINGS})
 endfunction()

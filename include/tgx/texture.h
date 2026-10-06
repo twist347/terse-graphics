@@ -4,6 +4,7 @@
 #include "tgx/handle.h"
 #include "tgx/math.h"
 
+#include <cstdint>
 #include <filesystem>
 
 namespace tgx {
@@ -13,7 +14,7 @@ namespace tgx {
         auto delete_texture(GlId id) noexcept -> void;
     }
 
-    enum class TextureAccess {
+    enum class TextureAccess : std::int32_t {
         // Contents are fixed at creation.
         immutable,
         // Contents can be rewritten with Texture::update.
@@ -22,7 +23,7 @@ namespace tgx {
 
     // How a texel is picked when the texture is drawn larger or smaller than
     // it is.
-    enum class TextureFilter {
+    enum class TextureFilter : std::int32_t {
         // The closest texel: sharp squares, for pixel art.
         nearest,
         // A blend of the four closest texels: smooth.
@@ -30,7 +31,7 @@ namespace tgx {
     };
 
     // What texture coordinates outside [0, 1] read, on both axes.
-    enum class TextureWrap {
+    enum class TextureWrap : std::int32_t {
         // The edge texels, stretched.
         clamp,
         // The texture again, tiled.
@@ -80,8 +81,8 @@ namespace tgx {
             const TextureParams &params = {}
         ) -> Result<Texture>;
 
-        // Uninitialised, to be filled with update(); only useful as dynamic.
-        // Fails as the create() above.
+        // Uninitialized, to be filled with update(): params.access must be
+        // dynamic (asserted). Fails as the create() above.
         [[nodiscard]] static auto create(
             Size size,
             const TextureParams &params

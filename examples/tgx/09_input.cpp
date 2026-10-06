@@ -61,7 +61,7 @@ int main() {
         screen.clear(tgx::colors::dark_gray);
 
         world.rect_lines({-400, -300, 800, 600}, tgx::colors::gray, 2);
-        for (const tgx::Vec2 dot : dots) {
+        for (const tgx::Vec2 dot: dots) {
             world.circle(dot, 8, tgx::colors::cyan);
         }
         world.rect({player.x - 20, player.y - 20, 40, 40}, tgx::colors::yellow);

@@ -31,14 +31,16 @@ namespace tgx {
     using LogSink = void (*)(LogLevel level, std::string_view message, void *user) noexcept;
 
     // nullptr restores the default sink, which writes warnings and errors to
-    // stderr and everything else to stdout. Not
-    // synchronised with logging: set it before creating the App.
+    // stderr and everything else to stdout. Not synchronized with logging:
+    // set it before creating the App.
     auto set_log_sink(LogSink sink, void *user = nullptr) noexcept -> void;
 
     // Messages below the level are dropped before they are formatted. The
     // default is warn: quiet unless something is wrong. Set info to also see
     // the context the driver gave at startup.
     auto set_log_level(LogLevel level) noexcept -> void;
+
+    [[nodiscard]] auto log_level() noexcept -> LogLevel;
 }
 
 // std::format("{}", level) prints to_str(level); string specs such as width apply.

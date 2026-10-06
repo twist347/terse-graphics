@@ -29,7 +29,7 @@ namespace tgx::gl {
         // Four bytes read as floats in [0, 1]; a Color fits as is.
         unorm8x4,
         uint32,
-        sint32
+        sint32,
     };
 
     // A vertex the GPU reads field by field: copied byte for byte and laid out
@@ -90,7 +90,7 @@ namespace tgx::gl {
 
     enum class IndexType : std::int32_t {
         uint16,
-        uint32
+        uint32,
     };
 
     // What an index buffer can hold.
@@ -163,12 +163,8 @@ namespace tgx::gl {
         // until one is attached.
         [[nodiscard]] auto vertex_count() const noexcept -> std::size_t { return m_vertex_count; }
 
-        // Indices the attached index buffer holds.
-        [[nodiscard]] auto index_count() const noexcept -> std::size_t {
-            TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
-
-            return m_index_count;
-        }
+        // Indices the attached index buffer holds; 0 until one is attached.
+        [[nodiscard]] auto index_count() const noexcept -> std::size_t { return m_index_count; }
 
         [[nodiscard]] auto has_index_buffer() const noexcept -> bool { return m_has_index_buffer; }
 

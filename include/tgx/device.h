@@ -40,10 +40,12 @@ namespace tgx {
     //
     // It also draws what the Canvas has collected before anything else of its
     // own: a draw, a clear, presenting the frame. So the picture follows the
-    // order of the calls. flush() draws it on demand, before raw GL calls;
-    // those must leave the bindings (program, VAO, textures, framebuffer) as
-    // they found them, as the Device caches them and skips a bind it thinks
-    // is in place.
+    // order of the calls. flush() draws it on demand, before raw GL calls.
+    // Those must leave GL as they found it: the Device skips setting what it
+    // knows to be set (the framebuffer, the program, the vertex array, the
+    // textures and the active slot, the viewport, the clear values, the
+    // render state) and assumes the rest at GL's defaults (no scissor or
+    // stencil test, every color channel written).
     //
     // Belongs to the simple level, as without it no frame is shown; only
     // draw() is of the OpenGL level, and takes its types (tgx/gl.h).
@@ -53,7 +55,11 @@ namespace tgx {
     class Device {
     public:
         // Loads GL functions for the window's context and, on a debug context,
-        // routes driver messages to the log. Frames go to this window.
+        // routes driver messages to the log. Frames go to this window. Fails
+        // with Error::unsupported when the context is older than 3.3,
+        // Error::platform when the functions do not load or the Canvas's
+        // resources cannot be made, Error::out_of_memory when the GPU has no
+        // room for them.
         [[nodiscard]] static auto create(Window &window) -> Result<Device>;
 
         Device(const Device &) = delete;

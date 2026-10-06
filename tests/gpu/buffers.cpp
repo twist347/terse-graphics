@@ -11,7 +11,7 @@
 #include <utility>
 
 namespace {
-    using Vertex = tgx_test::Fill::Vertex;
+    using Vertex = tgx_test::Cover::Vertex;
 
     // A vertex far outside, then the triangle over all of clip space.
     constexpr std::array<Vertex, 4> vertices{Vertex{{9, 9}}, Vertex{{-1, -1}}, Vertex{{3, -1}}, Vertex{{-1, 3}}};
@@ -23,10 +23,10 @@ namespace {
     // Whether a draw of the vertices fills the target.
     [[nodiscard]] auto fills(const tgx::gl::VertexArray &drawn) -> bool {
         const tgx::RenderTarget target = tgx_test::target({16, 16});
-        const auto fill = tgx_test::Fill::create();
+        const auto cover = tgx_test::Cover::create();
         auto &device = tgx_test::app().device();
         device.clear({.target = &target, .color = tgx::colors::black});
-        device.draw(fill.shader, drawn, {.target = &target});
+        device.draw(cover.shader, drawn, {.target = &target});
         const tgx::Image image = target.read();
         return image.at(1, 1) == tgx::colors::green && image.at(14, 14) == tgx::colors::green;
     }
@@ -51,6 +51,7 @@ TEST_CASE("32-bit indices, the type taken from the buffer") {
     REQUIRE(index_buffer.has_value());
 
     tgx::gl::VertexArray drawn = layout();
+    CHECK(drawn.index_count() == 0);
     drawn.set_vertex_buffer(*buffer);
     drawn.set_index_buffer(*index_buffer);
     CHECK(drawn.index_type() == tgx::gl::IndexType::uint32);
@@ -75,14 +76,14 @@ TEST_CASE("a draw of first and count") {
     tgx::gl::VertexArray drawn = layout();
     drawn.set_vertex_buffer(*buffer);
     const tgx::RenderTarget target = tgx_test::target({16, 16});
-    const auto fill = tgx_test::Fill::create();
+    const auto cover = tgx_test::Cover::create();
     auto &device = tgx_test::app().device();
 
     device.clear({.target = &target, .color = tgx::colors::black});
-    device.draw(fill.shader, drawn, {.target = &target, .first = 1, .count = 3});
+    device.draw(cover.shader, drawn, {.target = &target, .first = 1, .count = 3});
     CHECK(target.read().at(8, 8) == tgx::colors::green);
 
     device.clear({.target = &target, .color = tgx::colors::black});
-    device.draw(fill.shader, drawn, {.target = &target, .first = 1, .count = 0});
+    device.draw(cover.shader, drawn, {.target = &target, .first = 1, .count = 0});
     CHECK(target.read().at(8, 8) == tgx::colors::black);
 }

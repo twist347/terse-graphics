@@ -9,18 +9,18 @@
 
 TEST_CASE("a Device draw with a viewport counts it from the top-left") {
     const tgx::RenderTarget target = tgx_test::target({64, 64});
-    const auto fill = tgx_test::Fill::create();
+    const auto cover = tgx_test::Cover::create();
     auto &device = tgx_test::app().device();
 
     device.clear({.target = &target, .color = tgx::colors::black});
-    fill.draw({.target = &target, .viewport = tgx::gl::Viewport{0, 0, 32, 32}});
+    cover.draw({.target = &target, .viewport = tgx::gl::Viewport{0, 0, 32, 32}});
     tgx::Image image = target.read();
     CHECK(image.at(5, 5) == tgx::colors::green);
     CHECK(image.at(60, 5) == tgx::colors::black);
     CHECK(image.at(5, 60) == tgx::colors::black);
 
     device.clear({.target = &target, .color = tgx::colors::black});
-    fill.draw({.target = &target, .viewport = tgx::gl::Viewport{54, 54, 10, 10}});
+    cover.draw({.target = &target, .viewport = tgx::gl::Viewport{54, 54, 10, 10}});
     image = target.read();
     CHECK(image.at(59, 59) == tgx::colors::green);
     CHECK(image.at(59, 5) == tgx::colors::black);
@@ -29,10 +29,10 @@ TEST_CASE("a Device draw with a viewport counts it from the top-left") {
 TEST_CASE("a Device draw with a viewport leaves the canvas whole") {
     const tgx::RenderTarget target = tgx_test::target({64, 64});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
-    const auto fill = tgx_test::Fill::create();
+    const auto cover = tgx_test::Cover::create();
 
     canvas.rect({0, 0, 64, 64}, tgx::colors::red);
-    fill.draw({.target = &target, .viewport = tgx::gl::Viewport{0, 0, 32, 32}});
+    cover.draw({.target = &target, .viewport = tgx::gl::Viewport{0, 0, 32, 32}});
     canvas.rect({0, 0, 20, 20}, tgx::colors::white);
 
     const tgx::Image image = target.read();

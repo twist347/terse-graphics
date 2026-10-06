@@ -37,7 +37,7 @@ namespace tgx {
     //
     // Its see-through parts hold premultiplied colors, as Blend::alpha leaves
     // them: draw it with Blend::premultiplied, or a half see-through white
-    // comes out a quarter grey. Opaque parts look the same either way.
+    // comes out a quarter gray. Opaque parts look the same either way.
     //
     // Lives inside the Device: created after it, destroyed before it. Shapes
     // still waiting to be drawn into it are drawn first when it goes.
@@ -89,9 +89,10 @@ namespace tgx {
 namespace tgx::detail {
     // What a draw goes into, by id: framebuffer 0 is the window. A render
     // target's size is fixed, so it travels with the id; the window's is read
-    // when it is drawn into, as it can change in between. The texture and
-    // the depth are there for asserts: a draw reading what it writes, a depth
-    // test with nothing to test against.
+    // when it is drawn into, as it can change in between. The texture tells
+    // the batch to draw shapes into the target before its texture changes or
+    // goes, and asserts that a draw does not read what it writes; the depth
+    // asserts that a depth test has something to test against.
     struct Target {
         GlId framebuffer{0};
         GlId texture{0};

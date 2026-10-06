@@ -7,8 +7,9 @@
 A small 2D-first graphics library on top of OpenGL 3.3 core, C++23: a window,
 a loop and a canvas for games in the spirit of raylib, with the OpenGL level
 underneath when you need your own shaders. Tested on Linux (NVIDIA, Mesa) and
-macOS; Windows is a target but has not been tried yet. Early and moving: the
-API changes from commit to commit.
+macOS; on Windows it builds with MSVC and passes the CPU tests in CI, but has
+not been run on a display yet. Early and moving: the API changes from commit
+to commit.
 
 ![Rain over a city in pixel art, drawn with tgx](docs/night_city.png)
 
@@ -64,7 +65,7 @@ is documented in its header.
 ## Examples
 
 Lessons, one idea each, in two folders by level: `examples/tgx/` includes only
-`tgx/tgx.h`, `examples/gl/` adds `tgx/gl.h`. Each builds as `<level>_<name>`,
+`tgx/tgx.h`, `examples/gl/` adds `tgx/gl.h`. Each builds as `<folder>_<name>`,
 e.g. `tgx_01_window`.
 
 | `examples/tgx/` | Shows                                                              |

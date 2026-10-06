@@ -24,7 +24,7 @@ namespace tgx::gl {
         triangle_strip,
         lines,
         line_strip,
-        points
+        points,
     };
 
     // Which fragments survive against the depth already stored.

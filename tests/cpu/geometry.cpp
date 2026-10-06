@@ -4,7 +4,6 @@
 
 #include <doctest/doctest.h>
 
-#include <array>
 #include <cmath>
 #include <numbers>
 

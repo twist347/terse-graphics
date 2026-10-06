@@ -11,8 +11,8 @@ struct GLFWwindow;
 
 namespace tgx {
     struct WindowParams {
-        int width{1280};
-        int height{720};
+        // In screen coordinates, as Window::size() gives it back.
+        Size size{1280, 720};
         const char *title{"tgx"};
         // Whether presenting a frame waits for the display; set_vsync()
         // changes it later.
@@ -31,6 +31,8 @@ namespace tgx {
     // freely.
     class Window {
     public:
+        // Fails with Error::unsupported when the system has no OpenGL 3.3 core,
+        // Error::platform when the windowing system fails otherwise.
         [[nodiscard]] static auto create(const WindowParams &params = {}) noexcept -> Result<Window>;
 
         Window(const Window &) = delete;
@@ -76,6 +78,8 @@ namespace tgx {
         // Whether presenting a frame (Device::present) waits for the display:
         // no tearing, and frames paced by it. Starts as WindowParams::vsync.
         auto set_vsync(bool enabled) noexcept -> void;
+
+        [[nodiscard]] auto vsync() const noexcept -> bool;
 
         // Covers a whole monitor, without a border, at the resolution the
         // monitor already has (its video mode is left alone), or goes back to

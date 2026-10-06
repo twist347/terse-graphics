@@ -46,7 +46,8 @@ namespace {
 
     // Null when there is no Audio or it stays silent.
     std::unique_ptr<AudioState> s_audio;
-    // As last set, kept while silent too, so volume() answers the same.
+    // As last set, kept while silent too, so volume() answers the same; back
+    // to 1 when the Audio goes.
     float s_volume{1.f};
     // Sounds may be loaded on other threads, as assets often are.
     std::atomic<std::uint32_t> s_next_sound_id{1};
@@ -98,7 +99,10 @@ namespace tgx::detail {
     struct MusicStream {
         ma_sound sound;
         bool live{false};
-        double length{0.0};
+        double duration{0.0};
+        // As set, kept for a silent stream too.
+        bool looping{false};
+        float volume{1.f};
 
         MusicStream() noexcept = default;
         MusicStream(const MusicStream &) = delete;
@@ -180,7 +184,7 @@ namespace {
 #endif
     }
 
-    // The length in seconds, by a decoder reading the whole file from
+    // The duration in seconds, by a decoder reading the whole file from
     // memory: a stream reads Vorbis in a way that cannot tell it, and so
     // does a decoder opened on the path on Windows. 0 if it does not tell.
     [[nodiscard]] auto measure(const std::filesystem::path &path) -> tgx::Result<double> {
@@ -214,9 +218,8 @@ namespace tgx {
     }
 
     auto Sound::from_samples(std::span<const float> samples, int channels, int sample_rate) -> Sound {
-        // 254: miniaudio's MA_MAX_CHANNELS.
         TGX_ASSERT_MSG(
-            channels > 0 && channels <= 254 && sample_rate > 0,
+            channels > 0 && channels <= MA_MAX_CHANNELS && sample_rate > 0,
             "sound of {} channels at {} Hz",
             channels, sample_rate
         );
@@ -278,7 +281,7 @@ namespace tgx {
     auto Music::load(const std::filesystem::path &path) -> Result<Music> {
         // Told apart before miniaudio, which reports a missing file and one it
         // cannot decode alike.
-        if (!tgx::detail::readable(path)) {
+        if (!detail::readable(path)) {
             return std::unexpected{Error::io};
         }
 
@@ -288,22 +291,22 @@ namespace tgx {
                 return std::unexpected{Error::decode};
             }
             stream->live = true;
-            float length = 0.f;
-            if (ma_sound_get_length_in_seconds(&stream->sound, &length) == MA_SUCCESS && length > 0.f) {
-                stream->length = length;
+            float seconds = 0.f;
+            if (ma_sound_get_length_in_seconds(&stream->sound, &seconds) == MA_SUCCESS && seconds > 0.f) {
+                stream->duration = seconds;
             } else {
-                stream->length = measure(path).value_or(0.0);
+                stream->duration = measure(path).value_or(0.0);
             }
             return Music{std::move(stream)};
         }
 
         // Silent: the file is still checked and measured, so a game behaves
         // the same with and without sound.
-        const Result<double> length = measure(path);
-        if (!length) {
-            return std::unexpected{length.error()};
+        const Result<double> seconds = measure(path);
+        if (!seconds) {
+            return std::unexpected{seconds.error()};
         }
-        stream->length = *length;
+        stream->duration = *seconds;
         return Music{std::move(stream)};
     }
 
@@ -337,18 +340,34 @@ namespace tgx {
     }
 
     auto Music::set_looping(bool looping) noexcept -> void {
-        if (m_stream && m_stream->live) {
+        if (!m_stream) {
+            return;
+        }
+        m_stream->looping = looping;
+        if (m_stream->live) {
             ma_sound_set_looping(&m_stream->sound, looping ? MA_TRUE : MA_FALSE);
         }
+    }
+
+    auto Music::looping() const noexcept -> bool {
+        return m_stream && m_stream->looping;
     }
 
     auto Music::set_volume(float volume) noexcept -> void {
         // One NaN reaches the shared mix and silences everything.
         TGX_ASSERT_MSG(std::isfinite(volume), "volume {}: not a number", volume);
 
-        if (m_stream && m_stream->live) {
-            ma_sound_set_volume(&m_stream->sound, std::max(volume, 0.f));
+        if (!m_stream) {
+            return;
         }
+        m_stream->volume = std::max(volume, 0.f);
+        if (m_stream->live) {
+            ma_sound_set_volume(&m_stream->sound, m_stream->volume);
+        }
+    }
+
+    auto Music::volume() const noexcept -> float {
+        return m_stream ? m_stream->volume : 1.f;
     }
 
     auto Music::seek(double seconds) noexcept -> void {
@@ -367,8 +386,8 @@ namespace tgx {
         return 0.0;
     }
 
-    auto Music::length() const noexcept -> double {
-        return m_stream ? m_stream->length : 0.0;
+    auto Music::duration() const noexcept -> double {
+        return m_stream ? m_stream->duration : 0.0;
     }
 
     Music::Music(std::unique_ptr<detail::MusicStream> stream) noexcept : m_stream{std::move(stream)} {
@@ -497,6 +516,7 @@ namespace tgx {
             ma_engine_uninit(&s_audio->engine);
             s_audio.reset();
         }
+        s_volume = 1.f;
         m_owned = false;
     }
 }

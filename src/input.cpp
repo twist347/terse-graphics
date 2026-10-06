@@ -238,6 +238,10 @@ namespace tgx {
         glfwSetCharCallback(handle, on_char);
     }
 
+    auto detail::detach_input() noexcept -> void {
+        s_input = {};
+    }
+
     auto detail::begin_input_frame() noexcept -> void {
         // What happened since the poll before is forgotten; what is down
         // stays down.
