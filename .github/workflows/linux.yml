@@ -1,6 +1,6 @@
-# Linux: builds the library, examples and tests, warnings as errors,
-# and runs the tests that need no display or sound card. One workflow per
-# platform, so each has a badge of its own in the README.
+# Linux: builds the library, examples and tests, warnings as errors, and runs
+# them all: the GPU ones on Mesa's software renderer under a virtual X server.
+# One workflow per platform, so each has a badge of its own in the README.
 name: Linux
 
 on:
@@ -25,12 +25,14 @@ jobs:
 
       # GLFW is built for both X11 and Wayland, so it needs both sets of
       # headers; GL and audio libraries are loaded at run time, not linked.
+      # The GPU tests run on Xvfb with Mesa's GL.
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libwayland-dev libxkbcommon-dev \
-            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+            xvfb libgl1 libgl1-mesa-dri
 
       - name: Configure
         run: >
@@ -45,3 +47,9 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build -L cpu --output-on-failure
+
+      # llvmpipe: no GPU on the runner, the CPU draws.
+      - name: Test on the GPU
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 1
+        run: xvfb-run -a ctest --test-dir build -L gpu --output-on-failure

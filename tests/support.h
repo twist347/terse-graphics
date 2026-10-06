@@ -1,13 +1,15 @@
 #pragma once
 
-// What the tests share: comparing within float rounding, files of their own,
-// and printing tgx values when a check fails.
+// What the tests share: comparing within float or color rounding, files of
+// their own, and printing tgx values when a check fails.
 
 #include "tgx/color.h"
 #include "tgx/math.h"
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <random>
@@ -31,6 +33,13 @@ namespace tgx_test {
     [[nodiscard]] inline auto temp_path(std::string_view name) -> std::filesystem::path {
         static const unsigned run = std::random_device{}();
         return std::filesystem::temp_directory_path() / std::format("tgx_tests_{:08x}_{}", run, name);
+    }
+
+    // Colors within tolerance on every channel: drivers round blends and
+    // gradients differently.
+    [[nodiscard]] inline auto near(tgx::Color a, tgx::Color b, int tolerance) -> bool {
+        const auto close = [&](std::uint8_t x, std::uint8_t y) { return std::abs(int{x} - int{y}) <= tolerance; };
+        return close(a.r, b.r) && close(a.g, b.g) && close(a.b, b.b) && close(a.a, b.a);
     }
 
     // A temp_path removed when it goes out of scope, so a failed REQUIRE does

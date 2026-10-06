@@ -516,10 +516,12 @@ cmake --build build
 ```
 
 Examples and tests are built when tgx is the project being built; turn them
-off with `-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. The tests
-cover what needs no window (math, colors, collisions, the camera, random
-numbers, images, sounds, measuring text) and run with
-`ctest --test-dir build` (`-L cpu` for only those that need no display).
+off with `-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. They run
+with `ctest --test-dir build`, in two parts: `-L cpu` needs no window (math,
+colors, collisions, the camera, random numbers, images, sounds, measuring
+text), `-L gpu` opens one and checks what is drawn by the pixels read back
+(the Canvas, textures, shaders, buffers, render targets). CI runs the GPU
+part on Linux only, on Mesa's software renderer under Xvfb.
 `-DTGX_WARNINGS_AS_ERRORS=ON` fails the build on a warning in tgx's own code,
 as CI does on Linux, macOS and Windows.
 Asserts follow the build type (off where CMake defines `NDEBUG`); force them
