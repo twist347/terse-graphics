@@ -271,8 +271,7 @@ namespace tgx {
         set_swap_interval(s_window.vsync);
     }
 
-    // Asked of GLFW rather than kept: the OS may take the window out of
-    // fullscreen on its own.
+    // Asked of GLFW rather than kept alongside it: one place to be true.
     auto Window::fullscreen() const noexcept -> bool {
         return glfwGetWindowMonitor(s_window.handle) != nullptr;
     }

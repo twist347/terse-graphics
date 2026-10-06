@@ -51,6 +51,24 @@ namespace {
     // Stands for a line break among glyph indices.
     constexpr std::size_t newline = font::glyphs.size();
 
+    // How many bytes the UTF-8 sequence its lead byte starts is long; a
+    // stray continuation byte is one of its own.
+    [[nodiscard]] constexpr auto sequence_length(unsigned char lead) noexcept -> std::size_t {
+        if (lead < 0x80) {
+            return 1;
+        }
+        if ((lead >> 5) == 0x6) {
+            return 2;
+        }
+        if ((lead >> 4) == 0xE) {
+            return 3;
+        }
+        if ((lead >> 3) == 0x1E) {
+            return 4;
+        }
+        return 1;
+    }
+
     // Calls f with the index of each character's glyph in the default font,
     // or newline. UTF-8 sequences are one character each: those the font has
     // no glyph for show as '?'.
@@ -61,19 +79,9 @@ namespace {
         };
         for (std::size_t i = 0; i < text.size();) {
             const auto c = static_cast<unsigned char>(text[i]);
-            // The lead byte says how long the sequence is; a stray
-            // continuation byte counts as a character of its own. Only
-            // continuation bytes are taken after it, so a sequence cut short
-            // does not swallow the next character.
-            const std::size_t length = c < 0x80
-                                           ? 1
-                                           : (c >> 5) == 0x6
-                                                 ? 2
-                                                 : (c >> 4) == 0xE
-                                                       ? 3
-                                                       : (c >> 3) == 0x1E
-                                                             ? 4
-                                                             : 1;
+            // Only continuation bytes are taken after the lead one, so a
+            // sequence cut short does not swallow the next character.
+            const std::size_t length = sequence_length(c);
             ++i;
             for (std::size_t taken = 1; taken < length && i < text.size(); ++taken, ++i) {
                 if ((static_cast<unsigned char>(text[i]) & 0xC0) != 0x80) {

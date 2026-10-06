@@ -234,7 +234,9 @@ namespace tgx {
 
         auto quad(Vec2 a, Vec2 b, Vec2 c, Vec2 d, Color color) noexcept -> void;
 
-        // The same with a color for each corner, blended between them.
+        // The same with a color for each corner, as two triangles split along
+        // corners 0 to 2: blended exactly only when the colors blend flat
+        // (rect_gradient sees to that), otherwise the diagonal shows.
         auto quad(const std::array<Vec2, 4> &corners, const std::array<Color, 4> &colors) noexcept -> void;
 
         // What the canvas draws into.
