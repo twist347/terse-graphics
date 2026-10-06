@@ -287,7 +287,9 @@ namespace tgx {
             return;
         }
 
-        const std::size_t index_size = *call.index_type == gl::IndexType::uint32 ? sizeof(std::uint32_t) : sizeof(std::uint16_t);
+        const std::size_t index_size = *call.index_type == gl::IndexType::uint32
+                                           ? sizeof(std::uint32_t)
+                                           : sizeof(std::uint16_t);
 
         // GL takes the start of an indexed draw as a byte offset into the index
         // buffer, passed where a pointer used to go.

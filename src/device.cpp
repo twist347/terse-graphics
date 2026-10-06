@@ -154,6 +154,14 @@ namespace tgx {
             return std::unexpected{batch.error()};
         }
         context.batch = std::make_unique<detail::Batch>(std::move(*batch));
+
+        // One blank frame shown at once: on Wayland with a fractional scale the
+        // window's buffer takes the size GLFW already reports only at a swap,
+        // so the first frame drawn would be cut and turned against the wrong
+        // height. Not present(): it is no frame of the app's, and the clock
+        // does not tick.
+        context.clear({.color = colors::black});
+        detail::swap_buffers();
         return Device{};
     }
 
