@@ -3,6 +3,7 @@
 #include "tgx/assert.h"
 #include "tgx/math.h"
 
+#include <bit>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -42,7 +43,7 @@ namespace tgx {
             const std::uint64_t old = step();
             const auto shifted = static_cast<std::uint32_t>(((old >> 18u) ^ old) >> 27u);
             const auto rotation = static_cast<std::uint32_t>(old >> 59u);
-            return (shifted >> rotation) | (shifted << ((-rotation) & 31u));
+            return std::rotr(shifted, static_cast<int>(rotation));
         }
 
         // In [lo, hi): lo may come up, hi never does, unless they are equal.

@@ -147,7 +147,7 @@ int main() {
 
         // The depth buffer is cleared too: every frame starts with nothing in
         // front.
-        app->device().clear({.color = tgx::colors::dark_gray, .depth = 1});
+        app->device().clear({.color = tgx::colors::dark_gray, .depth = 1.f});
         app->device().draw(*shader, vao, {.state = solid});
 
         app->canvas().fps({10, 10});
