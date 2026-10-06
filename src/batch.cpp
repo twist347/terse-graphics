@@ -84,11 +84,11 @@ namespace tgx::detail {
         const std::int32_t u_projection = gl::detail::location(shader->uniform<Mat4>("u_projection"));
         shader->set(shader->uniform<gl::TextureSlot>("u_texture"), {0});
 
-        auto vertex_buffer = gl::Buffer<BatchVertex>::create(batch_max_vertices, gl::BufferAccess::dynamic);
+        auto vertex_buffer = gl::Buffer<BatchVertex>::create(batch_max_vertices);
         if (!vertex_buffer) {
             return std::unexpected{vertex_buffer.error()};
         }
-        auto index_buffer = gl::Buffer<std::uint16_t>::create(batch_max_indices, gl::BufferAccess::dynamic);
+        auto index_buffer = gl::Buffer<std::uint16_t>::create(batch_max_indices);
         if (!index_buffer) {
             return std::unexpected{index_buffer.error()};
         }

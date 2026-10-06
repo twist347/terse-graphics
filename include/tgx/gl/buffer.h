@@ -47,14 +47,10 @@ namespace tgx::gl {
     template<BufferElement T>
     class Buffer {
     public:
-        // Uninitialised storage for count Ts; only useful as dynamic.
-        [[nodiscard]] static auto create(
-            std::size_t count,
-            BufferAccess access
-        ) noexcept -> Result<Buffer> {
-            TGX_ASSERT_MSG(access == BufferAccess::dynamic, "an immutable buffer without data can never be filled");
-
-            return make(count, nullptr, access);
+        // Uninitialised storage for count Ts, to be filled with update(): always
+        // dynamic, as an immutable one could never be filled.
+        [[nodiscard]] static auto create(std::size_t count) noexcept -> Result<Buffer> {
+            return make(count, nullptr, BufferAccess::dynamic);
         }
 
         // Storage sized and filled from the data: an array, a vector, a span.
