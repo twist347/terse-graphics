@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -53,22 +54,12 @@ namespace {
     // The glyph of ' ': all advance and no ink.
     constexpr std::size_t space = static_cast<std::size_t>(' ' - font::first);
 
-    // How many bytes the UTF-8 sequence its lead byte starts is long; a
-    // stray continuation byte is one of its own.
+    // How many bytes the UTF-8 sequence its lead byte starts is long: as many
+    // as its leading ones, none for ASCII. A stray continuation byte (one
+    // leading one) or an invalid lead is one of its own.
     [[nodiscard]] constexpr auto sequence_length(unsigned char lead) noexcept -> std::size_t {
-        if (lead < 0x80) {
-            return 1;
-        }
-        if ((lead >> 5) == 0x6) {
-            return 2;
-        }
-        if ((lead >> 4) == 0xE) {
-            return 3;
-        }
-        if ((lead >> 3) == 0x1E) {
-            return 4;
-        }
-        return 1;
+        const int ones = std::countl_one(lead);
+        return ones >= 2 && ones <= 4 ? static_cast<std::size_t>(ones) : 1;
     }
 
     // Calls f with the index of each character's glyph in the default font,

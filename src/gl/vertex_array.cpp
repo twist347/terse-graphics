@@ -83,13 +83,14 @@ namespace tgx::gl {
                 "attribute at location {} (offset {}, {} bytes) does not fit a {}-byte vertex",
                 attribute.location, attribute.offset, format.size, stride
             );
-            for (std::size_t j = 0; j < i; ++j) {
-                TGX_ASSERT_MSG(
-                    attributes[j].location != attribute.location,
-                    "attribute location {} is used twice",
-                    attribute.location
-                );
-            }
+            TGX_ASSERT_MSG(
+                std::ranges::find(
+                    attributes.first(i), attribute.location, &VertexAttribute::location
+                )
+                == attributes.first(i).end(),
+                "attribute location {} is used twice",
+                attribute.location
+            );
         }
 
         GLuint id = 0;
