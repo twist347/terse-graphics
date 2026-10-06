@@ -61,12 +61,9 @@ namespace tgx {
 
         // The same color with alpha from [0, 1] (clamped), replacing its own as
         // raylib's Fade does: colors::red.fade(0.5f) is half see-through.
-        [[nodiscard]] constexpr auto fade(float alpha) const noexcept -> Color {
+        [[nodiscard]] auto fade(float alpha) const noexcept -> Color {
             // A NaN, as from t / duration with no duration, would pass the clamp.
-            // Not at compile time: std::isfinite need not be constexpr there.
-            if !consteval {
-                TGX_ASSERT_MSG(std::isfinite(alpha), "fade({}): not a number", alpha);
-            }
+            TGX_ASSERT_MSG(std::isfinite(alpha), "fade({}): not a number", alpha);
             return with_alpha(static_cast<std::uint8_t>(std::clamp(alpha, 0.f, 1.f) * 255.f + 0.5f));
         }
 
@@ -94,12 +91,9 @@ namespace tgx {
 
     // a at t = 0, b at t = 1, every channel and alpha alike. Unlike the vector
     // lerps, t is clamped to [0, 1]: past the ends a channel has nowhere to go.
-    [[nodiscard]] constexpr auto lerp(Color a, Color b, float t) noexcept -> Color {
+    [[nodiscard]] inline auto lerp(Color a, Color b, float t) noexcept -> Color {
         // A NaN would pass the clamp and turn into no channel value.
-        // Not at compile time: std::isfinite need not be constexpr there.
-        if !consteval {
-            TGX_ASSERT_MSG(std::isfinite(t), "lerp(a, b, {}): not a number", t);
-        }
+        TGX_ASSERT_MSG(std::isfinite(t), "lerp(a, b, {}): not a number", t);
         const float k = std::clamp(t, 0.f, 1.f);
         const auto mix = [k](std::uint8_t from, std::uint8_t to) {
             const auto f = static_cast<float>(from);
