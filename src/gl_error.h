@@ -7,12 +7,15 @@
 // The GL error check around giving a resource its storage, the one place a
 // driver failure is reported rather than asserted.
 namespace tgx::detail {
+    // GL keeps one flag per kind of error, so a few calls empty them; the
+    // bound is for a lost context, on which some drivers report an error on
+    // every call.
+    inline constexpr int max_drained_errors = 16;
+
     // Drains errors left over from earlier calls, so a check right after an
-    // allocation is about it only. GL keeps one flag per kind of error, so a
-    // few calls empty it; the bound is for a lost context, on which some
-    // drivers report an error on every call.
+    // allocation is about it only.
     inline auto drain_gl_errors() noexcept -> void {
-        for (int i = 0; i < 16 && glGetError() != GL_NO_ERROR; ++i) {
+        for (int i = 0; i < max_drained_errors && glGetError() != GL_NO_ERROR; ++i) {
         }
     }
 

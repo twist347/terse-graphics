@@ -19,6 +19,8 @@ int main() {
     }
 
     constexpr tgx::Size resolution{320, 180};
+    constexpr float width = static_cast<float>(resolution.width);
+    constexpr float height = static_cast<float>(resolution.height);
     auto pixels = tgx::RenderTarget::create(resolution, {.filter = tgx::TextureFilter::nearest});
     if (!pixels) {
         std::println(stderr, "render target: {}", pixels.error());
@@ -38,14 +40,14 @@ int main() {
         const tgx::Vec2 position{picture.x, picture.y};
 
         world.clear(tgx::Color::rgb(0x305080));
-        world.rect({0, 140, 320, 40}, tgx::colors::brown);
+        world.rect({0, 140, width, height - 140}, tgx::colors::brown);
         world.circle({260, 40}, 20, tgx::colors::yellow);
         const tgx::Vec2 turn = tgx::from_angle(static_cast<float>(app->clock().elapsed())) * 30;
         world.line(tgx::Vec2{160, 100} - turn, tgx::Vec2{160, 100} + turn, tgx::colors::white, 3);
 
         // The mouse in the target's pixels: the window point, less where the
         // picture starts, scaled down as the picture is scaled up.
-        const float to_pixels = picture.width > 0 ? static_cast<float>(resolution.width) / picture.width : 0;
+        const float to_pixels = picture.width > 0 ? width / picture.width : 0;
         const tgx::Vec2 mouse = (app->input().mouse() - position) * to_pixels;
         world.rect({std::floor(mouse.x), std::floor(mouse.y), 1, 1}, tgx::colors::red);
 

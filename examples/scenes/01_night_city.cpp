@@ -21,8 +21,8 @@
 
 namespace {
     constexpr tgx::Size resolution{320, 180};
-    constexpr float width = 320.f;
-    constexpr float height = 180.f;
+    constexpr float width = static_cast<float>(resolution.width);
+    constexpr float height = static_cast<float>(resolution.height);
     // Where the street begins.
     constexpr float road_y = 160.f;
 
@@ -129,11 +129,18 @@ namespace {
         float speed;
     };
 
+    // How long a splash lasts, in seconds.
+    constexpr float splash_life = 0.3f;
+
     struct Splash {
         tgx::Vec2 position;
         tgx::Vec2 velocity;
         float life;
     };
+
+    // How long a strike lights the sky, in seconds, and the color of its glow.
+    constexpr float strike_time = 0.35f;
+    constexpr tgx::Color strike_glow = tgx::Color::rgb(0x9fb4ff);
 
     struct Lightning {
         std::vector<tgx::Vec2> bolt;
@@ -181,8 +188,9 @@ namespace {
     // light's reflection in it.
     auto draw_lamp(tgx::Canvas &canvas, tgx::Canvas &light, float x) -> void {
         const tgx::Color warm = tgx::Color::rgb(0xffd27a);
-        canvas.rect({x, road_y - 28.f, 1.f, 28.f}, tgx::Color::rgb(0x1a1a24));
-        canvas.rect({x - 3.f, road_y - 29.f, 7.f, 2.f}, tgx::Color::rgb(0x1a1a24));
+        const tgx::Color iron = tgx::Color::rgb(0x1a1a24);
+        canvas.rect({x, road_y - 28.f, 1.f, 28.f}, iron);
+        canvas.rect({x - 3.f, road_y - 29.f, 7.f, 2.f}, iron);
         canvas.rect({x - 2.f, road_y - 27.f, 5.f, 1.f}, warm);
 
         light.triangle({x - 1.f, road_y - 26.f}, {x - 10.f, road_y}, {x + 11.f, road_y}, warm.fade(0.07f));
@@ -192,17 +200,18 @@ namespace {
 
     auto draw_car(tgx::Canvas &canvas, tgx::Canvas &light, float x) -> void {
         const float y = road_y + 6.f;
+        const tgx::Color glass = tgx::Color::rgb(0x2b3a55);
+        const tgx::Color beam = tgx::Color::rgb(0xfff4c2);
         canvas.rect({x, y - 6.f, 26.f, 6.f}, tgx::Color::rgb(0xb8323f));
         canvas.rect({x + 6.f, y - 10.f, 13.f, 4.f}, tgx::Color::rgb(0x8f2632));
-        canvas.rect({x + 8.f, y - 9.f, 4.f, 3.f}, tgx::Color::rgb(0x2b3a55));
-        canvas.rect({x + 13.f, y - 9.f, 4.f, 3.f}, tgx::Color::rgb(0x2b3a55));
+        canvas.rect({x + 8.f, y - 9.f, 4.f, 3.f}, glass);
+        canvas.rect({x + 13.f, y - 9.f, 4.f, 3.f}, glass);
         canvas.circle({x + 6.f, y}, 2.5f, tgx::colors::black);
         canvas.circle({x + 20.f, y}, 2.5f, tgx::colors::black);
         // Driving to the left: headlights in front, tail lights behind.
-        canvas.rect({x, y - 5.f, 1.f, 2.f}, tgx::Color::rgb(0xfff4c2));
+        canvas.rect({x, y - 5.f, 1.f, 2.f}, beam);
         canvas.rect({x + 25.f, y - 5.f, 1.f, 2.f}, tgx::colors::red);
 
-        const tgx::Color beam = tgx::Color::rgb(0xfff4c2);
         light.triangle({x, y - 4.f}, {x - 60.f, y - 12.f}, {x - 60.f, y + 3.f}, beam.fade(0.16f));
         light.rect({x - 40.f, y + 2.f, 40.f, 3.f}, beam.fade(0.10f));
         light.circle({x + 25.5f, y - 4.f}, 3.f, tgx::colors::red.fade(0.25f));
@@ -291,7 +300,7 @@ int main() {
                 if (splashes.size() < 600 && rng.chance(0.6f)) {
                     for (int i = 0; i < 2; ++i) {
                         const tgx::Vec2 velocity = rng.point_in({-18.f, -40.f, 36.f, 20.f});
-                        splashes.push_back({drop.position, velocity, 0.3f});
+                        splashes.push_back({drop.position, velocity, splash_life});
                     }
                 }
                 drop.position = rng.point_in({0.f, -20.f, width + 60.f, 18.f});
@@ -316,13 +325,13 @@ int main() {
         }
 
         if (app->input().pressed(tgx::Key::space) || time > next_strike) {
-            lightning = {make_bolt(), 0.35f};
+            lightning = {make_bolt(), strike_time};
             next_strike = time + rng.next_float(6.f, 14.f);
         }
         lightning.left = std::max(lightning.left - dt, 0.f);
         // Two flickers, bright then fading.
         const float flash = lightning.left > 0.f
-                                ? (std::fmod(lightning.left, 0.12f) > 0.05f ? 1.f : 0.4f) * (lightning.left / 0.35f)
+                                ? (std::fmod(lightning.left, 0.12f) > 0.05f ? 1.f : 0.4f) * (lightning.left / strike_time)
                                 : 0.f;
 
         car_x -= 45.f * dt;
@@ -336,13 +345,13 @@ int main() {
             const float twinkle = 0.5f + 0.5f * std::sin(time * 2.f + static_cast<float>(i) * 1.7f);
             world.rect({stars[i].x, stars[i].y, 1.f, 1.f}, tgx::colors::white.fade(0.3f + 0.5f * twinkle));
         }
-        world.circle({262.f, 34.f}, 11.f, tgx::Color::rgb(0xf3ecd2));
-        world.circle({257.f, 31.f}, 10.f, sky_at(31.f, flash * 0.6f));
         const tgx::Color moonlight = tgx::Color::rgb(0xf3ecd2);
+        world.circle({262.f, 34.f}, 11.f, moonlight);
+        world.circle({257.f, 31.f}, 10.f, sky_at(31.f, flash * 0.6f));
         light.circle_gradient({262.f, 34.f}, 26.f, moonlight.fade(0.12f), moonlight.fade(0.f));
 
         if (lightning.left > 0.f && flash > 0.5f) {
-            light.line_strip(lightning.bolt, tgx::Color::rgb(0x9fb4ff).fade(0.5f), 3.f);
+            light.line_strip(lightning.bolt, strike_glow.fade(0.5f), 3.f);
             world.line_strip(lightning.bolt, tgx::colors::white, 1.f);
         }
 
@@ -367,14 +376,14 @@ int main() {
         }
         for (const Splash &splash: splashes) {
             world.rect({std::round(splash.position.x), std::round(splash.position.y), 1.f, 1.f},
-                       tgx::Color::rgb(0xb7c6f0).fade(splash.life / 0.3f));
+                       tgx::Color::rgb(0xb7c6f0).fade(splash.life / splash_life));
         }
 
         // The lantern: a warm glow, brighter towards the middle.
         const tgx::Color lantern = tgx::Color::rgb(0xffb35c);
         light.circle_gradient(mouse, 28.f, lantern.fade(0.28f), lantern.fade(0.f));
         if (flash > 0.f) {
-            light.rect({0.f, 0.f, width, height}, tgx::Color::rgb(0x9fb4ff).fade(0.25f * flash));
+            light.rect({0.f, 0.f, width, height}, strike_glow.fade(0.25f * flash));
         }
 
         // The target onto the window, through the shader; the words on top of

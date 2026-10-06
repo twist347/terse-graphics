@@ -3,6 +3,7 @@
 #include "tgx/assert.h"
 
 #include "context.h"
+#include "shader_internal.h"
 
 #include <glad/gl.h>
 
@@ -358,9 +359,7 @@ namespace {
         static constexpr std::array<GLenum, 1> types{GL_FLOAT_MAT4};
 
         static auto upload(GLint location, const tgx::Mat4 &value) noexcept -> void {
-            // Column-major already, so no transpose.
-            const auto floats = std::bit_cast<std::array<float, 16>>(value);
-            glUniformMatrix4fv(location, 1, GL_FALSE, floats.data());
+            tgx::gl::detail::upload_mat4(location, value);
         }
     };
 }
@@ -478,4 +477,12 @@ namespace tgx::gl {
     template auto Shader::set<Mat4>(Uniform<Mat4>, const Mat4 &) noexcept -> void;
     template auto Shader::set<Color>(Uniform<Color>, const Color &) noexcept -> void;
     template auto Shader::set<TextureSlot>(Uniform<TextureSlot>, const TextureSlot &) noexcept -> void;
+}
+
+namespace tgx::gl {
+    auto detail::upload_mat4(std::int32_t location, const Mat4 &value) noexcept -> void {
+        // Column-major already, so no transpose.
+        const auto floats = std::bit_cast<std::array<float, 16>>(value);
+        glUniformMatrix4fv(location, 1, GL_FALSE, floats.data());
+    }
 }

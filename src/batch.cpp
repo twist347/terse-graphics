@@ -8,11 +8,11 @@
 
 #include "context.h"
 #include "default_font.h"
+#include "gl/shader_internal.h"
 
 #include <glad/gl.h>
 
 #include <array>
-#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -148,9 +148,8 @@ namespace tgx::detail {
         const bool custom = m_state.program != 0;
         const GlId program = custom ? m_state.program : m_shader.id();
         const std::int32_t u_projection = custom ? m_state.u_projection : m_u_projection;
-        const auto floats = std::bit_cast<std::array<float, 16>>(m_state.transform);
         context.use_program(program);
-        glUniformMatrix4fv(u_projection, 1, GL_FALSE, floats.data());
+        gl::detail::upload_mat4(u_projection, m_state.transform);
         // The built-in shader's was set once, at creation.
         if (custom && m_state.u_texture >= 0) {
             glUniform1i(m_state.u_texture, 0);

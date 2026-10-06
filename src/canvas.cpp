@@ -546,6 +546,8 @@ namespace tgx {
                 corner += sprite.position;
             }
         } else {
+            // rotate() written out: the cosine and sine once for the four
+            // corners, not once each.
             const float c = std::cos(sprite.rotation);
             const float s = std::sin(sprite.rotation);
             for (Vec2 &corner: corners) {
