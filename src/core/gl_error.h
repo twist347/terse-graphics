@@ -2,6 +2,8 @@
 
 #include "tgx/core/error.h"
 
+#include "core/log_internal.h"
+
 #include <glad/gl.h>
 
 // The GL error check around giving a resource its storage, the one place a
@@ -13,9 +15,16 @@ namespace tgx::detail {
     inline constexpr int max_drained_errors = 16;
 
     // Drains errors left over from earlier calls, so a check right after an
-    // allocation is about it only.
+    // allocation is about it only. They are logged rather than lost: tgx's
+    // own calls are asserted, so one is most likely raw GL's, and without a
+    // debug context this is its only trace.
     inline auto drain_gl_errors() noexcept -> void {
-        for (int i = 0; i < max_drained_errors && glGetError() != GL_NO_ERROR; ++i) {
+        for (int i = 0; i < max_drained_errors; ++i) {
+            const GLenum err = glGetError();
+            if (err == GL_NO_ERROR) {
+                break;
+            }
+            log_warn("GL error 0x{:04x} left by an earlier call", err);
         }
     }
 
