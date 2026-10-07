@@ -25,9 +25,9 @@
 #define TGX_VERSION_AT_LEAST(major, minor, patch) (TGX_VERSION >= TGX_VERSION_NUM(major, minor, patch))
 
 // The two steps make the argument arrive expanded: "0", not "TGX_VERSION_MAJOR".
-#define TGX_STRINGIFY_(x) #x
-#define TGX_STRINGIFY(x) TGX_STRINGIFY_(x)
+#define TGX_DETAIL_STR_(x) #x
+#define TGX_DETAIL_STR(x) TGX_DETAIL_STR_(x)
 
 // The version as a string literal, "0.1.0".
 #define TGX_VERSION_STRING \
-    TGX_STRINGIFY(TGX_VERSION_MAJOR) "." TGX_STRINGIFY(TGX_VERSION_MINOR) "." TGX_STRINGIFY(TGX_VERSION_PATCH)
+    TGX_DETAIL_STR(TGX_VERSION_MAJOR) "." TGX_DETAIL_STR(TGX_VERSION_MINOR) "." TGX_DETAIL_STR(TGX_VERSION_PATCH)

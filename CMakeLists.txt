@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.25)
 # The version is written once, in tgx/core/version.h, and read back from there.
 file(STRINGS include/tgx/core/version.h tgx_version_defines
         REGEX "^#define TGX_VERSION_(MAJOR|MINOR|PATCH) +[0-9]+$")
+# file(STRINGS) does not make the file an input of the configure step: without
+# this, a bumped version leaves an existing build directory on the old one.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS include/tgx/core/version.h)
 foreach (part MAJOR MINOR PATCH)
     string(REGEX MATCH "TGX_VERSION_${part} +([0-9]+)" _ "${tgx_version_defines}")
     set(tgx_version_${part} ${CMAKE_MATCH_1})
@@ -44,7 +47,7 @@ endif ()
 
 add_subdirectory(thirdparty)
 
-set(TGX_SOURCES
+set(TGX_CORE_SOURCES
         src/core/app.cpp
         src/core/assert.cpp
         src/core/audio.cpp
@@ -68,7 +71,7 @@ set(TGX_GL_SOURCES
         src/gl/vertex_array.cpp
 )
 
-add_library(tgx STATIC ${TGX_SOURCES} ${TGX_GL_SOURCES})
+add_library(tgx STATIC ${TGX_CORE_SOURCES} ${TGX_GL_SOURCES})
 add_library(tgx::tgx ALIAS tgx)
 
 target_compile_features(tgx PUBLIC cxx_std_23)
