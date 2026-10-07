@@ -183,13 +183,15 @@ namespace tgx {
         glDepthMask(GL_TRUE);
         glDisable(GL_CULL_FACE);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        // Off by default, which leaves points 1 pixel whatever a shader writes
+        // to gl_PointSize. Never switched off again.
+        glEnable(GL_PROGRAM_POINT_SIZE);
         glActiveTexture(GL_TEXTURE0);
         glUseProgram(0);
         glBindVertexArray(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         apply_clear_color(clear_color);
         apply_clear_depth(clear_depth);
-        glClearStencil(clear_stencil);
 
         // Set rather than assumed, like the rest: draws only change the
         // viewport when theirs differs from this. The whole framebuffer is the
@@ -210,8 +212,12 @@ namespace tgx {
         GLbitfield bits = 0;
 
         if (call.color) {
-            if (*call.color != clear_color) {
-                clear_color = *call.color;
+            // A render target holds premultiplied colors, as Blend::alpha
+            // leaves them; a straight see-through one would show brighter
+            // than asked.
+            const Color color = call.target.framebuffer != 0 ? call.color->premultiplied() : *call.color;
+            if (color != clear_color) {
+                clear_color = color;
                 apply_clear_color(clear_color);
             }
             bits |= GL_COLOR_BUFFER_BIT;
@@ -222,13 +228,6 @@ namespace tgx {
                 apply_clear_depth(clear_depth);
             }
             bits |= GL_DEPTH_BUFFER_BIT;
-        }
-        if (call.stencil) {
-            if (*call.stencil != clear_stencil) {
-                clear_stencil = *call.stencil;
-                glClearStencil(clear_stencil);
-            }
-            bits |= GL_STENCIL_BUFFER_BIT;
         }
 
         if (bits == 0) {

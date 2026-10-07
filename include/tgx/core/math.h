@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tgx/core/assert.h"
+
 #include <array>
 #include <cmath>
 #include <numbers>
@@ -204,6 +206,8 @@ namespace tgx {
     // From towards to by max_step at most, landing on to rather than past it:
     // chasing a target at a speed, as from = move_towards(from, to, speed * dt).
     [[nodiscard]] inline auto move_towards(Vec2 from, Vec2 to, float max_step) noexcept -> Vec2 {
+        TGX_ASSERT_MSG(max_step >= 0.f, "move_towards by {}: a step backwards", max_step);
+
         const Vec2 d = to - from;
         const float dist = length(d);
         return dist <= max_step || dist == 0.f ? to : from + d * (max_step / dist);
@@ -247,6 +251,8 @@ namespace tgx {
 
     // From towards to by max_step at most, landing on to rather than past it.
     [[nodiscard]] inline auto move_towards(Vec3 from, Vec3 to, float max_step) noexcept -> Vec3 {
+        TGX_ASSERT_MSG(max_step >= 0.f, "move_towards by {}: a step backwards", max_step);
+
         const Vec3 d = to - from;
         const float dist = length(d);
         return dist <= max_step || dist == 0.f ? to : from + d * (max_step / dist);
@@ -322,7 +328,8 @@ namespace tgx {
 
     // Turns by angle radians around the axis, counter-clockwise when the axis
     // points at the viewer. The axis need not be unit length, only non-zero.
-    [[nodiscard]] inline auto rotate(float angle, Vec3 axis) noexcept -> Mat4 {
+    // What is turned comes first, as in rotate(Vec2, angle): here the axis.
+    [[nodiscard]] inline auto rotate(Vec3 axis, float angle) noexcept -> Mat4 {
         const Vec3 a = normalize(axis);
         const float c = std::cos(angle);
         const float s = std::sin(angle);

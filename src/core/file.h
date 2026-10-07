@@ -18,6 +18,6 @@ namespace tgx::detail {
     [[nodiscard]] auto read_file(const std::filesystem::path &path) -> Result<std::vector<std::byte>>;
 
     // The bytes as the whole file, made or replaced; Error::io if it cannot
-    // be written through.
+    // be written through, and then an old file is left as it was.
     [[nodiscard]] auto write_file(const std::filesystem::path &path, std::span<const std::byte> bytes) -> Result<void>;
 }

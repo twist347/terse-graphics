@@ -5,6 +5,7 @@
 
 #include <bit>
 #include <chrono>
+#include <concepts>
 #include <cmath>
 #include <cstdint>
 #include <numbers>
@@ -31,10 +32,13 @@ namespace tgx {
             : Random{static_cast<std::uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())} {
         }
 
-        // The same numbers every time for the same seed.
-        explicit Random(std::uint64_t seed) noexcept {
+        // The same numbers every time for the same seed. Any integer, so an
+        // int seed in a variable is no narrowing in braces: Random{level}.
+        // A negative one is taken as its bits.
+        template<std::integral T>
+        explicit Random(T seed) noexcept {
             step();
-            m_state += seed;
+            m_state += static_cast<std::uint64_t>(seed);
             step();
         }
 

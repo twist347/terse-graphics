@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tgx/core/assert.h"
 #include "tgx/core/math.h"
 
 #include <algorithm>
@@ -17,17 +18,30 @@ namespace tgx {
 
     // Checks for 2D games: whether a point is inside a shape, whether two
     // shapes overlap, where they meet. Rects are taken with sizes of zero or
-    // more, as the Canvas draws them.
+    // more, as the Canvas draws them, and circles with a radius of zero or
+    // more (asserted). A rect of no area has nothing inside: it contains no
+    // point and overlaps nothing, as intersection() shares nothing with it.
+
+    namespace detail {
+        // Asserted where they are taken, so the message names the caller.
+        [[nodiscard]] constexpr auto valid(Rect rect) noexcept -> bool { return rect.width >= 0.f && rect.height >= 0.f; }
+
+        [[nodiscard]] constexpr auto valid(Circle circle) noexcept -> bool { return circle.radius >= 0.f; }
+    }
 
     // Its left and top edges are inside, its right and bottom edges outside,
     // so a point on the line between two tiles is in exactly one of them.
     [[nodiscard]] constexpr auto contains(Rect rect, Vec2 point) noexcept -> bool {
+        TGX_ASSERT_MSG(detail::valid(rect), "rect of size {}x{}", rect.width, rect.height);
+
         return point.x >= rect.x && point.x < rect.right()
                && point.y >= rect.y && point.y < rect.bottom();
     }
 
     // The edge counts as inside.
     [[nodiscard]] constexpr auto contains(Circle circle, Vec2 point) noexcept -> bool {
+        TGX_ASSERT_MSG(detail::valid(circle), "circle of radius {}", circle.radius);
+
         const Vec2 d = point - circle.center;
         return dot(d, d) <= circle.radius * circle.radius;
     }
@@ -76,17 +90,31 @@ namespace tgx {
     // Shapes that only touch, edge to edge, do not overlap: two tiles side by
     // side are not in each other.
     [[nodiscard]] constexpr auto overlaps(Rect a, Rect b) noexcept -> bool {
-        return a.x < b.right() && b.x < a.right()
+        TGX_ASSERT_MSG(detail::valid(a), "rect of size {}x{}", a.width, a.height);
+        TGX_ASSERT_MSG(detail::valid(b), "rect of size {}x{}", b.width, b.height);
+
+        return !a.empty() && !b.empty()
+               && a.x < b.right() && b.x < a.right()
                && a.y < b.bottom() && b.y < a.bottom();
     }
 
     [[nodiscard]] constexpr auto overlaps(Circle a, Circle b) noexcept -> bool {
+        TGX_ASSERT_MSG(detail::valid(a), "circle of radius {}", a.radius);
+        TGX_ASSERT_MSG(detail::valid(b), "circle of radius {}", b.radius);
+
         const Vec2 d = b.center - a.center;
         const float reach = a.radius + b.radius;
         return dot(d, d) < reach * reach;
     }
 
     [[nodiscard]] constexpr auto overlaps(Rect rect, Circle circle) noexcept -> bool {
+        // A negative size would give clamp its bounds the wrong way round.
+        TGX_ASSERT_MSG(detail::valid(rect), "rect of size {}x{}", rect.width, rect.height);
+        TGX_ASSERT_MSG(detail::valid(circle), "circle of radius {}", circle.radius);
+
+        if (rect.empty()) {
+            return false;
+        }
         // The rect's point nearest the circle's center.
         const Vec2 nearest{
             std::clamp(circle.center.x, rect.x, rect.right()),
@@ -116,6 +144,8 @@ namespace tgx {
     // The circle and the segment from a to b; touching is not overlapping. A
     // point near a line is a small circle: overlaps(Circle{point, 2}, a, b).
     [[nodiscard]] constexpr auto overlaps(Circle circle, Vec2 a, Vec2 b) noexcept -> bool {
+        TGX_ASSERT_MSG(detail::valid(circle), "circle of radius {}", circle.radius);
+
         const Vec2 d = circle.center - closest_point(a, b, circle.center);
         return dot(d, d) < circle.radius * circle.radius;
     }
@@ -124,6 +154,9 @@ namespace tgx {
     // width and height are how far one is into the other, e.g. how far to push
     // a player back out of a wall.
     [[nodiscard]] constexpr auto intersection(Rect a, Rect b) noexcept -> Rect {
+        TGX_ASSERT_MSG(detail::valid(a), "rect of size {}x{}", a.width, a.height);
+        TGX_ASSERT_MSG(detail::valid(b), "rect of size {}x{}", b.width, b.height);
+
         const float left = std::max(a.x, b.x);
         const float top = std::max(a.y, b.y);
         const float right = std::min(a.right(), b.right());

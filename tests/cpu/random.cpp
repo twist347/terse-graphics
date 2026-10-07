@@ -7,6 +7,7 @@
 #include <array>
 #include <span>
 #include <utility>
+#include <cstdint>
 #include <vector>
 
 TEST_CASE("a seed gives the same numbers everywhere") {
@@ -21,6 +22,19 @@ TEST_CASE("a seed gives the same numbers everywhere") {
     tgx::Random zero{0};
     CHECK(zero.next_u32() == 3894649422u);
     CHECK(zero.next_u32() == 2055130073u);
+}
+
+TEST_CASE("a seed of any integer type") {
+    // An int in a variable goes in braces, and the same value seeds the same.
+    const int level = 42;
+    tgx::Random from_int{level};
+    tgx::Random from_u64{std::uint64_t{42}};
+    CHECK(from_int.next_u32() == from_u64.next_u32());
+
+    // A negative one is its bits, whatever the type.
+    tgx::Random small{-1};
+    tgx::Random wide{std::int64_t{-1}};
+    CHECK(small.next_u32() == wide.next_u32());
 }
 
 TEST_CASE("next_float stays in [lo, hi)") {

@@ -142,7 +142,7 @@ int main() {
 
         // Turning about the vertical axis, one radian a second.
         const auto t = static_cast<float>(app->clock().elapsed());
-        const tgx::Mat4 model = tgx::rotate(t, {0, 1, 0});
+        const tgx::Mat4 model = tgx::rotate({0, 1, 0}, t);
 
         shader->set(u_mvp, projection * view * model);
 

@@ -1,5 +1,7 @@
 #include "tgx/core/input.h"
 
+#include "tgx/core/assert.h"
+
 #include "core/geometry.h"
 #include "core/input_internal.h"
 
@@ -35,6 +37,24 @@ namespace {
     };
 
     InputState s_input;
+
+    // A key's or a button's bits; one cast from outside the enum's values
+    // would read past them.
+    [[nodiscard]] auto bits_of(tgx::Key key) noexcept -> std::uint8_t {
+        TGX_ASSERT_MSG(std::to_underlying(key) < tgx::key_count, "key {}: not a Key", std::to_underlying(key));
+
+        return s_input.keys[std::to_underlying(key)];
+    }
+
+    [[nodiscard]] auto bits_of(tgx::MouseButton button) noexcept -> std::uint8_t {
+        TGX_ASSERT_MSG(
+            std::to_underlying(button) < tgx::mouse_button_count,
+            "mouse button {}: not a MouseButton",
+            std::to_underlying(button)
+        );
+
+        return s_input.buttons[std::to_underlying(button)];
+    }
 
     // GLFW's key codes to ours; keys we do not list are unknown.
     [[nodiscard]] auto to_key(int code) noexcept -> tgx::Key {
@@ -167,19 +187,19 @@ namespace {
 
 namespace tgx {
     auto Input::down(Key key) const noexcept -> bool {
-        return (s_input.keys[std::to_underlying(key)] & bit_down) != 0;
+        return (bits_of(key) & bit_down) != 0;
     }
 
     auto Input::pressed(Key key) const noexcept -> bool {
-        return (s_input.keys[std::to_underlying(key)] & bit_pressed) != 0;
+        return (bits_of(key) & bit_pressed) != 0;
     }
 
     auto Input::released(Key key) const noexcept -> bool {
-        return (s_input.keys[std::to_underlying(key)] & bit_released) != 0;
+        return (bits_of(key) & bit_released) != 0;
     }
 
     auto Input::repeated(Key key) const noexcept -> bool {
-        return (s_input.keys[std::to_underlying(key)] & bit_repeated) != 0;
+        return (bits_of(key) & bit_repeated) != 0;
     }
 
     auto Input::direction() const noexcept -> Vec2 {
@@ -195,15 +215,15 @@ namespace tgx {
     }
 
     auto Input::down(MouseButton button) const noexcept -> bool {
-        return (s_input.buttons[std::to_underlying(button)] & bit_down) != 0;
+        return (bits_of(button) & bit_down) != 0;
     }
 
     auto Input::pressed(MouseButton button) const noexcept -> bool {
-        return (s_input.buttons[std::to_underlying(button)] & bit_pressed) != 0;
+        return (bits_of(button) & bit_pressed) != 0;
     }
 
     auto Input::released(MouseButton button) const noexcept -> bool {
-        return (s_input.buttons[std::to_underlying(button)] & bit_released) != 0;
+        return (bits_of(button) & bit_released) != 0;
     }
 
     auto Input::mouse() const noexcept -> Vec2 {

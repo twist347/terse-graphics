@@ -5,6 +5,7 @@
 
 #include <glad/gl.h>
 
+#include <optional>
 #include <utility>
 
 namespace {
@@ -71,6 +72,14 @@ namespace tgx {
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             return std::unexpected{Error::unsupported};
         }
+
+        // GL leaves what a new texture and depth buffer hold undefined: a draw
+        // with a depth test into one never cleared may show nothing (Mesa).
+        detail::context().clear({
+            .target = {id, texture->id(), size, static_cast<bool>(depth)},
+            .color = colors::transparent,
+            .depth = depth ? std::optional{1.f} : std::nullopt,
+        });
 
         return RenderTarget{std::move(*texture), std::move(depth), std::move(framebuffer)};
     }

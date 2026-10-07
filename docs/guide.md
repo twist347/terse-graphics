@@ -428,7 +428,8 @@ last takes premultiplied colors, as `premultiplied` does:
   to be set: the framebuffer, the program, the vertex array, the textures in
   their slots and the active slot, the viewport, the clear values, the render
   state. The rest it assumes at GL's defaults: no scissor or stencil test,
-  every color channel written.
+  every color channel written; but point sizes come from the shader
+  (`GL_PROGRAM_POINT_SIZE` is on).
 - **A resource is an object; `Device` is how and with what we draw right now.**
 - **Everything counts from the top-left, y down**: image rows, texture
   coordinates, the `Canvas`, `gl::Viewport`. Where GL counts from the
@@ -475,18 +476,23 @@ asserts on, tgx stops at the call instead; the main cases:
 - a sampler reading a texture slot the draw put no texture in, or a slot out of
   range;
 - a draw or a sprite reading the texture of the render target it draws into;
-- a depth test, or a clear of depth or stencil, on a render target made
-  without them;
-- a viewport of negative size;
+- a depth test, or a clear of depth, on a render target made without one;
+- a viewport of negative size, for a draw or a canvas; a canvas of negative
+  size;
+- a rect of negative size or a circle of negative radius, for a collision
+  check or a canvas shape; a negative or NaN thickness;
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
 - a pixel outside an `Image`, or saving an empty one;
 - `Random::next_int` or `next_float` with an empty range, a pick from no
   items;
 - a sound made of samples that do not split into its channels, or of more
-  than 254 of them; a sound played at a pitch of 0 or less;
+  than 254 of them; a sound played at a pitch of 0 or less, or infinite; a
+  volume below 0, a pan outside -1 to 1, a seek before the start;
 - a canvas shader without `u_projection`, or with a sampler other than
-  `u_texture`; a camera with zoom 0;
+  `u_texture`; a camera with zoom 0, or an infinite zoom or rotation;
+- a `Key` or `MouseButton` cast from outside its values;
+- `move_towards` with a negative step;
 - a texture made without pixels that is not dynamic;
 - a window of no size;
 - a number that is not one (NaN) where it would go on unnoticed: a color's
@@ -543,7 +549,8 @@ driver messages, is on by default only in builds with asserts
 CMake 3.25+ and a C++23 compiler. GLFW, glad, stb_image, stb_image_write,
 miniaudio and stb_vorbis are vendored in `thirdparty/`, as are doctest (for
 the tests only) and the TTF the built-in font is baked from (not built; only
-`tools/bake_font.py`, with Pillow, reads it).
+`tools/bake_font.py`, with Pillow, reads it). On Linux GLFW also needs the
+system's Wayland and X11 headers; the README lists the packages.
 
 ```sh
 cmake -S . -B build

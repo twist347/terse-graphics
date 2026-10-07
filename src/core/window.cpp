@@ -172,9 +172,9 @@ namespace tgx {
         }
 
         glfwDefaultWindowHints();
-        // Draws into the window may test depth and clear stencil (Device
-        // asserts only render targets): asked for rather than left to GLFW's
-        // defaults.
+        // Draws into the window may test depth (Device asserts only render
+        // targets), and raw GL may use a stencil, which tgx itself does not:
+        // asked for rather than left to GLFW's defaults.
         glfwWindowHint(GLFW_DEPTH_BITS, 24);
         glfwWindowHint(GLFW_STENCIL_BITS, 8);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, gl::version_major);
@@ -194,8 +194,12 @@ namespace tgx {
         );
         if (!handle) {
             // The hints above are a hard requirement: GLFW refuses rather than
-            // hand out an older context.
-            const Error error = glfwGetError(nullptr) == GLFW_VERSION_UNAVAILABLE
+            // hand out an older context, no OpenGL at all, or no pixel format
+            // with a depth buffer.
+            const int code = glfwGetError(nullptr);
+            const Error error = code == GLFW_VERSION_UNAVAILABLE
+                                        || code == GLFW_API_UNAVAILABLE
+                                        || code == GLFW_FORMAT_UNAVAILABLE
                                     ? Error::unsupported
                                     : Error::platform;
             glfwTerminate();

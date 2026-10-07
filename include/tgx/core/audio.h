@@ -21,9 +21,9 @@ namespace tgx {
     //
     //     app->audio().play(jump, {.volume = 0.5f, .pan = -0.3f});
     struct PlayParams {
-        // 1 as recorded, 0 silent.
+        // 1 as recorded, 0 silent; not below 0.
         float volume{1.f};
-        // -1 all left, 0 in the middle, 1 all right.
+        // -1 all left, 0 in the middle, 1 all right; nothing beyond.
         float pan{0.f};
         // 1 as recorded; 2 an octave higher, and twice as fast. Above 0.
         float pitch{1.f};
@@ -136,12 +136,13 @@ namespace tgx {
 
         [[nodiscard]] auto looping() const noexcept -> bool;
 
-        // 1 as recorded (the default), 0 silent.
+        // 1 as recorded (the default), 0 silent; not below 0.
         auto set_volume(float volume) noexcept -> void;
 
         [[nodiscard]] auto volume() const noexcept -> float;
 
-        // Moves to the second, playing or not.
+        // Moves to the second, playing or not. Past the end it is at the end,
+        // or, looping, as far round again.
         auto seek(double seconds) noexcept -> void;
 
         // In seconds from its start.
@@ -191,7 +192,8 @@ namespace tgx {
         // Cuts off every play of the sound still going.
         auto stop(const Sound &sound) noexcept -> void;
 
-        // Of everything, Sounds and Music alike: 1 as they are, 0 silent.
+        // Of everything, Sounds and Music alike: 1 as they are, 0 silent; not
+        // below 0.
         auto set_volume(float volume) noexcept -> void;
 
         [[nodiscard]] auto volume() const noexcept -> float;

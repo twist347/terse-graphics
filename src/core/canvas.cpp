@@ -62,14 +62,20 @@ namespace {
         return ones >= 2 && ones <= 4 ? static_cast<std::size_t>(ones) : 1;
     }
 
+    // Columns from one tab stop to the next.
+    constexpr std::size_t tab_columns = 4;
+
     // Calls f with the index of each character's glyph in the default font,
     // or newline. UTF-8 sequences are one character each: those the font has
-    // no glyph for show as '?'.
+    // no glyph for show as '?'. A '\t' is spaces up to the next tab stop, the
+    // font being monospaced; a '\r' is nothing, so "\r\n" ends a line once.
     template<typename F>
     auto for_each_glyph(std::string_view text, F f) noexcept -> void {
         constexpr auto index = [](char c) noexcept {
             return static_cast<std::size_t>(c - font::first);
         };
+        // Characters since the line began.
+        std::size_t column = 0;
         for (std::size_t i = 0; i < text.size();) {
             const auto c = static_cast<unsigned char>(text[i]);
             // Only continuation bytes are taken after the lead one, so a
@@ -84,10 +90,20 @@ namespace {
 
             if (c == '\n') {
                 f(newline);
+                column = 0;
+            } else if (c == '\r') {
+                continue;
+            } else if (c == '\t') {
+                do {
+                    f(space);
+                    ++column;
+                } while (column % tab_columns != 0);
             } else if (c >= static_cast<unsigned char>(font::first) && c <= static_cast<unsigned char>(font::last)) {
                 f(index(static_cast<char>(c)));
+                ++column;
             } else {
                 f(index('?'));
+                ++column;
             }
         }
     }
@@ -219,6 +235,9 @@ namespace tgx {
     }
 
     auto Canvas::set_size(Size size) noexcept -> void {
+        // Empty follows; a negative size would read as empty without a word.
+        TGX_ASSERT_MSG(size.width >= 0 && size.height >= 0, "canvas of size {}x{}", size.width, size.height);
+
         m_size = size;
         m_transform_stale = true;
     }
@@ -228,6 +247,15 @@ namespace tgx {
     }
 
     auto Canvas::set_viewport(Rect rect) noexcept -> void {
+        // Empty is all of it; a negative size would read as empty without a
+        // word.
+        TGX_ASSERT_MSG(
+            std::isfinite(rect.x) && std::isfinite(rect.y) && rect.width >= 0.f && rect.height >= 0.f
+                && std::isfinite(rect.width) && std::isfinite(rect.height),
+            "viewport {} {} {}x{}",
+            rect.x, rect.y, rect.width, rect.height
+        );
+
         m_viewport = rect;
         m_transform_stale = true;
     }
@@ -239,6 +267,11 @@ namespace tgx {
 
     auto Canvas::set_camera(const Camera2D &camera) noexcept -> void {
         TGX_ASSERT_MSG(camera.zoom != 0.f, "a camera with zoom 0 shows nothing and cannot map back");
+        TGX_ASSERT_MSG(
+            std::isfinite(camera.zoom) && std::isfinite(camera.rotation),
+            "a camera with zoom {} and rotation {}",
+            camera.zoom, camera.rotation
+        );
 
         m_camera = camera;
         m_transform_stale = true;
@@ -302,6 +335,8 @@ namespace tgx {
     }
 
     auto Canvas::rect_lines(Rect rect, Color color, float thickness) noexcept -> void {
+        TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
+
         // Thicker than half the rectangle, the frame is the rectangle.
         const float t = std::min({thickness, rect.width / 2.f, rect.height / 2.f});
         if (t <= 0.f) {
@@ -366,6 +401,8 @@ namespace tgx {
     }
 
     auto Canvas::line(Vec2 a, Vec2 b, Color color, float thickness) noexcept -> void {
+        TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
+
         // A point has no direction to widen it across.
         const Vec2 along = b - a;
         if (along == Vec2{} || thickness <= 0.f) {
@@ -377,6 +414,8 @@ namespace tgx {
     }
 
     auto Canvas::line_strip(std::span<const Vec2> points, Color color, float thickness) noexcept -> void {
+        TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
+
         const float half = thickness / 2.f;
         if (half <= 0.f) {
             return;
@@ -448,7 +487,10 @@ namespace tgx {
     }
 
     auto Canvas::circle_gradient(Vec2 center, float radius, Color inner, Color outer) noexcept -> void {
-        if (radius <= 0.f) {
+        // NaN too: the segments for it would be any number.
+        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "circle of radius {}", radius);
+
+        if (radius == 0.f) {
             return;
         }
 
@@ -468,7 +510,10 @@ namespace tgx {
     }
 
     auto Canvas::circle_lines(Vec2 center, float radius, Color color, float thickness) noexcept -> void {
-        if (radius <= 0.f || thickness <= 0.f) {
+        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "circle of radius {}", radius);
+        TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
+
+        if (radius == 0.f || thickness == 0.f) {
             return;
         }
         // Thicker than the radius, the ring is the circle.
@@ -586,10 +631,6 @@ namespace tgx {
     }
 
     auto Canvas::measure_text(std::string_view text, float size) noexcept -> Vec2 {
-        if (text.empty()) {
-            return {};
-        }
-
         const float scale = size / static_cast<float>(font::line_height);
         float widest = 0.f;
         float line = 0.f;
@@ -607,7 +648,9 @@ namespace tgx {
     }
 
     auto Canvas::fps(Vec2 position, float size) noexcept -> void {
-        const float value = detail::context().clock.fps;
+        // Rounded first, so the color goes with the number shown: "30 fps"
+        // is never orange.
+        const float value = std::round(detail::context().clock.fps);
         const Color color = value >= 30.f ? colors::green
             : value >= 15.f ? colors::orange
             : colors::red;

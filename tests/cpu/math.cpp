@@ -86,7 +86,7 @@ TEST_CASE("Mat4") {
     CHECK(tgx::translate({10, 0, 0}) * p == tgx::Vec4{11, 2, 3, 1});
     // b first, then a: the point is scaled, then moved.
     CHECK(tgx::translate({10, 0, 0}) * tgx::scale({2, 2, 2}) * p == tgx::Vec4{12, 4, 6, 1});
-    CHECK(near(tgx::rotate(pi / 2, {0, 0, 1}) * tgx::Vec4{1, 0, 0, 1}, {0, 1, 0, 1}));
+    CHECK(near(tgx::rotate({0, 0, 1}, pi / 2) * tgx::Vec4{1, 0, 0, 1}, {0, 1, 0, 1}));
 }
 
 TEST_CASE("ortho as 2D drawing uses it") {

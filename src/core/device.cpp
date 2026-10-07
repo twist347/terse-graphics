@@ -190,16 +190,11 @@ namespace tgx {
             !params.depth || target.depth,
             "clearing the depth of a render target made without one"
         );
-        TGX_ASSERT_MSG(
-            !params.stencil || target.framebuffer == 0,
-            "clearing the stencil of a render target, which has none"
-        );
 
         detail::context().clear({
             .target = target,
             .color = params.color,
             .depth = params.depth,
-            .stencil = params.stencil,
         });
     }
 

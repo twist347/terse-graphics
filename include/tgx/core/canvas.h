@@ -216,13 +216,16 @@ namespace tgx {
 
         // A line of text, or several split by '\n', its top-left corner at
         // the position; size is the height of a line. The built-in font is a
-        // monospaced pixel font with printable ASCII: other characters show
-        // as '?'. Drawn in the same draws as the shapes around it.
+        // monospaced pixel font with printable ASCII: '\t' moves on to the
+        // next stop of four columns, '\r' is left out (a "\r\n" ends a line
+        // once), other characters show as '?'. Drawn in the same draws as the
+        // shapes around it.
         auto text(Vec2 position, std::string_view text, Color color, float size = default_text_size) noexcept -> void;
 
         // The size text takes when drawn: the widest line by the lines' height.
-        // A '\n' at the end starts a line with nothing on it yet, which
-        // counts, as the place the next character would go.
+        // A line with nothing on it yet counts, as the place the next
+        // character would go: "" is one line tall, and so is a '\n' at the
+        // end.
         [[nodiscard]] static auto measure_text(std::string_view text, float size = default_text_size) noexcept -> Vec2;
 
         // The frames per second of the Device (Clock::fps) as text, "60 fps",

@@ -84,8 +84,6 @@ TEST_CASE("Music without an Audio loads, measures and stays quiet") {
     music->set_volume(0.5f);
     CHECK(music->looping());
     CHECK(music->volume() == 0.5f);
-    music->set_volume(-1.f);
-    CHECK(music->volume() == 0.f);
 
     const auto missing = tgx::Music::load("there/is/no/such/music.ogg");
     REQUIRE_FALSE(missing.has_value());

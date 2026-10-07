@@ -44,7 +44,6 @@ namespace tgx::detail {
         Target target{};
         std::optional<Color> color{};
         std::optional<float> depth{};
-        std::optional<std::int32_t> stencil{};
     };
 
     // One draw, by ids: what Device::draw and the batch both come down to.
@@ -75,7 +74,6 @@ namespace tgx::detail {
         gl::RenderState state{};
         Color clear_color{0, 0, 0, 0};
         float clear_depth{1.f};
-        std::int32_t clear_stencil{0};
         // As glViewport took it: from the bottom-left, unlike every other
         // gl::Viewport in tgx.
         gl::Viewport gl_viewport{};

@@ -89,7 +89,7 @@ int main() {
         // squeezed by its aspect ratio to keep the triangle's shape.
         const auto angle = static_cast<float>(app->clock().elapsed()) * std::numbers::pi_v<float>;
         const float aspect = app->window().framebuffer_size().aspect();
-        shader->set(u_transform, tgx::scale({1 / aspect, 1, 1}) * tgx::rotate(angle, {0, 0, 1}));
+        shader->set(u_transform, tgx::scale({1 / aspect, 1, 1}) * tgx::rotate({0, 0, 1}, angle));
 
         app->device().clear({.color = tgx::colors::dark_gray});
         app->device().draw(*shader, vao);

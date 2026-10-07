@@ -64,6 +64,14 @@ TEST_CASE("overlaps") {
     CHECK(tgx::overlaps(tgx::Circle{{12, 5}, 3}, rect));
     // Near the corner, but the corner is further than the radius.
     CHECK_FALSE(tgx::overlaps(rect, tgx::Circle{{13, 13}, 4}));
+
+    // A rect of no area overlaps nothing, even well inside another, as
+    // intersection() gives it nothing to share.
+    const tgx::Rect none{0, 0, 0, 0};
+    CHECK_FALSE(tgx::overlaps(none, tgx::Rect{-1, -1, 2, 2}));
+    CHECK_FALSE(tgx::overlaps(tgx::Rect{-1, -1, 2, 2}, none));
+    CHECK(tgx::intersection(none, tgx::Rect{-1, -1, 2, 2}).empty());
+    CHECK_FALSE(tgx::overlaps(none, tgx::Circle{{0, 0}, 5}));
 }
 
 TEST_CASE("closest_point on a segment") {

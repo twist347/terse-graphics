@@ -168,3 +168,22 @@ TEST_CASE("see-through parts of a target are premultiplied") {
         CHECK(out.read()[2, 2] == expected);
     }
 }
+
+TEST_CASE("a new target starts transparent, its depth at the far end") {
+    const tgx::RenderTarget target = tgx_test::target({32, 32}, true);
+    CHECK(target.read()[5, 5] == tgx::colors::transparent);
+
+    // No clear first: the depth test passes against what create left.
+    const auto cover = tgx_test::Cover::create();
+    cover.draw({.target = &target, .state = {.depth = tgx::gl::Depth::less}});
+    CHECK(target.read()[5, 5] == tgx::colors::green);
+}
+
+TEST_CASE("a clear of a target premultiplies its color, as drawing does") {
+    const tgx::RenderTarget layer = tgx_test::target({8, 8});
+    tgx_test::canvas_on(layer).clear(tgx::colors::white.with_alpha(128));
+    CHECK(layer.read()[4, 4] == tgx::Color{128, 128, 128, 128});
+
+    tgx_test::app().device().clear({.target = &layer, .color = tgx::colors::white.with_alpha(128)});
+    CHECK(layer.read()[4, 4] == tgx::Color{128, 128, 128, 128});
+}

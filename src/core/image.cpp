@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <new>
 #include <span>
@@ -84,6 +85,14 @@ namespace tgx {
 
     auto Image::save(const std::filesystem::path &path) const -> Result<void> {
         TGX_ASSERT_MSG(!empty(), "saving an empty image");
+
+        // stb counts the bytes of a row, and of the whole filtered image, in
+        // int: past that it would write garbage. No PNG reader takes such an
+        // image anyway.
+        constexpr auto limit = static_cast<std::size_t>(std::numeric_limits<int>::max());
+        if (pixel_count(m_size) >= limit / sizeof(Color) - static_cast<std::size_t>(m_size.height)) {
+            return std::unexpected{Error::unsupported};
+        }
 
         // Encoded into memory, then written as the bytes of the file, so the
         // path goes through the same stream as reading does.

@@ -37,7 +37,10 @@ namespace tgx {
     //
     // Its see-through parts hold premultiplied colors, as Blend::alpha leaves
     // them: draw it with Blend::premultiplied, or a half see-through white
-    // comes out a quarter gray. Opaque parts look the same either way.
+    // comes out a quarter gray. Opaque parts look the same either way. It
+    // starts cleared to transparent, and a clear premultiplies its color;
+    // Blend::none writes a color as it is given, so a see-through one drawn
+    // so into it goes in premultiplied (Color::premultiplied()).
     //
     // Lives inside the Device: created after it, destroyed before it. Shapes
     // still waiting to be drawn into it are drawn first when it goes.

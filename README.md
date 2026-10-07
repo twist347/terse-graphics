@@ -106,7 +106,15 @@ time; everything in them is made in code, no files needed.
 ## Building
 
 CMake 3.25+ and a C++23 compiler; every dependency is vendored in
-`thirdparty/`.
+`thirdparty/`. On Linux, GLFW also needs the system's Wayland and X11
+headers:
+
+```sh
+# Debian, Ubuntu
+sudo apt install libwayland-dev libxkbcommon-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+# Fedora
+sudo dnf install wayland-devel libxkbcommon-devel libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel
+```
 
 ```sh
 cmake -S . -B build
@@ -124,4 +132,5 @@ zlib (see `LICENSE`): use it in anything, closed or commercial, and change it;
 a game built with it owes no notice. The vendored code keeps its own terms:
 GLFW under zlib, stb and the unscii font in the public domain, miniaudio in
 the public domain or MIT-0, doctest (tests only) under MIT; glad's loader is
-WTFPL or CC0, with parts from the Khronos registry under Apache-2.0.
+WTFPL or CC0, with parts from the Khronos registry under Apache-2.0. `cmake
+--install` puts all of their licenses beside the library, in `share/doc`.

@@ -178,6 +178,18 @@ if (TGX_INSTALL)
             ${CMAKE_CURRENT_BINARY_DIR}/tgxConfigVersion.cmake
             DESTINATION ${tgx_package_dir}
     )
+
+    # The terms of what libtgx is built from, beside its docs: the vendored
+    # code is inside it, and some of it (glad's Apache-2.0 part) asks for its
+    # license to go wherever it goes.
+    install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
+    foreach (licensed IN ITEMS glad miniaudio stb unscii)
+        file(GLOB tgx_license_file thirdparty/${licensed}/LICENSE*)
+        install(FILES ${tgx_license_file} DESTINATION ${CMAKE_INSTALL_DOCDIR} RENAME LICENSE.${licensed})
+    endforeach ()
+    if (TGX_OWN_GLFW)
+        install(FILES thirdparty/glfw-3.5.1/LICENSE.md DESTINATION ${CMAKE_INSTALL_DOCDIR} RENAME LICENSE.glfw)
+    endif ()
 endif ()
 
 if (TGX_BUILD_EXAMPLES)

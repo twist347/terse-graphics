@@ -33,9 +33,11 @@ namespace tgx {
         // embedded asset. Fails with Error::decode.
         [[nodiscard]] static auto decode(std::span<const std::byte> encoded) -> Result<Image>;
 
-        // Writes it as a PNG file, made or replaced. Fails with Error::io when
-        // the file cannot be written, Error::out_of_memory when it cannot be
-        // encoded. The image must not be empty.
+        // Writes it as a PNG file, made or replaced; a failed write leaves the
+        // old file as it was. Fails with Error::io when the file cannot be
+        // written, Error::out_of_memory when it cannot be encoded,
+        // Error::unsupported when it holds 2 GiB of pixels or more. The image
+        // must not be empty.
         [[nodiscard]] auto save(const std::filesystem::path &path) const -> Result<void>;
 
         [[nodiscard]] auto size() const noexcept -> Size { return m_size; }

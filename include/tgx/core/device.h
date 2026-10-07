@@ -30,7 +30,6 @@ namespace tgx {
         std::optional<Color> color{};
         // Usually 1, the far end of the depth range.
         std::optional<float> depth{};
-        std::optional<std::int32_t> stencil{};
     };
 
     // The GL context, ready to draw: GPU resources (Texture, gl:: ones) are
@@ -45,7 +44,8 @@ namespace tgx {
     // knows to be set (the framebuffer, the program, the vertex array, the
     // textures and the active slot, the viewport, the clear values, the
     // render state) and assumes the rest at GL's defaults (no scissor or
-    // stencil test, every color channel written).
+    // stencil test, every color channel written), but for point sizes, which
+    // it leaves to the shader (GL_PROGRAM_POINT_SIZE on).
     //
     // Belongs to the simple level, as without it no frame is shown; only
     // draw() is of the OpenGL level, and takes its types (tgx::gl).

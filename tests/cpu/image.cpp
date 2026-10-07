@@ -88,11 +88,26 @@ TEST_CASE("Image::save writes what Image::load reads back") {
     REQUIRE_FALSE(nowhere.has_value());
     CHECK(nowhere.error() == tgx::Error::io);
 
-#ifdef __linux__
-    // Always full: the bytes fit in the stream's buffer and fail only as it
-    // closes.
-    const auto full = image.save("/dev/full");
-    REQUIRE_FALSE(full.has_value());
-    CHECK(full.error() == tgx::Error::io);
-#endif
+    // Written beside the file first: nothing of that is left behind.
+    std::filesystem::path partial = file.path;
+    partial += ".tgx-partial";
+    CHECK_FALSE(std::filesystem::exists(partial));
+}
+
+TEST_CASE("a failed Image::save leaves the old file as it was") {
+    const tgx_test::TempFile file{"keep.png"};
+    REQUIRE(tgx::Image::create({2, 2}, tgx::colors::red).save(file.path).has_value());
+
+    // A directory where the save writes first makes it fail.
+    std::filesystem::path partial = file.path;
+    partial += ".tgx-partial";
+    std::filesystem::create_directory(partial);
+    const auto failed = tgx::Image::create({2, 2}, tgx::colors::blue).save(file.path);
+    std::filesystem::remove(partial);
+
+    REQUIRE_FALSE(failed.has_value());
+    CHECK(failed.error() == tgx::Error::io);
+    const auto old = tgx::Image::load(file.path);
+    REQUIRE(old.has_value());
+    CHECK((*old)[1, 1] == tgx::colors::red);
 }
