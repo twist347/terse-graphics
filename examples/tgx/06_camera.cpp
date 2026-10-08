@@ -2,7 +2,7 @@
 // HUD that stays put. Each is its own copy of the canvas: one with the
 // camera, one without.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <array>
 #include <cstdio>

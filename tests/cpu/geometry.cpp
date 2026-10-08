@@ -1,6 +1,6 @@
-#include "core/geometry.h"
+#include "core/geometry.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

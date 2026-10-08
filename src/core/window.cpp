@@ -1,13 +1,13 @@
-#include "tgx/core/window.h"
+#include "tgx/core/window.hpp"
 
-#include "tgx/core/assert.h"
-#include "tgx/core/version.h"
+#include "tgx/core/assert.hpp"
+#include "tgx/core/version.hpp"
 
-#include "tgx/gl/version.h"
+#include "tgx/gl/version.hpp"
 
-#include "core/input_internal.h"
-#include "core/log_internal.h"
-#include "core/window_internal.h"
+#include "core/input_internal.hpp"
+#include "core/log_internal.hpp"
+#include "core/window_internal.hpp"
 
 #include <GLFW/glfw3.h>
 

@@ -1,9 +1,9 @@
-#include "tgx/core/input.h"
+#include "tgx/core/input.hpp"
 
-#include "tgx/core/assert.h"
+#include "tgx/core/assert.hpp"
 
-#include "core/geometry.h"
-#include "core/input_internal.h"
+#include "core/geometry.hpp"
+#include "core/input_internal.hpp"
 
 #include <GLFW/glfw3.h>
 

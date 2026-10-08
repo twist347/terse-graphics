@@ -1,7 +1,7 @@
 // A picture on the screen: an Image made pixel by pixel, uploaded to the GPU
 // as a Texture, drawn as a sprite. Image::load reads one from a file instead.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cstdio>
 #include <print>

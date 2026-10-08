@@ -1,12 +1,12 @@
 #pragma once
 
-#include "tgx/core/color.h"
-#include "tgx/core/error.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/math.h"
+#include "tgx/core/color.hpp"
+#include "tgx/core/error.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/math.hpp"
 
-#include "tgx/gl/texture_slot.h"
-#include "tgx/gl/version.h"
+#include "tgx/gl/texture_slot.hpp"
+#include "tgx/gl/version.hpp"
 
 #include <concepts>
 #include <cstdint>
@@ -120,7 +120,7 @@ namespace tgx::gl {
     }
 
     // A linked GPU program: a vertex and a fragment stage. Sources carry their
-    // own #version line; TGX_GLSL_VERSION (tgx/gl/version.h) is the one that
+    // own #version line; TGX_GLSL_VERSION (tgx/gl/version.hpp) is the one that
     // matches the context.
     //
     // Lives inside the Device: created after it, destroyed before it. Shapes

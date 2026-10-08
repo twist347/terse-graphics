@@ -1,16 +1,16 @@
-#include "tgx/core/canvas.h"
+#include "tgx/core/canvas.hpp"
 
-#include "tgx/core/assert.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/texture.h"
+#include "tgx/core/assert.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/texture.hpp"
 
-#include "tgx/gl/draw.h"
-#include "tgx/gl/shader.h"
+#include "tgx/gl/draw.hpp"
+#include "tgx/gl/shader.hpp"
 
-#include "core/batch.h"
-#include "core/context.h"
-#include "core/default_font.h"
-#include "core/geometry.h"
+#include "core/batch.hpp"
+#include "core/context.hpp"
+#include "core/default_font.hpp"
+#include "core/geometry.hpp"
 
 #include <algorithm>
 #include <array>

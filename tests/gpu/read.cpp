@@ -1,9 +1,9 @@
 // The window itself: Device::read, a Device draw's viewport and the canvas
 // on it, in the window's screen coordinates; its settings.
 
-#include "gpu.h"
+#include "gpu.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

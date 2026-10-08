@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tgx/core/log.h"
+#include "tgx/core/log.hpp"
 
 #include <format>
 #include <string_view>

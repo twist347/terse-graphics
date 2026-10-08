@@ -2,7 +2,7 @@
 // see-through squares, drawn on the left with Blend::none, which overwrites
 // and ignores alpha, and on the right with Blend::alpha, which mixes.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <array>
 #include <cstdint>

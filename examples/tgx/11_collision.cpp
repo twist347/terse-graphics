@@ -2,7 +2,7 @@
 // overlaps; a click marks the rect under the mouse; the part of the circle's
 // square that is inside the big rect shows filled.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <array>
 #include <cstddef>

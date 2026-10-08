@@ -1,16 +1,16 @@
-#include "core/context.h"
+#include "core/context.hpp"
 
-#include "tgx/core/blend.h"
-#include "tgx/core/color.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/math.h"
+#include "tgx/core/blend.hpp"
+#include "tgx/core/color.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/math.hpp"
 
-#include "tgx/gl/draw.h"
-#include "tgx/gl/texture_slot.h"
-#include "tgx/gl/vertex_array.h"
+#include "tgx/gl/draw.hpp"
+#include "tgx/gl/texture_slot.hpp"
+#include "tgx/gl/vertex_array.hpp"
 
-#include "core/batch.h"
-#include "core/window_internal.h"
+#include "core/batch.hpp"
+#include "core/window_internal.hpp"
 
 #include <glad/gl.h>
 

@@ -1,7 +1,7 @@
 // Render targets: drawn into, read back, drawn themselves, and going while
 // shapes for them wait.
 
-#include "gpu.h"
+#include "gpu.hpp"
 
 #include <doctest/doctest.h>
 

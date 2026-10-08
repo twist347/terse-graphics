@@ -1,6 +1,6 @@
-#include "tgx/core/camera.h"
+#include "tgx/core/camera.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

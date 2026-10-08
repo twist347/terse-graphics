@@ -1,6 +1,6 @@
-#include "tgx/core/math.h"
+#include "tgx/core/math.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

@@ -1,9 +1,9 @@
 // The Canvas's shapes: edges, joints, gradients and blending, checked where
 // they show.
 
-#include "gpu.h"
+#include "gpu.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

@@ -2,7 +2,7 @@
 // a click leaves a dot where the mouse is in the world, Escape closes the
 // window.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cstdio>
 #include <print>

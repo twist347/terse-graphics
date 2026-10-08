@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tgx/gl/shader.h"
-#include "tgx/gl/vertex_array.h"
+#include "tgx/gl/shader.hpp"
+#include "tgx/gl/vertex_array.hpp"
 
 namespace tgx::gl::detail {
     // Asserts that every input the shader reads has an attribute of the same

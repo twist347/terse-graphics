@@ -1,7 +1,7 @@
 // A shader of its own for the Canvas, and shaders changing or going while
 // shapes drawn with them wait in the batch.
 
-#include "gpu.h"
+#include "gpu.hpp"
 
 #include <doctest/doctest.h>
 

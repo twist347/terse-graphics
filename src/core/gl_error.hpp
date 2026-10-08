@@ -1,8 +1,8 @@
 #pragma once
 
-#include "tgx/core/error.h"
+#include "tgx/core/error.hpp"
 
-#include "core/log_internal.h"
+#include "core/log_internal.hpp"
 
 #include <glad/gl.h>
 

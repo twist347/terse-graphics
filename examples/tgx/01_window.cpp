@@ -1,7 +1,7 @@
 // The smallest tgx program: a window cleared to one color, frame after frame,
 // until it is closed.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cstdio>
 #include <print>

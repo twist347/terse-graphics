@@ -1,11 +1,11 @@
 #pragma once
 
-#include "tgx/core/blend.h"
-#include "tgx/core/camera.h"
-#include "tgx/core/color.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/math.h"
-#include "tgx/core/render_target.h"
+#include "tgx/core/blend.hpp"
+#include "tgx/core/camera.hpp"
+#include "tgx/core/color.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/math.hpp"
+#include "tgx/core/render_target.hpp"
 
 #include <array>
 #include <cstdint>

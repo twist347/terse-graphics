@@ -1,7 +1,7 @@
 // Sprites, and textures changing or going while sprites of them wait in the
 // batch: each sprite shows the texture as it was when it was added.
 
-#include "gpu.h"
+#include "gpu.hpp"
 
 #include <doctest/doctest.h>
 

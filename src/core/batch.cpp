@@ -1,14 +1,14 @@
-#include "core/batch.h"
+#include "core/batch.hpp"
 
-#include "tgx/core/assert.h"
-#include "tgx/core/image.h"
+#include "tgx/core/assert.hpp"
+#include "tgx/core/image.hpp"
 
-#include "tgx/gl/draw.h"
-#include "tgx/gl/version.h"
+#include "tgx/gl/draw.hpp"
+#include "tgx/gl/version.hpp"
 
-#include "core/context.h"
-#include "core/default_font.h"
-#include "gl/shader_internal.h"
+#include "core/context.hpp"
+#include "core/default_font.hpp"
+#include "gl/shader_internal.hpp"
 
 #include <glad/gl.h>
 

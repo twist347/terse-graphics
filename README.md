@@ -35,7 +35,7 @@ light and a scanline shader, all made in code.*
 ## Quick start
 
 ```cpp
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 int main() {
     auto app = tgx::App::create({.title = "hello"});
@@ -65,7 +65,7 @@ is documented in its header. What comes next: the [roadmap](docs/roadmap.md).
 ## Examples
 
 Lessons, one idea each, in two folders by level: `examples/tgx/` uses only
-`tgx::`, `examples/gl/` adds `tgx::gl::`. Each includes `tgx/tgx.h`, the one
+`tgx::`, `examples/gl/` adds `tgx::gl::`. Each includes `tgx/tgx.hpp`, the one
 header there is to include, and builds as `<folder>_<name>`, e.g.
 `tgx_01_window`.
 

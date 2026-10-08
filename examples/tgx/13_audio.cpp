@@ -4,7 +4,7 @@
 //
 //     tgx_13_audio theme.ogg
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <algorithm>
 #include <array>

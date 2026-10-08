@@ -1,12 +1,12 @@
 #pragma once
 
-#include "tgx/core/audio.h"
-#include "tgx/core/canvas.h"
-#include "tgx/core/clock.h"
-#include "tgx/core/device.h"
-#include "tgx/core/error.h"
-#include "tgx/core/input.h"
-#include "tgx/core/window.h"
+#include "tgx/core/audio.hpp"
+#include "tgx/core/canvas.hpp"
+#include "tgx/core/clock.hpp"
+#include "tgx/core/device.hpp"
+#include "tgx/core/error.hpp"
+#include "tgx/core/input.hpp"
+#include "tgx/core/window.hpp"
 
 namespace tgx {
     // The simple way in: creates the window, the device, a canvas and the

@@ -1,7 +1,7 @@
-#include "tgx/core/clock.h"
+#include "tgx/core/clock.hpp"
 
-#include "core/clock_internal.h"
-#include "core/context.h"
+#include "core/clock_internal.hpp"
+#include "core/context.hpp"
 
 namespace tgx {
     auto Clock::delta() const noexcept -> float {

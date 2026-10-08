@@ -12,7 +12,7 @@ Infrastructure:
   numbers and their scope in the guide.
 - A final pass over the whole API.
 - The first release: tag 0.1.0 and start `CHANGELOG.md` with it (added,
-  changed, fixed per version, as in terse-dsa), bumping `tgx/core/version.h`
+  changed, fixed per version, as in terse-dsa), bumping `tgx/core/version.hpp`
   from then on.
 
 Features:
@@ -49,7 +49,7 @@ Features:
 Looked at and left until there is a need:
 
 - Header weight. `<format>` (through the asserts) sets a floor every header
-  pays, and programs include `tgx/tgx.h` anyway, so splitting headers buys
+  pays, and programs include `tgx/tgx.hpp` anyway, so splitting headers buys
   little.
 - `FrameClock` out of the GL `Context`. Cleaner, but it only pays off with a
   public state reset, which nothing asks for.

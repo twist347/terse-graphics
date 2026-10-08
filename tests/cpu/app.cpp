@@ -1,4 +1,4 @@
-#include "tgx/core/app.h"
+#include "tgx/core/app.hpp"
 
 #include <type_traits>
 #include <utility>

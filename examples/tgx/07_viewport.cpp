@@ -1,7 +1,7 @@
 // A minimap: the same world drawn a second time, into a corner of the window.
 // set_viewport picks the corner, set_size how much of the world fits in it.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <array>
 #include <cstdio>

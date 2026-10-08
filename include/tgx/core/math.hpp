@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tgx/core/assert.h"
+#include "tgx/core/assert.hpp"
 
 #include <array>
 #include <cmath>

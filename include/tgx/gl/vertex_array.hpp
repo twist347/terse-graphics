@@ -1,11 +1,11 @@
 #pragma once
 
-#include "tgx/core/assert.h"
-#include "tgx/core/color.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/math.h"
+#include "tgx/core/assert.hpp"
+#include "tgx/core/color.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/math.hpp"
 
-#include "tgx/gl/buffer.h"
+#include "tgx/gl/buffer.hpp"
 
 #include <array>
 #include <concepts>

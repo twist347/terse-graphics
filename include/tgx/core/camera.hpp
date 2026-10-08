@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tgx/core/math.h"
+#include "tgx/core/math.hpp"
 
 #include <cmath>
 

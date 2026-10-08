@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tgx/core/color.h"
-#include "tgx/core/math.h"
+#include "tgx/core/color.hpp"
+#include "tgx/core/math.hpp"
 
 #include <algorithm>
 #include <array>

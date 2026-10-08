@@ -1,4 +1,4 @@
-#include "tgx/core/assert.h"
+#include "tgx/core/assert.hpp"
 
 #include <cstdio>
 #include <cstdlib>

@@ -1,7 +1,7 @@
 // What a Sprite can do, one field at a time: take a part of a texture (an
 // atlas of two frames here), mirror it, tint it, turn it.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cstdio>
 #include <print>

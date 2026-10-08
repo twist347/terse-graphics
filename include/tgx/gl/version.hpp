@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tgx/core/version.h"
+#include "tgx/core/version.hpp"
 
 // The OpenGL version tgx is written against: the context it requests and the
 // minimum it accepts. Macros, so that shader sources can be glued to them at

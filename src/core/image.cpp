@@ -1,8 +1,8 @@
-#include "tgx/core/image.h"
+#include "tgx/core/image.hpp"
 
-#include "tgx/core/assert.h"
+#include "tgx/core/assert.hpp"
 
-#include "core/file.h"
+#include "core/file.hpp"
 
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>

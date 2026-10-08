@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.25)
 
-# The version is written once, in tgx/core/version.h, and read back from there.
-file(STRINGS include/tgx/core/version.h tgx_version_defines
+# The version is written once, in tgx/core/version.hpp, and read back from there.
+file(STRINGS include/tgx/core/version.hpp tgx_version_defines
         REGEX "^#define TGX_VERSION_(MAJOR|MINOR|PATCH) +[0-9]+$")
 # file(STRINGS) does not make the file an input of the configure step: without
 # this, a bumped version leaves an existing build directory on the old one.
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS include/tgx/core/version.h)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS include/tgx/core/version.hpp)
 foreach (part MAJOR MINOR PATCH)
     string(REGEX MATCH "TGX_VERSION_${part} +([0-9]+)" _ "${tgx_version_defines}")
     set(tgx_version_${part} ${CMAKE_MATCH_1})

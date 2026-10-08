@@ -1,6 +1,6 @@
-#include "tgx/core/canvas.h"
+#include "tgx/core/canvas.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

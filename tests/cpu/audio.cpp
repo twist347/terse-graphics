@@ -1,6 +1,6 @@
-#include "tgx/core/audio.h"
+#include "tgx/core/audio.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

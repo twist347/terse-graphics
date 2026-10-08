@@ -1,8 +1,8 @@
 #pragma once
 
-#include "tgx/core/error.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/math.h"
+#include "tgx/core/error.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/math.hpp"
 
 #include <cstdint>
 #include <filesystem>

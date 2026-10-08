@@ -5,7 +5,7 @@
 // The scene is two triangles that pass through each other: the target has a
 // depth buffer, so wherever they overlap, the nearer one is in front.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <array>
 #include <cstdio>

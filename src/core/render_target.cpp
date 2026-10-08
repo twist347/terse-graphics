@@ -1,7 +1,7 @@
-#include "tgx/core/render_target.h"
+#include "tgx/core/render_target.hpp"
 
-#include "core/context.h"
-#include "core/gl_error.h"
+#include "core/context.hpp"
+#include "core/gl_error.hpp"
 
 #include <glad/gl.h>
 

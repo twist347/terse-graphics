@@ -1,10 +1,10 @@
 #pragma once
 
-#include "tgx/core/error.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/image.h"
-#include "tgx/core/math.h"
-#include "tgx/core/texture.h"
+#include "tgx/core/error.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/image.hpp"
+#include "tgx/core/math.hpp"
+#include "tgx/core/texture.hpp"
 
 #include <utility>
 

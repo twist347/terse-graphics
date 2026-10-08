@@ -1,7 +1,7 @@
 // Movement that does not depend on the frame rate: speed in units per second,
 // times the seconds the last frame took, clock().delta().
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cstdio>
 #include <print>

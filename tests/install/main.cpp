@@ -3,7 +3,7 @@
 // App::create is only linked, not called, so the window, GL and audio code
 // must link too.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cstdio>
 #include <print>

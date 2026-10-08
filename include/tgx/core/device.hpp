@@ -1,9 +1,9 @@
 #pragma once
 
-#include "tgx/core/clock.h"
-#include "tgx/core/color.h"
-#include "tgx/core/error.h"
-#include "tgx/core/image.h"
+#include "tgx/core/clock.hpp"
+#include "tgx/core/color.hpp"
+#include "tgx/core/error.hpp"
+#include "tgx/core/image.hpp"
 
 #include <cstdint>
 #include <optional>

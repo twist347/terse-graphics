@@ -1,20 +1,20 @@
-#include "tgx/core/device.h"
+#include "tgx/core/device.hpp"
 
-#include "tgx/core/assert.h"
-#include "tgx/core/render_target.h"
-#include "tgx/core/texture.h"
+#include "tgx/core/assert.hpp"
+#include "tgx/core/render_target.hpp"
+#include "tgx/core/texture.hpp"
 
-#include "tgx/gl/draw.h"
-#include "tgx/gl/shader.h"
-#include "tgx/gl/texture_slot.h"
-#include "tgx/gl/version.h"
-#include "tgx/gl/vertex_array.h"
+#include "tgx/gl/draw.hpp"
+#include "tgx/gl/shader.hpp"
+#include "tgx/gl/texture_slot.hpp"
+#include "tgx/gl/version.hpp"
+#include "tgx/gl/vertex_array.hpp"
 
-#include "core/batch.h"
-#include "core/context.h"
-#include "core/log_internal.h"
-#include "core/window_internal.h"
-#include "gl/vertex_array_internal.h"
+#include "core/batch.hpp"
+#include "core/context.hpp"
+#include "core/log_internal.hpp"
+#include "core/window_internal.hpp"
+#include "gl/vertex_array_internal.hpp"
 
 #include <glad/gl.h>
 

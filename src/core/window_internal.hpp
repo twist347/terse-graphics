@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tgx/core/math.h"
+#include "tgx/core/math.hpp"
 
 // What the rest of tgx needs from the one window without knowing the
 // windowing backend.

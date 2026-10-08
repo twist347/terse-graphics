@@ -1,17 +1,17 @@
 #pragma once
 
-#include "tgx/core/blend.h"
-#include "tgx/core/color.h"
-#include "tgx/core/error.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/math.h"
-#include "tgx/core/render_target.h"
-#include "tgx/core/texture.h"
+#include "tgx/core/blend.hpp"
+#include "tgx/core/color.hpp"
+#include "tgx/core/error.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/math.hpp"
+#include "tgx/core/render_target.hpp"
+#include "tgx/core/texture.hpp"
 
-#include "tgx/gl/buffer.h"
-#include "tgx/gl/draw.h"
-#include "tgx/gl/shader.h"
-#include "tgx/gl/vertex_array.h"
+#include "tgx/gl/buffer.hpp"
+#include "tgx/gl/draw.hpp"
+#include "tgx/gl/shader.hpp"
+#include "tgx/gl/vertex_array.hpp"
 
 #include <cstddef>
 #include <cstdint>

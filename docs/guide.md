@@ -16,7 +16,7 @@ function; this is what spans more than one. Back to the [README](../README.md).
 
 ## Two levels
 
-One header, `#include "tgx/tgx.h"`, brings both; the other headers under
+One header, `#include "tgx/tgx.hpp"`, brings both; the other headers under
 `tgx/` (`core/`, `gl/`) are how it is put together, not entry points, and
 their paths may change.
 
@@ -594,7 +594,7 @@ The package is the headers, the one library and its CMake files; it asks the
 system only for threads (and for GLFW, if tgx was built with one found by
 `find_package(glfw3)`). Install each configuration into a prefix of its own.
 `TGX_INSTALL` (on when tgx is the project being built) turns the install
-off. The version is written once, in `tgx/core/version.h`, and CMake reads it from
+off. The version is written once, in `tgx/core/version.hpp`, and CMake reads it from
 there: `TGX_VERSION_MAJOR`, `_MINOR`, `_PATCH`, `TGX_VERSION_STRING`
 (`"0.1.0"`), and `TGX_VERSION` as one number for
 `#if TGX_VERSION_AT_LEAST(0, 2, 0)`. `tests/install` is such a project; CI builds it against the package on

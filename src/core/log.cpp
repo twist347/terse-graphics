@@ -1,6 +1,6 @@
-#include "tgx/core/log.h"
+#include "tgx/core/log.hpp"
 
-#include "core/log_internal.h"
+#include "core/log_internal.hpp"
 
 #include <atomic>
 #include <cstdio>

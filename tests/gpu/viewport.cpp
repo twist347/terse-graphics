@@ -1,9 +1,9 @@
 // Viewports, sizes and cameras: where on what it draws into a shape lands,
 // and the way back from a point there to the world.
 
-#include "gpu.h"
+#include "gpu.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

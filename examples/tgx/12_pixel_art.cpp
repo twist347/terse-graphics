@@ -2,7 +2,7 @@
 // is then scaled up onto the window by a whole factor with nearest filtering.
 // Every pixel stays a sharp square, even along a turning line or a circle.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cmath>
 #include <cstdio>

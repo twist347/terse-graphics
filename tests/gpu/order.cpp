@@ -1,7 +1,7 @@
 // The picture follows the order of the calls, though the Canvas's shapes wait
 // in a batch: they are drawn before a clear or a draw of the Device's own.
 
-#include "gpu.h"
+#include "gpu.hpp"
 
 #include <doctest/doctest.h>
 

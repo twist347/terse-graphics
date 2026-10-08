@@ -1,9 +1,9 @@
 #pragma once
 
-#include "tgx/core/assert.h"
-#include "tgx/core/color.h"
-#include "tgx/core/error.h"
-#include "tgx/core/math.h"
+#include "tgx/core/assert.hpp"
+#include "tgx/core/color.hpp"
+#include "tgx/core/error.hpp"
+#include "tgx/core/math.hpp"
 
 #include <cstddef>
 #include <filesystem>

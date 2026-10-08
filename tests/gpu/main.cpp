@@ -5,7 +5,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 
-#include "gpu.h"
+#include "gpu.hpp"
 
 #include <cstdio>
 #include <print>

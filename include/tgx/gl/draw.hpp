@@ -1,8 +1,8 @@
 #pragma once
 
-#include "tgx/core/blend.h"
+#include "tgx/core/blend.hpp"
 
-#include "tgx/gl/texture_slot.h"
+#include "tgx/gl/texture_slot.hpp"
 
 #include <array>
 #include <cstddef>

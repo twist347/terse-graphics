@@ -1,9 +1,9 @@
-#include "tgx/core/audio.h"
+#include "tgx/core/audio.hpp"
 
-#include "tgx/core/assert.h"
+#include "tgx/core/assert.hpp"
 
-#include "core/file.h"
-#include "core/log_internal.h"
+#include "core/file.hpp"
+#include "core/log_internal.hpp"
 
 #include <miniaudio/miniaudio.h>
 

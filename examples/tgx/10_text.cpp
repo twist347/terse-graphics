@@ -1,7 +1,7 @@
 // Text in the built-in font: sizes, colors, lines, centering by its measured
 // size, and a field that takes what is typed.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cstdio>
 #include <print>

@@ -1,7 +1,7 @@
 // The canvas shapes, one call each. Coordinates are the window's: (0, 0) at
 // the top-left corner, x to the right, y down.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <array>
 #include <cstdio>

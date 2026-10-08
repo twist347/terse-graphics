@@ -1,6 +1,6 @@
-#include "tgx/core/collision.h"
+#include "tgx/core/collision.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

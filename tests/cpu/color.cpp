@@ -1,6 +1,6 @@
-#include "tgx/core/color.h"
+#include "tgx/core/color.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

@@ -1,7 +1,7 @@
 // Buffers and vertex arrays: offsets and counts in elements, the index type
 // taken from the buffer, dynamic updates.
 
-#include "gpu.h"
+#include "gpu.hpp"
 
 #include <doctest/doctest.h>
 

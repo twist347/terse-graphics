@@ -1,5 +1,5 @@
-#include "tgx/core/error.h"
-#include "tgx/core/log.h"
+#include "tgx/core/error.hpp"
+#include "tgx/core/log.hpp"
 
 #include <doctest/doctest.h>
 

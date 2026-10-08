@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tgx/core/assert.h"
-#include "tgx/core/math.h"
+#include "tgx/core/assert.hpp"
+#include "tgx/core/math.hpp"
 
 #include <algorithm>
 #include <cstddef>

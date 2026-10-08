@@ -2,7 +2,7 @@
 // draw. The color is set once; the transform every frame, turning the
 // triangle without touching its vertices.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <array>
 #include <cstdio>

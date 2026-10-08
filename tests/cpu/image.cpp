@@ -1,6 +1,6 @@
-#include "tgx/core/image.h"
+#include "tgx/core/image.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

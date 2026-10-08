@@ -1,6 +1,6 @@
-#include "tgx/core/random.h"
+#include "tgx/core/random.hpp"
 
-#include "support.h"
+#include "support.hpp"
 
 #include <doctest/doctest.h>
 

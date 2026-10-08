@@ -1,16 +1,16 @@
 #pragma once
 
-#include "tgx/core/color.h"
-#include "tgx/core/handle.h"
-#include "tgx/core/image.h"
-#include "tgx/core/math.h"
-#include "tgx/core/render_target.h"
+#include "tgx/core/color.hpp"
+#include "tgx/core/handle.hpp"
+#include "tgx/core/image.hpp"
+#include "tgx/core/math.hpp"
+#include "tgx/core/render_target.hpp"
 
-#include "tgx/gl/draw.h"
-#include "tgx/gl/texture_slot.h"
-#include "tgx/gl/vertex_array.h"
+#include "tgx/gl/draw.hpp"
+#include "tgx/gl/texture_slot.hpp"
+#include "tgx/gl/vertex_array.hpp"
 
-#include "core/clock_internal.h"
+#include "core/clock_internal.hpp"
 
 #include <array>
 #include <cstddef>

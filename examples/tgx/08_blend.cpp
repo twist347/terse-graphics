@@ -2,7 +2,7 @@
 // what is on top covers what is below. Right: additive, where light adds up,
 // red + green + blue making white.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <cstdio>
 #include <print>

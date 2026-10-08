@@ -1,7 +1,7 @@
 // The GL level from the bottom: vertices in a buffer, a vertex array that says
 // how to read them, a shader that turns them into pixels, and a draw.
 
-#include "tgx/tgx.h"
+#include "tgx/tgx.hpp"
 
 #include <array>
 #include <cstdio>

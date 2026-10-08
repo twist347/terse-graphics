@@ -1,10 +1,10 @@
-#include "tgx/core/texture.h"
+#include "tgx/core/texture.hpp"
 
-#include "tgx/core/assert.h"
-#include "tgx/core/image.h"
+#include "tgx/core/assert.hpp"
+#include "tgx/core/image.hpp"
 
-#include "core/context.h"
-#include "core/gl_error.h"
+#include "core/context.hpp"
+#include "core/gl_error.hpp"
 
 #include <glad/gl.h>
 
