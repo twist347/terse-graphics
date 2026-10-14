@@ -14,7 +14,7 @@ namespace tgx {
         std::uint8_t b{0};
         std::uint8_t a{255};
 
-        // 0xRRGGBBAA, the order colors are written in editors and palettes.
+        // 0xRRGGBBAA, as editors write colors.
         [[nodiscard]] static constexpr auto rgba(std::uint32_t rgba) noexcept -> Color {
             return {
                 static_cast<std::uint8_t>((rgba >> 24) & 0xff),
@@ -29,11 +29,11 @@ namespace tgx {
             return rgba((rgb << 8) | 0xff);
         }
 
-        // Hue in degrees around the color wheel (0 red, 120 green, 240 blue,
-        // any value wraps), saturation and value in [0, 1]; fully opaque.
-        // Stepping the hue gives evenly spread, equally bright colors.
+        // Hue in degrees (0 red, 120 green, 240 blue; wraps around).
+        // Saturation and value in [0, 1]. Opaque. Stepping the hue gives
+        // evenly spread, equally bright colors.
         [[nodiscard]] static auto hsv(float hue, float saturation, float value) noexcept -> Color {
-            // A NaN would pass the clamps below and turn into no channel value.
+            // A NaN would pass the clamps.
             TGX_ASSERT_MSG(
                 std::isfinite(hue) && std::isfinite(saturation) && std::isfinite(value),
                 "hsv({}, {}, {}): not a number",
@@ -54,21 +54,21 @@ namespace tgx {
             return {channel(5.f), channel(3.f), channel(1.f), 255};
         }
 
-        // The same color with another alpha, e.g. colors::red.with_alpha(128).
+        // E.g. colors::red.with_alpha(128).
         [[nodiscard]] constexpr auto with_alpha(std::uint8_t alpha) const noexcept -> Color {
             return {r, g, b, alpha};
         }
 
-        // The same color with alpha from [0, 1] (clamped), replacing its own as
-        // raylib's Fade does: colors::red.fade(0.5f) is half see-through.
+        // Replaces alpha with one in [0, 1] (clamped), like raylib's Fade:
+        // colors::red.fade(0.5f) is half transparent.
         [[nodiscard]] auto fade(float alpha) const noexcept -> Color {
-            // A NaN, as from t / duration with no duration, would pass the clamp.
+            // A NaN, e.g. t / duration with zero duration, would pass the
+            // clamp.
             TGX_ASSERT_MSG(std::isfinite(alpha), "fade({}): not a number", alpha);
             return with_alpha(static_cast<std::uint8_t>(std::clamp(alpha, 0.f, 1.f) * 255.f + 0.5f));
         }
 
-        // Each channel scaled by alpha, rounded: the form Blend::premultiplied
-        // expects. Alpha itself stays.
+        // Channels multiplied by alpha, as Blend::premultiplied expects.
         [[nodiscard]] constexpr auto premultiplied() const noexcept -> Color {
             const auto scale = [this](std::uint8_t channel) {
                 return static_cast<std::uint8_t>((channel * a + 127) / 255);
@@ -79,7 +79,7 @@ namespace tgx {
         [[nodiscard]] constexpr auto operator==(const Color &) const noexcept -> bool = default;
     };
 
-    // Channels scaled to [0, 1], the way shaders see a Color.
+    // Channels in [0, 1], as shaders see them.
     [[nodiscard]] constexpr auto to_vec4(Color color) noexcept -> Vec4 {
         return {
             static_cast<float>(color.r) / 255.f,
@@ -89,10 +89,10 @@ namespace tgx {
         };
     }
 
-    // a at t = 0, b at t = 1, every channel and alpha alike. Unlike the vector
-    // lerps, t is clamped to [0, 1]: past the ends a channel has nowhere to go.
+    // Every channel, alpha too. Unlike the vector lerps, t is clamped to
+    // [0, 1].
     [[nodiscard]] inline auto lerp(Color a, Color b, float t) noexcept -> Color {
-        // A NaN would pass the clamp and turn into no channel value.
+        // A NaN would pass the clamp.
         TGX_ASSERT_MSG(std::isfinite(t), "lerp(a, b, {}): not a number", t);
         const float k = std::clamp(t, 0.f, 1.f);
         const auto mix = [k](std::uint8_t from, std::uint8_t to) {

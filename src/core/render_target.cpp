@@ -24,7 +24,7 @@ namespace {
 
 namespace tgx {
     auto detail::delete_framebuffer(GlId id) noexcept -> void {
-        // Shapes added before are drawn into it while it is still there.
+        // Draws the waiting shapes while it exists.
         detail::flush_target_use(id);
         detail::context().forget_framebuffer(id);
         glDeleteFramebuffers(1, &id);
@@ -35,8 +35,8 @@ namespace tgx {
     }
 
     auto RenderTarget::create(Size size, const RenderTargetParams &params) noexcept -> Result<RenderTarget> {
-        // Its contents come from draws only: no mipmaps to rebuild after each,
-        // and no updates from the CPU, whose rows run the other way.
+        // Filled only by draws: no mipmaps to rebuild, no CPU updates (their
+        // rows go the other way).
         auto texture = Texture::create_for_target(
             size,
             {.filter = params.filter, .wrap = params.wrap, .mipmaps = false, .access = TextureAccess::immutable}
@@ -69,8 +69,8 @@ namespace tgx {
             return std::unexpected{Error::unsupported};
         }
 
-        // GL leaves what a new texture and depth buffer hold undefined: a draw
-        // with a depth test into one never cleared may show nothing (Mesa).
+        // New contents are undefined; a depth test into an uncleared buffer
+        // may show nothing (Mesa).
         detail::context().clear({
             .target = {id, texture->id(), size, static_cast<bool>(depth)},
             .color = colors::transparent,

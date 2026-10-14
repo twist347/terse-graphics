@@ -12,14 +12,13 @@
 #include <algorithm>
 
 namespace {
-    // GL 3.3 has no stride limit to query; this is the lower bound 4.4+ drivers
-    // guarantee for GL_MAX_VERTEX_ATTRIB_STRIDE, so a layout within it stays
-    // portable to them too.
+    // GL 3.3 has no stride limit to query. This is the minimum
+    // GL_MAX_VERTEX_ATTRIB_STRIDE of GL 4.4+, so layouts work there too.
     constexpr std::size_t max_stride = 2048;
 
     using tgx::gl::detail::ComponentKind;
 
-    // How GL reads a format, and what a shader input of it must be: the one
+    // How GL reads a format, and the shader input kind it needs. The only
     // table of formats.
     struct GlFormat {
         GLint components;
@@ -82,10 +81,7 @@ namespace tgx::gl {
                 attribute.location, attribute.offset, format.size, stride
             );
             TGX_ASSERT_MSG(
-                std::ranges::find(
-                    attributes.first(i), attribute.location, &VertexAttribute::location
-                )
-                == attributes.first(i).end(),
+                !std::ranges::contains(attributes.first(i), attribute.location, &VertexAttribute::location),
                 "attribute location {} is used twice",
                 attribute.location
             );
@@ -94,10 +90,10 @@ namespace tgx::gl {
         GLuint id = 0;
         glGenVertexArrays(1, &id);
 
-        // Enabling is VAO state, so it needs the VAO bound. It stays bound:
-        // tgx binds GL_ELEMENT_ARRAY_BUFFER, the one buffer binding that is
-        // VAO state, only to attach an index buffer here, and edits buffers
-        // through GL_COPY_WRITE_BUFFER, which no VAO keeps.
+        // Enabling an attribute is VAO state. The VAO can stay bound: its only
+        // buffer binding, GL_ELEMENT_ARRAY_BUFFER, tgx binds only to attach an
+        // index buffer here, and buffers are edited through
+        // GL_COPY_WRITE_BUFFER.
         tgx::detail::context().bind_vertex_array(id);
         for (const VertexAttribute &attribute: attributes) {
             glEnableVertexAttribArray(attribute.location);
@@ -120,18 +116,17 @@ namespace tgx::gl {
     ) noexcept -> void {
         m_vertex_count = vertex_count;
 
-        // The ARRAY_BUFFER binding is not VAO state: each pointer call below
-        // captures it, together with the offset and stride.
+        // ARRAY_BUFFER is not VAO state; each pointer call stores it with the
+        // offset and stride.
         tgx::detail::context().bind_vertex_array(m_handle.get());
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
-        for (std::size_t i = 0; i < m_attribute_count; ++i) {
-            const VertexAttribute &attribute = m_attributes[i];
+        // Fits: checked against max_stride at creation.
+        const auto stride = static_cast<GLsizei>(m_stride);
+        for (const VertexAttribute &attribute: attributes()) {
             const GlFormat format = to_gl(attribute.format);
 
-            // GL takes the offset into the buffer where a pointer used to go.
+            // GL takes the buffer offset in place of a pointer.
             const auto *offset = reinterpret_cast<const void *>(byte_offset + attribute.offset);
-            // Fits: the stride is asserted against max_stride at creation.
-            const auto stride = static_cast<GLsizei>(m_stride);
             if (format.kind != ComponentKind::floating) {
                 glVertexAttribIPointer(attribute.location, format.components, format.type, stride, offset);
             } else {
@@ -148,8 +143,8 @@ namespace tgx::gl {
     }
 
     auto VertexArray::attach_index_buffer(GlId buffer, IndexType type, std::size_t index_count) noexcept -> void {
-        // Unlike ARRAY_BUFFER, this binding is VAO state: binding it with the
-        // VAO bound is what attaches it.
+        // Unlike ARRAY_BUFFER, this binding is VAO state: binding it attaches
+        // it.
         tgx::detail::context().bind_vertex_array(m_handle.get());
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
 

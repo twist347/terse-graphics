@@ -19,8 +19,8 @@
 #include <utility>
 
 namespace {
-    // The built-in texture: the default font's glyphs, white on clear, and
-    // the white block shapes sample.
+    // The default font, white on transparent, and the white block shapes
+    // sample.
     [[nodiscard]] auto builtin_atlas() -> tgx::Image {
         namespace font = tgx::detail::default_font;
 
@@ -76,8 +76,8 @@ namespace tgx::detail {
     auto Batch::create() -> Result<Batch> {
         auto shader = gl::Shader::from_source(vertex_source, fragment_source);
         if (!shader) {
-            // Ours, and checked by the examples on every platform tgx runs on;
-            // a driver refusing it is the platform's failure.
+            // Tested on every supported platform; a driver rejecting it is
+            // the platform's fault.
             TGX_ASSERT_MSG(false, "the 2D batch shader failed: {}", shader.error());
             return std::unexpected{Error::platform};
         }
@@ -142,15 +142,14 @@ namespace tgx::detail {
         m_vertex_buffer.update(0, m_vertices);
         m_index_buffer.update(0, m_indices);
 
-        // Set on every draw: they are cheap, and a custom shader may have been
-        // used elsewhere in between. Straight to GL rather than through
-        // Shader::set, which would come back here to flush.
+        // Set on every draw: cheap, and a custom shader may be used elsewhere
+        // in between. Raw GL, since Shader::set would call back to flush.
         const bool custom = m_state.program != 0;
         const GlId program = custom ? m_state.program : m_shader.id();
         const std::int32_t u_projection = custom ? m_state.u_projection : m_u_projection;
         context.use_program(program);
         gl::detail::upload_mat4(u_projection, m_state.transform);
-        // The built-in shader's was set once, at creation.
+        // The built-in shader's was set at creation.
         if (custom && m_state.u_texture >= 0) {
             glUniform1i(m_state.u_texture, 0);
         }
@@ -196,7 +195,7 @@ namespace tgx::detail {
           m_index_buffer{std::move(index_buffer)},
           m_vertex_array{std::move(vertex_array)},
           m_builtin{std::move(builtin)} {
-        // Filled up to here and no further: adding a shape never allocates.
+        // Never filled past this, so adding a shape never allocates.
         m_vertices.reserve(batch_max_vertices);
         m_indices.reserve(batch_max_indices);
     }

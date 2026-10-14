@@ -21,37 +21,33 @@
 #include <vector>
 
 namespace {
-    // Plays of Sounds at once. Each holds a sound of miniaudio's, which may
-    // not move while it plays, so they live in a fixed pool, with one voice
-    // to spare: a new play starts in it before the oldest is cut off for it,
-    // so a play that fails to start cuts off nothing.
+    // A miniaudio sound must not move while it plays, so voices live in a
+    // fixed pool. One spare voice: a new play starts there before the oldest
+    // is cut off, so a play that fails to start cuts off nothing.
     constexpr std::size_t max_voices = 64;
 
-    // One play of a Sound: miniaudio reads its samples through data, in
-    // place, and mixes them through sound.
+    // One play of a Sound. data reads its samples in place.
     struct Voice {
         ma_audio_buffer_ref data;
         ma_sound sound;
-        // The Sound's id, 0 while free.
+        // Sound id; 0 while free.
         std::uint32_t owner{0};
-        // When it started, in plays: the oldest is cut off first.
+        // Play counter at start. The oldest is cut off first.
         std::uint64_t started{0};
     };
 
-    // The one output, while an Audio has it open. Allocated, as neither the
-    // engine nor the voices may move.
+    // On the heap: neither the engine nor the voices may move.
     struct AudioState {
         ma_engine engine;
         std::array<Voice, max_voices + 1> voices;
         std::uint64_t plays{0};
     };
 
-    // Null when there is no Audio or it stays silent.
+    // Null with no Audio or a silent one.
     std::unique_ptr<AudioState> s_audio;
-    // As last set, kept while silent too, so volume() answers the same; back
-    // to 1 when the Audio goes.
+    // Kept while silent too. Reset to 1 when the Audio is destroyed.
     float s_volume{1.f};
-    // Sounds may be loaded on other threads, as assets often are.
+    // Atomic: Sounds may be loaded on other threads.
     std::atomic<std::uint32_t> s_next_sound_id{1};
 
     auto free_voice(Voice &voice) noexcept -> void {
@@ -60,7 +56,7 @@ namespace {
         voice.owner = 0;
     }
 
-    // Frees the voices that have played to their end.
+    // Frees voices that have played to their end.
     auto reclaim_voices(AudioState &audio) noexcept -> void {
         for (Voice &voice: audio.voices) {
             if (voice.owner != 0 && ma_sound_at_end(&voice.sound)) {
@@ -69,27 +65,23 @@ namespace {
         }
     }
 
-    // A free voice: there is always one, as at most max_voices play.
+    // There is always one: at most max_voices play.
     [[nodiscard]] auto take_voice(AudioState &audio) noexcept -> Voice & {
         reclaim_voices(audio);
         return *std::ranges::find(audio.voices, 0u, &Voice::owner);
     }
 
-    // Once a play has started in the spare voice: the one that has played
-    // longest cut off if more than max_voices play now.
+    // Called after a play started in the spare voice. With no voice free,
+    // more than max_voices play: the oldest is cut off.
     auto keep_to_max(AudioState &audio) noexcept -> void {
-        const auto playing = std::ranges::count_if(audio.voices, [](const Voice &voice) { return voice.owner != 0; });
-        if (static_cast<std::size_t>(playing) <= max_voices) {
+        if (std::ranges::contains(audio.voices, 0u, &Voice::owner)) {
             return;
         }
-        Voice &oldest = *std::ranges::min_element(audio.voices, {}, [](const Voice &voice) {
-            return voice.owner != 0 ? voice.started : UINT64_MAX;
-        });
-        free_voice(oldest);
+        free_voice(*std::ranges::min_element(audio.voices, {}, &Voice::started));
     }
 
-    // A Sound with no id (moved from) touches nothing shared, so loading one
-    // on another thread, where the temporary inside load goes, is safe.
+    // Touches no shared state for id 0 (moved from). This keeps loading on
+    // another thread safe: the temporary inside load is destroyed there.
     auto stop_voices(std::uint32_t owner) noexcept -> void {
         if (owner == 0 || !s_audio) {
             return;
@@ -103,13 +95,12 @@ namespace {
 }
 
 namespace tgx::detail {
-    // Music's miniaudio side. live is false while the Audio stays silent:
-    // there is no sound to drive then, only what the file told.
+    // live is false while the Audio is silent: then sound is not set up.
     struct MusicStream {
         ma_sound sound;
         bool live{false};
         double duration{0.0};
-        // As set, kept for a silent stream too.
+        // Last set. Kept for a silent stream too.
         bool looping{false};
         float volume{1.f};
 
@@ -126,22 +117,19 @@ namespace tgx::detail {
 }
 
 namespace {
-    // Zero or more: one NaN reaches the shared mix and silences everything.
-    // For asserts only: unused with them off.
+    // One NaN would reach the shared mix and silence everything. Only used in
+    // asserts.
     [[maybe_unused, nodiscard]] auto valid_volume(float volume) noexcept -> bool {
         return std::isfinite(volume) && volume >= 0.f;
     }
 
-    // The sound a Music drives, or nullptr when there is none: moved from, or
-    // silent with the Audio.
+    // nullptr when the Music was moved from or the Audio is silent.
     [[nodiscard]] auto live_sound(const std::unique_ptr<tgx::detail::MusicStream> &stream) noexcept -> ma_sound * {
         return stream && stream->live ? &stream->sound : nullptr;
     }
 
-    // A decoder over the bytes of a sound file in memory, giving 32-bit
-    // floats, and otherwise the sound as it was recorded: its own rate and
-    // channels, which the engine converts as it plays. Let go however its
-    // scope ends, an exception included.
+    // 32-bit floats at the file's own rate and channels; the engine converts
+    // while playing. Closed however the scope ends, exceptions included.
     struct MemoryDecoder {
         ma_decoder decoder{};
         bool open{false};
@@ -161,8 +149,7 @@ namespace {
         }
     };
 
-    // miniaudio takes paths as char, or on Windows as wchar_t, which is what
-    // a path holds there (non-ASCII names included).
+    // wchar_t on Windows, so non-ASCII names work.
     [[nodiscard]] auto init_stream(ma_engine &engine, const std::filesystem::path &path, ma_sound &sound) -> ma_result {
         constexpr ma_uint32 flags = MA_SOUND_FLAG_STREAM | MA_SOUND_FLAG_NO_SPATIALIZATION;
 #if defined(_WIN32)
@@ -172,23 +159,25 @@ namespace {
 #endif
     }
 
-    // The duration in seconds, by a decoder reading the whole file from
-    // memory: a stream reads Vorbis in a way that cannot tell it, and so
-    // does a decoder opened on the path on Windows. 0 if it does not tell.
+    // Seconds, by decoding the whole file from memory. A stream cannot report
+    // it for Vorbis, nor can a decoder opened on the path on Windows. 0 if the
+    // file does not report it.
+    [[nodiscard]] auto duration_of(std::span<const std::byte> encoded) -> tgx::Result<double> {
+        MemoryDecoder source{encoded};
+        if (!source.open) {
+            return std::unexpected{tgx::Error::decode};
+        }
+        ma_uint64 frames = 0;
+        ma_uint32 rate = 0;
+        ma_decoder_get_data_format(&source.decoder, nullptr, nullptr, &rate, nullptr, 0);
+        if (ma_decoder_get_length_in_pcm_frames(&source.decoder, &frames) != MA_SUCCESS || rate == 0) {
+            return 0.0;
+        }
+        return static_cast<double>(frames) / static_cast<double>(rate);
+    }
+
     [[nodiscard]] auto measure(const std::filesystem::path &path) -> tgx::Result<double> {
-        return tgx::detail::read_file(path).and_then([](const std::vector<std::byte> &bytes) -> tgx::Result<double> {
-            MemoryDecoder source{bytes};
-            if (!source.open) {
-                return std::unexpected{tgx::Error::decode};
-            }
-            ma_uint64 frames = 0;
-            ma_uint32 rate = 0;
-            ma_decoder_get_data_format(&source.decoder, nullptr, nullptr, &rate, nullptr, 0);
-            if (ma_decoder_get_length_in_pcm_frames(&source.decoder, &frames) != MA_SUCCESS || rate == 0) {
-                return 0.0;
-            }
-            return static_cast<double>(frames) / static_cast<double>(rate);
-        });
+        return tgx::detail::read_file(path).and_then(duration_of);
     }
 }
 
@@ -196,14 +185,11 @@ namespace tgx {
     // Sound
 
     auto Sound::load(const std::filesystem::path &path) -> Result<Sound> {
-        return detail::read_file(path).and_then([](const std::vector<std::byte> &bytes) {
-            return decode(bytes);
-        });
+        return detail::read_file(path).and_then(decode);
     }
 
-    // All of it, as 32-bit floats at the rate and channels it has. A file
-    // with no samples in it is no sound either, and one broken partway is
-    // not a shorter one.
+    // A file with no samples fails, and so does one broken partway; it does
+    // not become a shorter sound.
     auto Sound::decode(std::span<const std::byte> encoded) -> Result<Sound> {
         MemoryDecoder source{encoded};
         if (!source.open) {
@@ -218,8 +204,8 @@ namespace tgx {
             return std::unexpected{Error::decode};
         }
 
-        // In chunks: some formats (Vorbis) cannot tell their length up front.
-        // Those that can get room for all of it, and the last chunk, at once.
+        // In chunks: Vorbis cannot report its length up front. When the
+        // length is known, all of it plus one chunk is reserved.
         std::vector<float> samples;
         constexpr ma_uint64 chunk = 4096;
         if (ma_uint64 frames = 0; ma_decoder_get_length_in_pcm_frames(&decoder, &frames) == MA_SUCCESS) {
@@ -242,8 +228,7 @@ namespace tgx {
         if (samples.empty()) {
             return std::unexpected{Error::decode};
         }
-        // Moved in, not copied as from_samples does: one sound's worth of
-        // memory at a time.
+        // Moved, not copied, so only one copy is in memory.
         return Sound{std::move(samples), static_cast<int>(channels), static_cast<int>(rate)};
     }
 
@@ -301,7 +286,7 @@ namespace tgx {
     }
 
     auto Sound::release() noexcept -> void {
-        // Its voices read its samples: they stop before the samples go.
+        // Voices read the samples, so they stop before the samples are freed.
         stop_voices(m_id);
         m_id = 0;
     }
@@ -309,34 +294,32 @@ namespace tgx {
     // Music
 
     auto Music::load(const std::filesystem::path &path) -> Result<Music> {
-        // Told apart before miniaudio, which reports a missing file and one it
-        // cannot decode alike.
+        // miniaudio reports a missing file and an undecodable one the same.
         if (!detail::readable(path)) {
             return std::unexpected{Error::io};
         }
 
         auto stream = std::make_unique<detail::MusicStream>();
-        if (s_audio) {
-            if (init_stream(s_audio->engine, path, stream->sound) != MA_SUCCESS) {
-                return std::unexpected{Error::decode};
+        // Silent Audio: still check and measure, so a game behaves the same.
+        if (!s_audio) {
+            const Result<double> seconds = measure(path);
+            if (!seconds) {
+                return std::unexpected{seconds.error()};
             }
-            stream->live = true;
-            float seconds = 0.f;
-            if (ma_sound_get_length_in_seconds(&stream->sound, &seconds) == MA_SUCCESS && seconds > 0.f) {
-                stream->duration = seconds;
-            } else {
-                stream->duration = measure(path).value_or(0.0);
-            }
+            stream->duration = *seconds;
             return Music{std::move(stream)};
         }
 
-        // Silent: the file is still checked and measured, so a game behaves
-        // the same with and without sound.
-        const Result<double> seconds = measure(path);
-        if (!seconds) {
-            return std::unexpected{seconds.error()};
+        if (init_stream(s_audio->engine, path, stream->sound) != MA_SUCCESS) {
+            return std::unexpected{Error::decode};
         }
-        stream->duration = *seconds;
+        stream->live = true;
+        float seconds = 0.f;
+        if (ma_sound_get_length_in_seconds(&stream->sound, &seconds) == MA_SUCCESS && seconds > 0.f) {
+            stream->duration = seconds;
+        } else {
+            stream->duration = measure(path).value_or(0.0);
+        }
         return Music{std::move(stream)};
     }
 
@@ -407,14 +390,13 @@ namespace tgx {
         if (!sound) {
             return;
         }
-        // Frames at the engine's rate, as miniaudio counts a sound's.
+        // miniaudio counts a sound's frames at the engine's rate.
         const ma_uint32 rate = ma_engine_get_sample_rate(ma_sound_get_engine(sound));
         auto frame = static_cast<ma_uint64>(seconds * rate);
 
-        // miniaudio takes a frame past the end around the length, and one two
-        // lengths past leaves the sound at its end for good: the end stops a
-        // piece played once, a looping one goes round. A stream that cannot
-        // tell its length (Vorbis) has the duration measured at load.
+        // miniaudio wraps a frame past the end around the length, and one two
+        // lengths past leaves the sound stuck at its end, so clamp or wrap
+        // here. Vorbis reports no length: use the duration measured at load.
         ma_uint64 length = 0;
         if (ma_sound_get_length_in_pcm_frames(sound, &length) != MA_SUCCESS || length == 0) {
             length = static_cast<ma_uint64>(m_stream->duration * rate);
@@ -444,7 +426,7 @@ namespace tgx {
     // Audio
 
     auto Audio::create() noexcept -> Audio {
-        // No memory for it is one more way to stay silent, not to fail.
+        // Out of memory: silent, not a failure.
         std::unique_ptr<AudioState> state{new (std::nothrow) AudioState{}};
         if (!state) {
             detail::log_warn("audio: out of memory, sound stays silent");
@@ -490,7 +472,7 @@ namespace tgx {
     }
 
     auto Audio::play(const Sound &sound, const PlayParams &params) noexcept -> void {
-        // miniaudio would keep the pitch it had without a word.
+        // miniaudio would silently keep the old pitch.
         TGX_ASSERT_MSG(
             std::isfinite(params.pitch) && params.pitch > 0.f,
             "pitch {}: not a speed to play at",
@@ -514,7 +496,7 @@ namespace tgx {
             ) != MA_SUCCESS) {
             return;
         }
-        // The ref takes no rate; the engine resamples from this one.
+        // The ref init takes no rate. The engine resamples from it.
         voice.data.sampleRate = static_cast<ma_uint32>(sound.m_sample_rate);
 
         if (ma_sound_init_from_data_source(

@@ -12,9 +12,9 @@
 #include <cstdint>
 
 namespace {
-    // Textures are bound here to be edited. Unlike buffers there is no target a
-    // draw does not read, so the binding goes through the Device's cache: the
-    // next draw that wants another texture in this slot rebinds it.
+    // The slot for edits. No binding target is free of draws, unlike for
+    // buffers, so it goes through the Device's cache and the next draw
+    // rebinds it.
     constexpr std::uint32_t edit_slot = 0;
 
     [[nodiscard]] constexpr auto to_gl(tgx::TextureWrap wrap) noexcept -> GLint {
@@ -27,8 +27,8 @@ namespace {
         return GL_CLAMP_TO_EDGE;
     }
 
-    // Both filters are always set: the default minification filter wants
-    // mipmaps, and a texture without them would then read as black.
+    // Always set: the default min filter needs mipmaps, so a texture without
+    // them would read as black.
     [[nodiscard]] constexpr auto min_filter(const tgx::TextureParams &params) noexcept -> GLint {
         const bool linear = params.filter == tgx::TextureFilter::linear;
         if (!params.mipmaps) {
@@ -48,8 +48,7 @@ namespace {
     ) noexcept -> tgx::Result<GLuint> {
         TGX_ASSERT_MSG(!size.empty(), "texture of size {}x{}", size.width, size.height);
 
-        // Too large is up to the driver, not the caller: the limit differs from
-        // one GPU to the next.
+        // A driver limit, not a caller error: it differs between GPUs.
         const int max_size = tgx::detail::max_texture_size();
         if (size.width > max_size || size.height > max_size) {
             return std::unexpected{tgx::Error::unsupported};
@@ -72,20 +71,20 @@ namespace {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, to_gl(params.wrap));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, to_gl(params.wrap));
 
-        // Without data there is nothing to halve yet, but the levels must exist
-        // for the texture to be complete; update() rebuilds them.
+        // No data yet, but the levels must exist for the texture to be
+        // complete. update() rebuilds them.
         if (params.mipmaps) {
             glGenerateMipmap(GL_TEXTURE_2D);
         }
 
-        // One check for all of the above: the levels need memory too.
+        // One check for all of the above; the levels need memory too.
         return tgx::detail::checked_allocation<tgx::detail::delete_texture>(id);
     }
 }
 
 namespace tgx {
     auto detail::delete_texture(GlId id) noexcept -> void {
-        // Sprites added before keep the texture they were added with.
+        // Draws the waiting sprites while the texture exists.
         detail::flush_texture_use(id);
         detail::context().forget_texture(id);
         glDeleteTextures(1, &id);
@@ -134,7 +133,7 @@ namespace tgx {
             return;
         }
 
-        // Sprites added before keep the pixels they were added with.
+        // Waiting sprites use the old pixels.
         detail::flush_texture_use(m_handle.get());
         detail::context().bind_texture(edit_slot, m_handle.get());
         glTexSubImage2D(

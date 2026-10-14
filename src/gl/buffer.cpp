@@ -9,12 +9,11 @@
 #include <utility>
 
 namespace {
-    // Buffers are bound here only to be edited. COPY_WRITE is not read by draws
-    // and is not VAO state, so binding to it cannot disturb anything; binding
-    // to ELEMENT_ARRAY would swap the index buffer of whatever VAO is bound.
+    // For editing only. Draws do not read COPY_WRITE and it is not VAO state;
+    // ELEMENT_ARRAY would replace the bound VAO's index buffer.
     constexpr GLenum edit_target = GL_COPY_WRITE_BUFFER;
 
-    // Only a hint in 3.3: nothing stops a rewrite, the assert in update() does.
+    // Only a hint in 3.3; the assert in update() stops a rewrite.
     [[nodiscard]] constexpr auto to_gl(tgx::gl::BufferAccess access) noexcept -> GLenum {
         switch (access) {
             case tgx::gl::BufferAccess::immutable: return GL_STATIC_DRAW;
@@ -34,7 +33,7 @@ namespace tgx::gl {
         const void *data,
         BufferAccess access
     ) noexcept -> Result<GlId> {
-        // GL rejects empty storage, and sizes travel as a signed GLsizeiptr.
+        // GL rejects empty storage; sizes are a signed GLsizeiptr.
         TGX_ASSERT(byte_size > 0);
         TGX_ASSERT(std::in_range<GLsizeiptr>(byte_size));
 
@@ -45,7 +44,7 @@ namespace tgx::gl {
         glBindBuffer(edit_target, id);
         glBufferData(edit_target, static_cast<GLsizeiptr>(byte_size), data, to_gl(access));
 
-        // Any error leaves the buffer without storage, so none is survivable.
+        // Any error leaves the buffer without storage.
         return tgx::detail::checked_allocation<detail::delete_buffer>(id);
     }
 

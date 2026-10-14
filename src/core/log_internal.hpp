@@ -11,8 +11,8 @@ namespace tgx::detail {
 
     auto log_write(LogLevel level, std::string_view message) noexcept -> void;
 
-    // Formats into a stack buffer like assert_failed_fmt: no allocation, and the
-    // sink gets the message in one piece. Long messages are truncated.
+    // A stack buffer, like assert_failed_fmt: no allocation, one piece for
+    // the sink. Long messages are cut off.
     template<typename... Ts>
     auto log(LogLevel level, std::format_string<Ts...> fmt, Ts &&... args) noexcept -> void {
         if (!log_enabled(level)) {

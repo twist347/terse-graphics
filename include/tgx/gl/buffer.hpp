@@ -14,19 +14,18 @@ namespace tgx::gl {
     enum class BufferAccess : std::int32_t {
         // Contents are fixed at creation.
         immutable,
-        // Contents can be rewritten with Buffer::update.
+        // Rewritable with Buffer::update.
         dynamic,
     };
 
-    // What a buffer can hold: values copied to the GPU byte for byte.
+    // Copied to the GPU byte for byte.
     template<typename T>
     concept BufferElement = std::is_trivially_copyable_v<T> && std::is_same_v<T, std::remove_cv_t<T>>;
 
     namespace detail {
         auto delete_buffer(GlId id) noexcept -> void;
 
-        // The untyped core of Buffer<T>, in bytes. data may be null for
-        // uninitialized storage.
+        // Untyped, in bytes. Null data: uninitialized storage.
         [[nodiscard]] auto create_buffer(
             std::size_t byte_size,
             const void *data,
@@ -36,26 +35,23 @@ namespace tgx::gl {
         auto update_buffer(GlId id, std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void;
     }
 
-    // A GPU buffer of Ts, whose size is fixed at creation and whose contents
-    // may change only when created as dynamic. Sizes and offsets count Ts, not
-    // bytes. T is what the buffer feeds: the vertex struct for vertices,
-    // std::uint16_t or std::uint32_t for indices, one buffer for each.
+    // A GPU buffer of Ts, fixed in size. Only a dynamic one can change. Sizes
+    // and offsets count Ts, not bytes. T is the vertex struct, or
+    // std::uint16_t or std::uint32_t for indices, in separate buffers.
     //
-    // Creating one fails with Error::out_of_memory when the GPU has no room for
-    // it, Error::platform when the driver fails otherwise.
+    // Creation fails with Error::out_of_memory, or Error::platform for other
+    // driver failures.
     //
-    // Lives inside the Device: created after it, destroyed before it.
+    // Create it after the Device and destroy it before the Device.
     template<BufferElement T>
     class Buffer {
     public:
-        // Uninitialized storage for count Ts, to be filled with update(): always
-        // dynamic, as an immutable one could never be filled.
+        // Uninitialized, to fill with update(). Always dynamic.
         [[nodiscard]] static auto create(std::size_t count) noexcept -> Result<Buffer> {
             return make(count, nullptr, BufferAccess::dynamic);
         }
 
-        // Storage sized and filled from the data: an array, a vector, a span.
-        // The data is copied at once, so a temporary is fine.
+        // Copies the data right away, so a temporary is fine.
         [[nodiscard]] static auto create(
             std::span<const T> data,
             BufferAccess access = BufferAccess::immutable
@@ -69,7 +65,7 @@ namespace tgx::gl {
         Buffer(Buffer &&) noexcept = default;
         auto operator=(Buffer &&) noexcept -> Buffer & = default;
 
-        // Overwrites the Ts starting at first; only for dynamic buffers.
+        // Only for dynamic buffers.
         auto update(std::size_t first, std::span<const T> data) noexcept -> void {
             TGX_ASSERT_MSG(m_access == BufferAccess::dynamic, "updating an immutable buffer");
             TGX_ASSERT_MSG(
@@ -83,7 +79,7 @@ namespace tgx::gl {
 
         [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
 
-        // How many Ts it holds.
+        // In Ts.
         [[nodiscard]] auto size() const noexcept -> std::size_t { return m_size; }
 
         [[nodiscard]] auto access() const noexcept -> BufferAccess { return m_access; }

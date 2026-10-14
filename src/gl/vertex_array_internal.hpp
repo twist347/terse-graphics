@@ -4,11 +4,9 @@
 #include "tgx/gl/vertex_array.hpp"
 
 namespace tgx::gl::detail {
-    // Asserts that every input the shader reads has an attribute of the same
-    // kind, integer or float. GL feeds an input with no attribute a constant
-    // (usually 0, 0, 0, 1), and reads integers into a float input or the other
-    // way round as garbage; neither is reported. A different component count
-    // is fine: GL pads the missing ones with 0, 0, 1. For the asserts in
-    // Device::draw alone.
+    // Asserts that every shader input has an attribute of the same kind,
+    // integer or float. GL reports neither: a missing attribute reads a
+    // constant (usually 0, 0, 0, 1), a kind mismatch reads garbage. Fewer
+    // components are fine: GL fills in 0, 0, 1. For Device::draw.
     auto check_vertex_inputs(const Shader &shader, const VertexArray &vertices) noexcept -> void;
 }

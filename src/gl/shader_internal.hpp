@@ -5,8 +5,7 @@
 #include <cstdint>
 
 namespace tgx::gl::detail {
-    // Sets a mat4 uniform of the program in use, straight to GL: for
-    // Shader::set and for the batch, which must not go through Shader::set
-    // as that would come back to flush it.
+    // Sets a mat4 uniform of the current program directly in GL. The batch
+    // uses it because Shader::set would flush the batch itself.
     auto upload_mat4(std::int32_t location, const Mat4 &value) noexcept -> void;
 }

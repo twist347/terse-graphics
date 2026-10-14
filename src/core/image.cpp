@@ -18,7 +18,7 @@
 #include <vector>
 
 namespace {
-    // stb's RGBA pixels, copied straight into Colors and back.
+    // stb's RGBA pixels have Color's layout, so they are copied directly.
     constexpr int channels = 4;
     static_assert(sizeof(tgx::Color) == channels);
 
@@ -51,20 +51,16 @@ namespace tgx {
     }
 
     auto Image::load(const std::filesystem::path &path) -> Result<Image> {
-        return detail::read_file(path).and_then([](const std::vector<std::byte> &bytes) {
-            return decode(bytes);
-        });
+        return detail::read_file(path).and_then(decode);
     }
 
     auto Image::decode(std::span<const std::byte> encoded) -> Result<Image> {
-        // stb takes the length as an int. No image file of 2 GiB or more is
-        // within its limits anyway.
+        // stb takes the length as an int; 2 GiB is beyond its limits anyway.
         if (!std::in_range<int>(encoded.size())) {
             return std::unexpected{Error::decode};
         }
 
-        // Asked for 4 channels, stb converts whatever the file holds (gray,
-        // RGB, 16 bits per channel) to RGBA8, rows top to bottom.
+        // stb converts any format (gray, RGB, 16-bit) to RGBA8, top to bottom.
         int width = 0;
         int height = 0;
         int channels_in_file = 0;
@@ -88,21 +84,20 @@ namespace tgx {
     auto Image::save(const std::filesystem::path &path) const -> Result<void> {
         TGX_ASSERT_MSG(!empty(), "saving an empty image");
 
-        // stb counts the bytes of a row, and of the whole filtered image, in
-        // int: past that it would write garbage. No PNG reader takes such an
-        // image anyway.
+        // stb counts the bytes of a row and of the filtered image in an int
+        // and writes garbage beyond it. No PNG reader accepts that size anyway.
         constexpr auto limit = static_cast<std::size_t>(std::numeric_limits<int>::max());
         if (pixel_count(m_size) >= limit / sizeof(Color) - static_cast<std::size_t>(m_size.height)) {
             return std::unexpected{Error::unsupported};
         }
 
-        // Encoded into memory, then written as the bytes of the file, so the
-        // path goes through the same stream as reading does.
+        // Encodes into memory, so the path is opened the same way as when
+        // reading.
         struct Encoded {
             std::vector<std::byte> png;
             bool out_of_memory{false};
         } encoded;
-        // Called from C: an exception must not pass through it.
+        // Called from C: no exception may escape.
         const auto append = [](void *context, void *data, int size) noexcept {
             auto &out = *static_cast<Encoded *>(context);
             const auto *bytes = static_cast<const std::byte *>(data);
@@ -113,7 +108,7 @@ namespace tgx {
             }
         };
         const int stride = m_size.width * static_cast<int>(sizeof(Color));
-        // stb fails only when its own allocation does.
+        // stb fails only on allocation.
         if (stbi_write_png_to_func(append, &encoded, m_size.width, m_size.height, channels, m_pixels.data(), stride) == 0
             || encoded.out_of_memory) {
             return std::unexpected{Error::out_of_memory};

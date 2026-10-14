@@ -44,7 +44,7 @@ namespace tgx {
     }
 
     auto detail::FrameClock::restart() noexcept -> void {
-        // Before the first frame there is nothing to leave out.
+        // No pause to leave out before the first frame.
         if (!started) {
             return;
         }

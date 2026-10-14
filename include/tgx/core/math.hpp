@@ -8,11 +8,9 @@
 #include <type_traits>
 
 namespace tgx {
-    // Plain float vectors and a matrix, laid out as GLSL and glm lay them out:
-    // they go to the GPU byte for byte, and glm values convert with std::bit_cast.
-    // The operations follow glm's conventions too: right-handed, depth -1..1,
-    // angles in radians. Only what the library and its examples need so far.
-    // Next to them, the sizes and rectangles windows and 2D drawing measure in.
+    // Vectors and a matrix with the memory layout of GLSL and glm: they go to
+    // the GPU byte for byte and convert to glm with std::bit_cast. glm's
+    // conventions too: right-handed, depth -1..1, radians.
 
     struct Vec2 {
         float x{0.f};
@@ -38,19 +36,17 @@ namespace tgx {
         [[nodiscard]] constexpr auto operator==(const Vec4 &) const noexcept -> bool = default;
     };
 
-    // Whole width and height, in the units of what it measures: pixels for
-    // images, textures and framebuffers, screen coordinates for the window
-    // (Window::size()), canvas units for a Canvas. Signed, like the windowing
-    // and GL APIs these come from and go to.
+    // Pixels for images, textures and framebuffers, screen coordinates for
+    // the window, canvas units for a Canvas. Signed, like GLFW and GL.
     struct Size {
         int width{0};
         int height{0};
 
-        // Nothing to draw into, e.g. the framebuffer of a minimized window.
+        // E.g. the framebuffer of a minimized window.
         [[nodiscard]] constexpr auto empty() const noexcept -> bool { return width <= 0 || height <= 0; }
 
-        // Width over height. 1 for an empty size, so a minimized window does not
-        // put inf or NaN into a projection.
+        // Width / height. 1 when empty, so a minimized window puts no inf or
+        // NaN into a projection.
         [[nodiscard]] constexpr auto aspect() const noexcept -> float {
             return empty() ? 1.f : static_cast<float>(width) / static_cast<float>(height);
         }
@@ -58,8 +54,7 @@ namespace tgx {
         [[nodiscard]] constexpr auto operator==(const Size &) const noexcept -> bool = default;
     };
 
-    // An axis-aligned rectangle: its top-left corner and size, in 2D drawing's
-    // y-down coordinates.
+    // Axis-aligned: top-left corner and size, y down.
     struct Rect {
         float x{0.f};
         float y{0.f};
@@ -72,15 +67,14 @@ namespace tgx {
 
         [[nodiscard]] constexpr auto center() const noexcept -> Vec2 { return {x + width / 2.f, y + height / 2.f}; }
 
-        // No area, as Size::empty(): a side of 0 or less.
+        // A side is 0 or less.
         [[nodiscard]] constexpr auto empty() const noexcept -> bool { return width <= 0.f || height <= 0.f; }
 
         [[nodiscard]] constexpr auto operator==(const Rect &) const noexcept -> bool = default;
     };
 
-    // Column-major, like GLSL's mat4: columns[c] is column c, so a translation
-    // sits in columns[3]. Starts as the identity, so a matrix left unset draws
-    // untransformed rather than collapsing everything to a point.
+    // Column-major, like GLSL's mat4: a translation is in columns[3]. Starts as
+    // the identity, so an unset matrix does not collapse things to a point.
     struct Mat4 {
         std::array<Vec4, 4> columns{
             {
@@ -105,13 +99,11 @@ namespace tgx {
     static_assert(std::is_standard_layout_v<Mat4> && std::is_trivially_copyable_v<Mat4>);
     static_assert(std::is_standard_layout_v<Rect> && std::is_trivially_copyable_v<Rect>);
 
-    // Where content of one size shows inside an area of another, as large as
-    // it fits with its proportions kept and in the middle, bars left over on
-    // two sides: a fixed-size picture in a window of any shape. Empty when
-    // either is.
+    // Where content goes inside area: as large as fits with proportions kept,
+    // centered, bars on two sides. Empty when either size is empty.
     //
     // A point p of the area is at (p - {r.x, r.y}) * content.width / r.width
-    // (and the same down) in the content.
+    // (and the same for y) in the content.
     [[nodiscard]] constexpr auto fit(Size content, Size area) noexcept -> Rect {
         if (content.empty() || area.empty()) {
             return {};
@@ -124,12 +116,11 @@ namespace tgx {
         return {(static_cast<float>(area.width) - w) / 2.f, (static_cast<float>(area.height) - h) / 2.f, w, h};
     }
 
-    // The same, scaled by the largest whole factor that fits (at least 1)
-    // and at a whole position, so every pixel of pixel art stays a square of
-    // the same size: 320x180 in 1366x768 is 1280x720 at (43, 24).
-    // Whole in the units of area: in window().size() that is whole pixels
-    // only while the display scales by a whole factor. At 1.25, fit into
-    // window().framebuffer_size() and draw with a canvas set_size to it.
+    // Like fit(), but scaled by a whole factor (at least 1) at a whole
+    // position, so pixel art keeps square pixels: 320x180 in 1366x768 is
+    // 1280x720 at (43, 24). Area units are pixels only at a whole display
+    // scale; at 1.25, fit into window().framebuffer_size() and set_size()
+    // the canvas to it.
     [[nodiscard]] constexpr auto fit_whole(Size content, Size area) noexcept -> Rect {
         if (content.empty() || area.empty()) {
             return {};
@@ -166,49 +157,46 @@ namespace tgx {
     constexpr auto operator/=(Vec2 &v, float s) noexcept -> Vec2 & { return v = v / s; }
 
     [[nodiscard]] constexpr auto dot(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.x + a.y * b.y; }
-    // The z of the 3D cross product: positive when b turns clockwise from a on
-    // y-down screen coordinates, negative counter-clockwise, zero when they are
-    // parallel.
+    // The z of the 3D cross product. Positive when b turns clockwise from a on
+    // screen (y down), negative counter-clockwise, zero when parallel.
     [[nodiscard]] constexpr auto cross(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.y - a.y * b.x; }
-    // Compared with a squared distance, it tells nearer or farther without a
-    // square root.
+    // Compare with a squared distance to skip the square root.
     [[nodiscard]] constexpr auto length_squared(Vec2 v) noexcept -> float { return dot(v, v); }
 
     [[nodiscard]] inline auto length(Vec2 v) noexcept -> float { return std::sqrt(length_squared(v)); }
-    // A zero vector has no direction; normalizing one gives NaNs.
+    // NaNs for a zero vector.
     [[nodiscard]] inline auto normalize(Vec2 v) noexcept -> Vec2 { return v / length(v); }
 
     [[nodiscard]] inline auto distance(Vec2 a, Vec2 b) noexcept -> float { return length(b - a); }
 
-    // Angles of 2D vectors are in radians from +x, clockwise on screen (y
-    // down), as Canvas rotations and Camera2D turn.
+    // 2D angles are radians from +x, clockwise on screen (y down), like Canvas
+    // and Camera2D rotations.
 
-    // The unit vector at the angle: from_angle(0) is {1, 0}.
+    // The unit vector: from_angle(0) is {1, 0}.
     [[nodiscard]] inline auto from_angle(float angle) noexcept -> Vec2 { return {std::cos(angle), std::sin(angle)}; }
 
-    // The angle of the vector, in [-pi, pi]; 0 for a zero vector.
+    // In [-pi, pi]; 0 for a zero vector.
     [[nodiscard]] inline auto angle(Vec2 v) noexcept -> float {
-        // atan2 tells the zeros apart: -0 in x gives pi. A zero vector, of
-        // either sign, has no direction.
+        // atan2 gives pi for x = -0; any zero vector gets 0.
         return v == Vec2{} ? 0.f : std::atan2(v.y, v.x);
     }
 
-    // Turned by angle around {0, 0}.
+    // Around {0, 0}.
     [[nodiscard]] inline auto rotate(Vec2 v, float angle) noexcept -> Vec2 {
         const float c = std::cos(angle);
         const float s = std::sin(angle);
         return {v.x * c - v.y * s, v.x * s + v.y * c};
     }
 
-    // Turned a quarter counter-clockwise on screen, as rotate(v, -pi / 2)
-    // but exact: the left of v when facing along it.
+    // A quarter turn counter-clockwise on screen (to the left of v), like
+    // rotate(v, -pi / 2) but exact.
     [[nodiscard]] constexpr auto perpendicular(Vec2 v) noexcept -> Vec2 { return {v.y, -v.x}; }
 
-    // a at t = 0, b at t = 1, on along the line beyond them.
+    // Not clamped: t outside [0, 1] goes past a or b.
     [[nodiscard]] constexpr auto lerp(Vec2 a, Vec2 b, float t) noexcept -> Vec2 { return a + (b - a) * t; }
 
-    // From towards to by max_step at most, landing on to rather than past it:
-    // chasing a target at a speed, as from = move_towards(from, to, speed * dt).
+    // At most max_step closer, never past to. For chasing at a speed:
+    // from = move_towards(from, to, speed * dt).
     [[nodiscard]] inline auto move_towards(Vec2 from, Vec2 to, float max_step) noexcept -> Vec2 {
         TGX_ASSERT_MSG(max_step >= 0.f, "move_towards by {}: a step backwards", max_step);
 
@@ -247,15 +235,15 @@ namespace tgx {
     [[nodiscard]] constexpr auto length_squared(Vec3 v) noexcept -> float { return dot(v, v); }
 
     [[nodiscard]] inline auto length(Vec3 v) noexcept -> float { return std::sqrt(length_squared(v)); }
-    // A zero vector has no direction; normalizing one gives NaNs.
+    // NaNs for a zero vector.
     [[nodiscard]] inline auto normalize(Vec3 v) noexcept -> Vec3 { return v / length(v); }
 
     [[nodiscard]] inline auto distance(Vec3 a, Vec3 b) noexcept -> float { return length(b - a); }
 
-    // a at t = 0, b at t = 1, on along the line beyond them.
+    // Not clamped: t outside [0, 1] goes past a or b.
     [[nodiscard]] constexpr auto lerp(Vec3 a, Vec3 b, float t) noexcept -> Vec3 { return a + (b - a) * t; }
 
-    // From towards to by max_step at most, landing on to rather than past it.
+    // At most max_step closer, never past to.
     [[nodiscard]] inline auto move_towards(Vec3 from, Vec3 to, float max_step) noexcept -> Vec3 {
         TGX_ASSERT_MSG(max_step >= 0.f, "move_towards by {}: a step backwards", max_step);
 
@@ -332,9 +320,8 @@ namespace tgx {
         return m;
     }
 
-    // Turns by angle radians around the axis, counter-clockwise when the axis
-    // points at the viewer. The axis need not be unit length, only non-zero.
-    // What is turned comes first, as in rotate(Vec2, angle): here the axis.
+    // Counter-clockwise when the axis points at the viewer. The axis must be
+    // non-zero, not necessarily unit. It comes first, like in rotate(Vec2).
     [[nodiscard]] inline auto rotate(Vec3 axis, float angle) noexcept -> Mat4 {
         const Vec3 a = normalize(axis);
         const float c = std::cos(angle);
@@ -353,11 +340,10 @@ namespace tgx {
         };
     }
 
-    // Maps the box [left, right] x [bottom, top] x [-z_near, -z_far] onto clip
-    // space, with no perspective: what 2D drawing wants. The same matrix as
-    // glm::ortho, so z = 0 stays at 0 with the default depth range. The bounds
-    // of each pair must differ. Not near/far: <windows.h> defines those as
-    // macros.
+    // Maps [left, right] x [bottom, top] x [-z_near, -z_far] to clip space,
+    // without perspective. Same as glm::ortho; z = 0 stays 0 by default. The
+    // bounds of each pair must differ. Not near/far: <windows.h> defines
+    // those as macros.
     [[nodiscard]] constexpr auto ortho(
         float left, float right,
         float bottom, float top,
@@ -380,10 +366,9 @@ namespace tgx {
         };
     }
 
-    // A camera looking down -z with a vertical field of view of fov_y radians;
-    // aspect is width over height. Both distances are positive, z_near the
-    // smaller: depth precision is spent mostly near it, so keep it as large as
-    // the scene allows. The same matrix as glm::perspective.
+    // Looks down -z; fov_y is vertical, in radians. 0 < z_near < z_far. Most
+    // depth precision is near z_near, so keep it as large as the scene allows.
+    // Same as glm::perspective.
     [[nodiscard]] inline auto perspective(
         float fov_y, float aspect,
         float z_near, float z_far
@@ -403,9 +388,8 @@ namespace tgx {
         };
     }
 
-    // Moves the world so that a camera at eye looks at target, up being
-    // roughly its up. up must not point along the view. The same matrix as
-    // glm::lookAt.
+    // A camera at eye looking at target. up is a rough up direction, not along
+    // the view. Same as glm::lookAt.
     [[nodiscard]] inline auto look_at(Vec3 eye, Vec3 target, Vec3 up) noexcept -> Mat4 {
         const Vec3 f = normalize(target - eye);
         const Vec3 s = normalize(cross(f, up));

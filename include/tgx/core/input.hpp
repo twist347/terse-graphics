@@ -41,16 +41,15 @@ namespace tgx {
         left,
         right,
         middle,
-        // The side buttons, back and forward in browsers.
+        // Side buttons: back and forward in browsers.
         x1,
         x2,
     };
 
     inline constexpr int mouse_button_count = static_cast<int>(MouseButton::x2) + 1;
 
-    // Keyboard and mouse as of the last Window::poll_events(). Reached through
-    // window().input() or app->input(); like the Window, it only reads state
-    // kept in one place inside tgx.
+    // Keyboard and mouse as of the last Window::poll_events(). Get it with
+    // window().input() or app->input(). Its state lives inside tgx.
     //
     //     const auto &input = app->input();
     //     if (input.down(tgx::Key::d)) { player.x += speed * dt; }
@@ -62,43 +61,41 @@ namespace tgx {
 
         [[nodiscard]] auto down(Key key) const noexcept -> bool;
 
-        // Went down, or up, since the poll before. A tap within one frame is
-        // both pressed and released without being down, so it is not lost.
+        // Went down or up since the previous poll. A tap within one frame is
+        // both, without being down, so it is not lost.
         [[nodiscard]] auto pressed(Key key) const noexcept -> bool;
         [[nodiscard]] auto released(Key key) const noexcept -> bool;
 
-        // Pressed, or repeated by the OS while held, as typing repeats a
-        // letter: for Backspace in a text field or stepping through a menu.
+        // Pressed, or repeated by the OS while held, as when typing. For
+        // Backspace in a text field or stepping through a menu.
         [[nodiscard]] auto repeated(Key key) const noexcept -> bool;
 
-        // Where the held keys point, of length 1 or 0: WASD or the arrows,
-        // y down as on screen. A diagonal is as fast as a straight line, and
-        // opposite keys cancel out.
+        // Held WASD or arrow keys, length 1 or 0, y down. Diagonals are as
+        // fast as straight lines; opposite keys cancel out.
         //
         //     player += input.direction() * speed * dt;
         [[nodiscard]] auto direction() const noexcept -> Vec2;
 
-        // The same with four keys of your own.
+        // Like direction(), with your own four keys.
         [[nodiscard]] auto direction(Key left, Key right, Key up, Key down) const noexcept -> Vec2;
 
         [[nodiscard]] auto down(MouseButton button) const noexcept -> bool;
         [[nodiscard]] auto pressed(MouseButton button) const noexcept -> bool;
         [[nodiscard]] auto released(MouseButton button) const noexcept -> bool;
 
-        // In the window's screen coordinates, as the Canvas uses them: (0, 0)
-        // at the top-left, y down. Canvas::to_world turns it into a world
-        // point.
+        // In screen coordinates, as the Canvas: (0, 0) top-left, y down.
+        // Canvas::to_world converts it to a world point.
         [[nodiscard]] auto mouse() const noexcept -> Vec2;
 
-        // How far the mouse moved since the poll before.
+        // Since the previous poll.
         [[nodiscard]] auto mouse_delta() const noexcept -> Vec2;
 
-        // Scrolled since the poll before: y > 0 away from you, x sideways (on
-        // a touchpad). One notch of a wheel is about 1.
+        // Since the previous poll. y > 0 is away from you, x sideways
+        // (touchpad). One wheel notch is about 1.
         [[nodiscard]] auto wheel() const noexcept -> Vec2;
 
-        // The characters typed since the poll before, in UTF-8, as the layout
-        // and Shift make them: for text fields.
+        // Typed since the previous poll, UTF-8, with layout and Shift
+        // applied. For text fields.
         [[nodiscard]] auto text() const noexcept -> std::string_view;
 
     private:

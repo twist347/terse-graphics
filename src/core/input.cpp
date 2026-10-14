@@ -14,19 +14,17 @@
 #include <utility>
 
 namespace {
-    // Per key or mouse button: down now, and whether it went down or up since
-    // the poll before. Both edges are kept, not worked out from down, so a
-    // tap shorter than a frame still shows.
+    // Per key or button. Edges are stored, not derived from down, so a tap
+    // shorter than a frame still shows.
     enum : std::uint8_t {
         bit_down = 1,
         bit_pressed = 2,
         bit_released = 4,
-        // Pressed or repeated by the OS since the poll before.
+        // Pressed or OS-repeated since the previous poll.
         bit_repeated = 8,
     };
 
-    // The keys and the mouse of the one window, filled by GLFW callbacks
-    // during a poll.
+    // Filled by GLFW callbacks during a poll.
     struct InputState {
         std::array<std::uint8_t, tgx::key_count> keys{};
         std::array<std::uint8_t, tgx::mouse_button_count> buttons{};
@@ -38,8 +36,8 @@ namespace {
 
     InputState s_input;
 
-    // A key's or a button's bits; one cast from outside the enum's values
-    // would read past them.
+    // Asserted: a value cast from outside the enum would read past the
+    // array.
     [[nodiscard]] auto bits_of(tgx::Key key) noexcept -> std::uint8_t {
         TGX_ASSERT_MSG(std::to_underlying(key) < tgx::key_count, "key {}: not a Key", std::to_underlying(key));
 
@@ -56,7 +54,7 @@ namespace {
         return s_input.buttons[std::to_underlying(button)];
     }
 
-    // GLFW's key codes to ours; keys we do not list are unknown.
+    // Keys not listed here are unknown.
     [[nodiscard]] auto to_key(int code) noexcept -> tgx::Key {
         using tgx::Key;
 
@@ -128,8 +126,8 @@ namespace {
         }
     }
 
-    // A repeat is neither a press nor a change of down: a held key went down
-    // once. Only repeated() sees it.
+    // A repeat is not a press and does not change down. Only repeated() sees
+    // it.
     auto set_edge(std::uint8_t &bits, int action) noexcept -> void {
         if (action == GLFW_PRESS) {
             bits |= bit_down | bit_pressed | bit_repeated;
@@ -147,7 +145,7 @@ namespace {
     }
 
     auto on_mouse_button(GLFWwindow *, int button, int action, int) noexcept -> void {
-        // GLFW numbers them left, right, middle, then the side ones, as we do.
+        // GLFW uses the same order as MouseButton.
         if (button >= 0 && button < tgx::mouse_button_count) {
             set_edge(s_input.buttons[static_cast<std::size_t>(button)], action);
         }
@@ -245,8 +243,7 @@ namespace tgx {
     auto detail::attach_input(GLFWwindow *handle) noexcept -> void {
         s_input = {};
 
-        // Where the mouse already is, so the first move is not a jump from
-        // the corner.
+        // So the first move is not a jump from the corner.
         double x = 0.0;
         double y = 0.0;
         glfwGetCursorPos(handle, &x, &y);
@@ -264,8 +261,7 @@ namespace tgx {
     }
 
     auto detail::begin_input_frame() noexcept -> void {
-        // What happened since the poll before is forgotten; what is down
-        // stays down.
+        // Held keys and buttons stay down.
         for (std::uint8_t &bits: s_input.keys) {
             bits &= bit_down;
         }

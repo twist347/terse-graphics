@@ -39,48 +39,41 @@ namespace {
 
     namespace font = tgx::detail::default_font;
 
-    // Where shapes sample the built-in texture: the middle texel of its white
-    // block, whose neighbors are white too.
+    // Shapes sample the white block's center; its neighbors are white too.
     constexpr tgx::Vec2 white_uv{
         (static_cast<float>(font::white_x) + font::white_size / 2.f) / font::atlas_width,
         (font::white_size / 2.f) / font::atlas_height,
     };
 
-    // Glyphs fill the atlas top to bottom, one row of them: v runs 0 to 1.
+    // Glyphs are one row filling the atlas height, so v goes from 0 to 1.
     static_assert(font::atlas_height == font::line_height);
 
-    // Stands for a line break among glyph indices.
+    // Glyph index for a line break.
     constexpr std::size_t newline = font::glyphs.size();
 
-    // The glyph of ' ': all advance and no ink.
+    // Moves the pen, draws nothing.
     constexpr std::size_t space = static_cast<std::size_t>(' ' - font::first);
 
-    // How many bytes the UTF-8 sequence its lead byte starts is long: as many
-    // as its leading ones, none for ASCII. A stray continuation byte (one
-    // leading one) or an invalid lead is one of its own.
+    // Leading one bits. 1 for ASCII, a stray continuation or an invalid lead.
     [[nodiscard]] constexpr auto sequence_length(unsigned char lead) noexcept -> std::size_t {
         const int ones = std::countl_one(lead);
         return ones >= 2 && ones <= 4 ? static_cast<std::size_t>(ones) : 1;
     }
 
-    // Columns from one tab stop to the next.
+    // Columns between tab stops.
     constexpr std::size_t tab_columns = 4;
 
-    // Calls f with the index of each character's glyph in the default font,
-    // or newline. UTF-8 sequences are one character each: those the font has
-    // no glyph for show as '?'. A '\t' is spaces up to the next tab stop, the
-    // font being monospaced; a '\r' is nothing, so "\r\n" ends a line once.
+    // Calls f with each character's glyph index, or newline. One UTF-8
+    // sequence is one character, '?' without a glyph. '\t' pads to the next
+    // tab stop (monospaced font). '\r' is skipped, so "\r\n" ends a line once.
     template<typename F>
     auto for_each_glyph(std::string_view text, F f) noexcept -> void {
-        constexpr auto index = [](char c) noexcept {
-            return static_cast<std::size_t>(c - font::first);
-        };
-        // Characters since the line began.
+        // Since the start of the line.
         std::size_t column = 0;
         for (std::size_t i = 0; i < text.size();) {
             const auto c = static_cast<unsigned char>(text[i]);
-            // Only continuation bytes are taken after the lead one, so a
-            // sequence cut short does not swallow the next character.
+            // Only continuation bytes are taken, so a cut-off sequence does
+            // not swallow the next character.
             const std::size_t length = sequence_length(c);
             ++i;
             for (std::size_t taken = 1; taken < length && i < text.size(); ++taken, ++i) {
@@ -89,28 +82,30 @@ namespace {
                 }
             }
 
+            if (c == '\r') {
+                continue;
+            }
             if (c == '\n') {
                 f(newline);
                 column = 0;
-            } else if (c == '\r') {
                 continue;
-            } else if (c == '\t') {
+            }
+            if (c == '\t') {
                 do {
                     f(space);
                     ++column;
                 } while (column % tab_columns != 0);
-            } else if (c >= static_cast<unsigned char>(font::first) && c <= static_cast<unsigned char>(font::last)) {
-                f(index(static_cast<char>(c)));
-                ++column;
-            } else {
-                f(index('?'));
-                ++column;
+                continue;
             }
+            const bool printable = c >= static_cast<unsigned char>(font::first)
+                && c <= static_cast<unsigned char>(font::last);
+            f(static_cast<std::size_t>((printable ? static_cast<char>(c) : '?') - font::first));
+            ++column;
         }
     }
 
-    // The canvas spans the size with y down: (0, 0) at the top-left. An empty
-    // size (a minimized window) would divide by zero; nothing shows then anyway.
+    // y down, (0, 0) at the top-left. An empty size (minimized window) would
+    // divide by zero; nothing shows anyway.
     [[nodiscard]] constexpr auto projection_for(tgx::Size size) noexcept -> tgx::Mat4 {
         if (size.empty()) {
             return {};
@@ -118,8 +113,7 @@ namespace {
         return tgx::ortho(0.f, static_cast<float>(size.width), static_cast<float>(size.height), 0.f);
     }
 
-    // The part of the surface a canvas covers, in its units: the viewport, or
-    // all of it.
+    // Part of the surface covered, in surface units.
     [[nodiscard]] auto covered(tgx::Rect viewport, const Surface &surface) noexcept -> tgx::Rect {
         if (!viewport.empty()) {
             return viewport;
@@ -127,14 +121,13 @@ namespace {
         return {0.f, 0.f, static_cast<float>(surface.units.width), static_cast<float>(surface.units.height)};
     }
 
-    // The part of the surface a canvas covers, in pixels: its viewport, from
-    // units, or all of it.
+    // Part of the surface covered, in pixels.
     [[nodiscard]] auto pixel_viewport(tgx::Rect rect, const Surface &surface) noexcept -> tgx::gl::Viewport {
         if (rect.empty() || surface.units.empty()) {
             return surface.viewport();
         }
 
-        // Edges rounded rather than sizes, so canvases side by side meet
+        // Rounds the edges, not the sizes, so canvases side by side meet
         // without a gap or an overlap.
         const float sx = static_cast<float>(surface.pixels.width) / static_cast<float>(surface.units.width);
         const float sy = static_cast<float>(surface.pixels.height) / static_cast<float>(surface.units.height);
@@ -145,33 +138,19 @@ namespace {
         return {left, top, right - left, bottom - top};
     }
 
-    // Segments for a circle of the radius, by how many pixels it shows over:
-    // one unit of the canvas covers pixels / span along the axis it is
-    // stretched most, so a canvas of its own size stretched over more
-    // pixels, or a scaling display, shows its circles bigger than their
-    // radius. span is the one the state was made for.
-    [[nodiscard]] auto circle_segments(
-        float radius,
-        float zoom,
-        const BatchState &state,
-        tgx::Size span
-    ) noexcept -> std::size_t {
-        float pixels_per_unit = 1.f;
-        if (!span.empty()) {
-            pixels_per_unit = std::max(
-                static_cast<float>(state.viewport.width) / static_cast<float>(span.width),
-                static_cast<float>(state.viewport.height) / static_cast<float>(span.height)
-            );
-        }
-        return tgx::detail::segments_for(radius * std::abs(zoom) * pixels_per_unit);
-    }
-
-    // From the part of the surface a canvas covers to the canvas's own
-    // coordinates: canvas = (screen - offset) * scale, axis by axis. None for
-    // a minimized window, which covers nothing to map from.
+    // canvas = (screen - offset) * scale, per axis. None for a minimized
+    // window.
     struct ScreenMapping {
         tgx::Vec2 offset;
         tgx::Vec2 scale;
+
+        [[nodiscard]] auto to_canvas(tgx::Vec2 screen) const noexcept -> tgx::Vec2 {
+            return {(screen.x - offset.x) * scale.x, (screen.y - offset.y) * scale.y};
+        }
+
+        [[nodiscard]] auto to_screen(tgx::Vec2 canvas) const noexcept -> tgx::Vec2 {
+            return {canvas.x / scale.x + offset.x, canvas.y / scale.y + offset.y};
+        }
     };
 
     [[nodiscard]] auto screen_mapping(
@@ -190,11 +169,10 @@ namespace {
         };
     }
 
-    // Radians in a full turn.
+    // Radians.
     constexpr float whole_turn = 2.f * std::numbers::pi_v<float>;
 
-    // An arc's start angle and how far it turns from there, clockwise: the
-    // angles in either order, at most a full turn apart.
+    // Start angle and clockwise sweep, at most a full turn.
     struct Arc {
         float start;
         float sweep;
@@ -207,31 +185,41 @@ namespace {
         return {start, std::min(end - start, whole_turn)};
     }
 
-    // Segments for the arc, out of the n of its whole circle: one at least.
+    // Segments for the arc, given n for the whole circle. At least one.
     [[nodiscard]] auto arc_segments(const Arc &arc, std::size_t n) noexcept -> std::size_t {
         const float part = arc.sweep / whole_turn;
         return std::max(static_cast<std::size_t>(std::ceil(part * static_cast<float>(n))), std::size_t{1});
     }
 
-    // Whether the arc goes all the way round: its last point is its first,
-    // which a closed fan or band shares exactly rather than meeting it at a
-    // seam.
+    // A full circle's last point is its first; a closed fan or band reuses
+    // it exactly, leaving no seam.
     [[nodiscard]] auto full_turn(const Arc &arc) noexcept -> bool {
         return arc.sweep >= whole_turn;
     }
 
-    // A whole circle from angle 0, as circle() draws it.
+    // As circle() draws it.
     constexpr Arc full_circle{0.f, whole_turn};
 
-    // Point i of an arc of the unit circle split into n segments: every
-    // point on a circle the canvas draws, its corners' arcs and a regular
-    // polygon's corners too.
+    // Point i of a unit-circle arc split into n segments.
     [[nodiscard]] auto arc_point(const Arc &arc, std::size_t i, std::size_t n) noexcept -> tgx::Vec2 {
         return tgx::from_angle(arc.start + arc.sweep * static_cast<float>(i) / static_cast<float>(n));
     }
 
+    // The points of an arc split into n segments, radius around center, as
+    // push_fan and push_band take them.
+    struct Rim {
+        tgx::Vec2 center;
+        float radius;
+        Arc arc;
+        std::size_t n;
+
+        [[nodiscard]] auto operator()(std::size_t i) const noexcept -> tgx::Vec2 {
+            return center + arc_point(arc, i, n) * radius;
+        }
+    };
+
     // The Device's batch, with room for this many more vertices and indices
-    // drawn with the state, and the index the first of them gets.
+    // with the state, and the index of the first new vertex.
     [[nodiscard]] auto start(
         const BatchState &state,
         std::size_t vertex_count,
@@ -249,8 +237,7 @@ namespace {
         }
     }
 
-    // The corners of an upright box clockwise from the top-left, the order
-    // push_quad takes: a rect's, its texture coordinates', a glyph's.
+    // Clockwise from the top-left, as push_quad takes them.
     [[nodiscard]] constexpr auto corners(
         tgx::Vec2 top_left,
         tgx::Vec2 bottom_right
@@ -262,8 +249,7 @@ namespace {
         return corners({rect.x, rect.y}, {rect.right(), rect.bottom()});
     }
 
-    // Four corners clockwise, as two triangles: a b c and c d a. Shapes,
-    // sprites and glyphs all come down to it.
+    // Corners clockwise, drawn as triangles a b c and c d a.
     auto push_quad(
         const BatchState &state,
         const std::array<tgx::Vec2, 4> &corners,
@@ -277,64 +263,61 @@ namespace {
         push_indices(batch, first, {0, 1, 2, 2, 3, 0});
     }
 
-    // A fan of triangles from the center through count points of a rim
-    // around it, point(i) each: inner at the center, outer on the rim. closed
-    // goes on from the last point to the first.
+    // A triangle from the center to each segment of the rim. closed: the
+    // last segment ends at point(0); open: at point(segments).
     template<typename Point>
     auto push_fan(
         const BatchState &state,
         tgx::Vec2 center,
-        std::size_t count,
+        std::size_t segments,
         Point point,
         tgx::Color inner, tgx::Color outer,
         bool closed
     ) noexcept -> void {
-        TGX_ASSERT(count >= 2);
+        TGX_ASSERT(segments >= 1);
 
-        const std::size_t triangles = closed ? count : count - 1;
-        auto [batch, first] = start(state, count + 1, triangles * 3);
+        const std::size_t count = closed ? segments : segments + 1;
+        auto [batch, first] = start(state, count + 1, segments * 3);
         batch.push_vertex({center, white_uv, inner});
         for (std::size_t i = 0; i < count; ++i) {
             batch.push_vertex({point(i), white_uv, outer});
         }
-        for (std::size_t i = 0; i < triangles; ++i) {
+        for (std::size_t i = 0; i < segments; ++i) {
             push_indices(batch, first, {0, 1 + i, 1 + (i + 1) % count});
         }
     }
 
-    // The band between count points of a rim, outer(i) each, and as many of
-    // a rim inside it, inner(i): an outline. closed goes on from the last
-    // pair to the first.
+    // An outline between outer(i) and inner(i), a quad per segment. closed:
+    // the last segment ends at pair 0; open: at pair segments.
     template<typename Outer, typename Inner>
     auto push_band(
         const BatchState &state,
-        std::size_t count,
+        std::size_t segments,
         Outer outer, Inner inner,
         tgx::Color color,
         bool closed
     ) noexcept -> void {
-        TGX_ASSERT(count >= 2);
+        TGX_ASSERT(segments >= 1);
 
-        const std::size_t quads = closed ? count : count - 1;
-        auto [batch, first] = start(state, count * 2, quads * 6);
+        const std::size_t count = closed ? segments : segments + 1;
+        auto [batch, first] = start(state, count * 2, segments * 6);
 
         // Outer and inner points in pairs; each pair and the next make a quad.
         for (std::size_t i = 0; i < count; ++i) {
             batch.push_vertex({outer(i), white_uv, color});
             batch.push_vertex({inner(i), white_uv, color});
         }
-        for (std::size_t i = 0; i < quads; ++i) {
+        for (std::size_t i = 0; i < segments; ++i) {
             const std::size_t here = 2 * i;
             const std::size_t next = 2 * ((i + 1) % count);
             push_indices(batch, first, {here, next, next + 1, next + 1, here + 1, here});
         }
     }
 
-    // An outline thickness wide inside a polygon's edges, count corners,
-    // corner(i) each, around a circle of the radius inside it that touches
-    // every edge: a triangle's, a regular polygon's. The corners drawn
-    // towards that circle's center make the same polygon with its edges
-    // thickness in. The polygon must be thicker than that.
+    // Outline, drawn inside the edges. The polygon needs a circle touching
+    // every edge (center, inradius), like a triangle or a regular polygon:
+    // scaling the corners toward it moves every edge thickness inward.
+    // Asserts thickness < inradius.
     template<typename Corner>
     auto push_outline(
         const BatchState &state,
@@ -352,9 +335,8 @@ namespace {
         push_band(state, count, corner, inner, color, true);
     }
 
-    // The corners of a size, clockwise from the top-left, turned by the
-    // rotation around the origin, a point of it from its top-left corner,
-    // which lands at the position: a sprite's, a turned rectangle's.
+    // Clockwise from the top-left. origin, from the top-left corner, is
+    // placed at position, and the box rotates around it.
     [[nodiscard]] auto placed_corners(
         tgx::Vec2 size,
         tgx::Vec2 origin,
@@ -368,8 +350,7 @@ namespace {
             }
             return box;
         }
-        // rotate() written out: the cosine and sine once for the four
-        // corners, not once each.
+        // rotate() written out, to compute cos and sin once for all corners.
         const float c = std::cos(rotation);
         const float s = std::sin(rotation);
         for (tgx::Vec2 &corner: box) {
@@ -378,10 +359,9 @@ namespace {
         return box;
     }
 
-    // Point i of a rounded rectangle's rim: points of each corner's quarter
-    // circle, clockwise from the left end of the top-left one. inset moves
-    // the rim in, the inside edge of a frame: its corners keep their centers
-    // while the radius is larger, and are square once it is not.
+    // Point i on the edge of a rounded rectangle, clockwise from the left end
+    // of the top-left corner. inset moves the edge inward, for an outline:
+    // corners keep their centers, and are square once inset reaches radius.
     [[nodiscard]] auto rounded_rim(
         tgx::Rect rect,
         float radius,
@@ -393,21 +373,19 @@ namespace {
         const std::size_t step = i % points;
         const float in = std::max(radius, inset);
         const auto centers = corners({rect.x + in, rect.y + in}, {rect.right() - in, rect.bottom() - in});
-        // The top-left corner's quarter runs from the left (half a turn)
-        // round to the top, and each next corner a quarter on.
+        // The top-left quarter starts at half a turn (left); each next corner
+        // a quarter turn later.
         constexpr float quarter = whole_turn / 4.f;
         const Arc arc{quarter * static_cast<float>(corner + 2), quarter};
         return centers[corner] + arc_point(arc, step, points - 1) * std::max(radius - inset, 0.f);
     }
 
-    // Points on each corner's quarter circle of a rounded rectangle, out of
-    // n segments of the whole circle.
+    // Per rounded corner, given n segments for the whole circle.
     [[nodiscard]] auto corner_points(std::size_t n) noexcept -> std::size_t {
         return arc_segments({0.f, whole_turn / 4.f}, n) + 1;
     }
 
-    // A regular polygon's sides, asserted in range: no fewer than make an
-    // area, no more than one draw holds.
+    // Asserted: at least 3, and no more than fit in one draw.
     [[nodiscard]] auto poly_sides(int sides) noexcept -> std::size_t {
         TGX_ASSERT_MSG(
             sides >= 3 && static_cast<std::size_t>(sides) <= tgx::detail::max_segments,
@@ -423,7 +401,7 @@ namespace tgx {
     }
 
     auto Canvas::set_size(Size size) noexcept -> void {
-        // Empty follows; a negative size would read as empty without a word.
+        // A negative size would silently count as empty.
         TGX_ASSERT_MSG(size.width >= 0 && size.height >= 0, "canvas of size {}x{}", size.width, size.height);
 
         m_size = size;
@@ -435,8 +413,7 @@ namespace tgx {
     }
 
     auto Canvas::set_viewport(Rect rect) noexcept -> void {
-        // Empty is all of it; a negative size would read as empty without a
-        // word.
+        // A negative size would silently count as empty.
         TGX_ASSERT_MSG(
             std::isfinite(rect.x) && std::isfinite(rect.y) && rect.width >= 0.f && rect.height >= 0.f
                 && std::isfinite(rect.width) && std::isfinite(rect.height),
@@ -467,20 +444,13 @@ namespace tgx {
 
     auto Canvas::to_world(Vec2 point) const noexcept -> Vec2 {
         const auto mapping = screen_mapping(m_size, m_viewport, surface());
-        if (!mapping) {
-            return m_camera.to_world(point);
-        }
-        const Vec2 from_corner = point - mapping->offset;
-        return m_camera.to_world({from_corner.x * mapping->scale.x, from_corner.y * mapping->scale.y});
+        return m_camera.to_world(mapping ? mapping->to_canvas(point) : point);
     }
 
     auto Canvas::to_screen(Vec2 world) const noexcept -> Vec2 {
         const auto mapping = screen_mapping(m_size, m_viewport, surface());
-        const Vec2 canvas_point = m_camera.to_screen(world);
-        if (!mapping) {
-            return canvas_point;
-        }
-        return Vec2{canvas_point.x / mapping->scale.x, canvas_point.y / mapping->scale.y} + mapping->offset;
+        const Vec2 point = m_camera.to_screen(world);
+        return mapping ? mapping->to_screen(point) : point;
     }
 
     auto Canvas::set_shader(const gl::Shader *shader) noexcept -> void {
@@ -491,12 +461,11 @@ namespace tgx {
             return;
         }
 
-        // The projection is the one uniform the canvas needs; the lookup
-        // asserts it exists and is a mat4.
+        // The only required uniform; the lookup asserts it is a mat4.
         m_u_projection = gl::detail::location(shader->uniform<Mat4>("u_projection"));
 
-        // The texture is optional: a shader may ignore it. The batch draws
-        // without Device::draw's checks, so the one on its samplers is here.
+        // Optional. The batch skips Device::draw's checks, so samplers are
+        // checked here.
         const auto samplers = gl::detail::samplers(*shader);
         for (const auto &sampler: samplers) {
             TGX_ASSERT_MSG(
@@ -526,14 +495,13 @@ namespace tgx {
     auto Canvas::rect_lines(Rect rect, Color color, float thickness) noexcept -> void {
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
-        // Thicker than half the rectangle, the frame is the rectangle.
+        // Thick enough, the outline fills the rectangle.
         const float t = std::min({thickness, rect.width / 2.f, rect.height / 2.f});
         if (t <= 0.f) {
             return;
         }
 
-        // Top and bottom full width, the sides between them, so no corner is
-        // covered twice: a see-through frame stays even.
+        // No corner is drawn twice, so a transparent outline stays even.
         this->rect({rect.x, rect.y, rect.width, t}, color);
         this->rect({rect.x, rect.bottom() - t, rect.width, t}, color);
         this->rect({rect.x, rect.y + t, t, rect.height - 2.f * t}, color);
@@ -549,9 +517,8 @@ namespace tgx {
             return;
         }
 
-        // state_for brings the span up to date first.
         const BatchState state = state_for(0);
-        const std::size_t points = corner_points(circle_segments(r, m_camera.zoom, state, m_transform_size));
+        const std::size_t points = corner_points(segments(r, state));
         const auto rim = [&](std::size_t i) noexcept { return rounded_rim(rect, r, 0.f, points, i); };
         push_fan(state, rect.center(), points * 4, rim, color, color, true);
     }
@@ -568,14 +535,14 @@ namespace tgx {
         if (thickness <= 0.f) {
             return;
         }
-        // Thicker than half the rectangle, the frame is the rectangle.
+        // Thick enough, the outline fills the rectangle.
         if (thickness >= std::min(rect.width, rect.height) / 2.f) {
             rect_rounded(rect, r, color);
             return;
         }
 
         const BatchState state = state_for(0);
-        const std::size_t points = corner_points(circle_segments(r, m_camera.zoom, state, m_transform_size));
+        const std::size_t points = corner_points(segments(r, state));
         push_band(
             state,
             points * 4,
@@ -602,8 +569,8 @@ namespace tgx {
             return;
         }
 
-        // Four triangles around the middle, so no one diagonal shows: red
-        // and green crossed would otherwise leave a band along it.
+        // Four triangles around the center: a single diagonal would show as
+        // a band when opposite corners differ.
         auto [batch, first] = start(state_for(0), 5, 12);
         batch.push_vertex({rect.center(), white_uv, detail::average(colors)});
         for (std::size_t i = 0; i < 4; ++i) {
@@ -639,8 +606,7 @@ namespace tgx {
             return;
         }
 
-        // Thicker than the radius of the circle inside, the frame is the
-        // triangle.
+        // Thick enough, the outline fills the triangle.
         const float inradius = std::abs(cross(b - a, c - a)) / perimeter;
         if (thickness >= inradius) {
             triangle(a, b, c, color);
@@ -656,7 +622,7 @@ namespace tgx {
     auto Canvas::line(Vec2 a, Vec2 b, Color color, float thickness) noexcept -> void {
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
-        // A point has no direction to widen it across.
+        // A zero-length line has no direction to widen across.
         const Vec2 along = b - a;
         if (along == Vec2{} || thickness <= 0.f) {
             return;
@@ -679,25 +645,23 @@ namespace tgx {
     }
 
     auto Canvas::circle_gradient(Vec2 center, float radius, Color inner, Color outer) noexcept -> void {
-        // NaN too: the segments for it would be any number.
+        // Also catches NaN, which would give any number of segments.
         TGX_ASSERT_MSG(detail::valid_radius(radius), "circle of radius {}", radius);
 
         if (radius == 0.f) {
             return;
         }
 
-        // state_for brings the span up to date first.
         const BatchState state = state_for(0);
-        const std::size_t n = circle_segments(radius, m_camera.zoom, state, m_transform_size);
-        const auto rim = [&](std::size_t i) noexcept { return center + arc_point(full_circle, i, n) * radius; };
-        push_fan(state, center, n, rim, inner, outer, true);
+        const std::size_t n = segments(radius, state);
+        push_fan(state, center, n, Rim{center, radius, full_circle, n}, inner, outer, true);
     }
 
     auto Canvas::circle_lines(Vec2 center, float radius, Color color, float thickness) noexcept -> void {
         TGX_ASSERT_MSG(detail::valid_radius(radius), "circle of radius {}", radius);
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
-        // Thicker than the radius, the ring is the circle: one with no hole.
+        // Thick enough, the ring has no hole.
         ring(center, std::max(radius - thickness, 0.f), radius, full_circle.start, full_circle.sweep, color);
     }
 
@@ -710,12 +674,10 @@ namespace tgx {
             return;
         }
 
-        // state_for brings the span up to date first.
         const BatchState state = state_for(0);
-        const std::size_t n = arc_segments(arc, circle_segments(radius, m_camera.zoom, state, m_transform_size));
+        const std::size_t n = arc_segments(arc, segments(radius, state));
         const bool full = full_turn(arc);
-        const auto rim = [&](std::size_t i) noexcept { return center + arc_point(arc, i, n) * radius; };
-        push_fan(state, center, full ? n : n + 1, rim, color, color, full);
+        push_fan(state, center, n, Rim{center, radius, arc, n}, color, color, full);
     }
 
     auto Canvas::ring(
@@ -737,13 +699,13 @@ namespace tgx {
         }
 
         const BatchState state = state_for(0);
-        const std::size_t n = arc_segments(arc, circle_segments(outer_radius, m_camera.zoom, state, m_transform_size));
+        const std::size_t n = arc_segments(arc, segments(outer_radius, state));
         const bool full = full_turn(arc);
         push_band(
             state,
-            full ? n : n + 1,
-            [&](std::size_t i) noexcept { return center + arc_point(arc, i, n) * outer_radius; },
-            [&](std::size_t i) noexcept { return center + arc_point(arc, i, n) * inner_radius; },
+            n,
+            Rim{center, outer_radius, arc, n},
+            Rim{center, inner_radius, arc, n},
             color,
             full
         );
@@ -757,8 +719,7 @@ namespace tgx {
             return;
         }
         const Arc arc{rotation, whole_turn};
-        const auto corner = [&](std::size_t i) noexcept { return center + arc_point(arc, i, n) * radius; };
-        push_fan(state_for(0), center, n, corner, color, color, true);
+        push_fan(state_for(0), center, n, Rim{center, radius, arc, n}, color, color, true);
     }
 
     auto Canvas::poly_lines(
@@ -776,8 +737,7 @@ namespace tgx {
         if (radius == 0.f || thickness <= 0.f) {
             return;
         }
-        // Thicker than the radius of the circle inside, the frame is the
-        // polygon.
+        // Thick enough, the outline fills the polygon.
         const float inradius = radius * std::cos(std::numbers::pi_v<float> / static_cast<float>(n));
         if (thickness >= inradius) {
             poly(center, sides, radius, rotation, color);
@@ -785,7 +745,7 @@ namespace tgx {
         }
 
         const Arc arc{rotation, whole_turn};
-        const auto corner = [&](std::size_t i) noexcept { return center + arc_point(arc, i, n) * radius; };
+        const Rim corner{center, radius, arc, n};
         push_outline(state_for(0), n, corner, center, inradius, thickness, color);
     }
 
@@ -796,8 +756,7 @@ namespace tgx {
         );
 
         const Size texture_size = texture.size();
-        // An src left unset is the whole texture. Not Rect::empty(): a
-        // negative size is a mirrored part, not none.
+        // Not Rect::empty(): a negative size is mirrored, not empty.
         const Rect src = sprite.src.width == 0.f && sprite.src.height == 0.f
             ? Rect{0.f, 0.f, static_cast<float>(texture_size.width), static_cast<float>(texture_size.height)}
             : sprite.src;
@@ -806,8 +765,7 @@ namespace tgx {
         const float width = natural ? std::abs(src.width) : sprite.size.x;
         const float height = natural ? std::abs(src.height) : sprite.size.y;
 
-        // Texture coordinates of src's corners. A negative size takes the same
-        // texels, from x to x + |width|, and runs them backwards: a mirror.
+        // A negative size reverses the texels, mirroring them.
         float u0 = src.x / static_cast<float>(texture_size.width);
         float v0 = src.y / static_cast<float>(texture_size.height);
         float u1 = (src.x + std::abs(src.width)) / static_cast<float>(texture_size.width);
@@ -818,8 +776,7 @@ namespace tgx {
         if (src.height < 0.f) {
             std::swap(v0, v1);
         }
-        // A render target's rows run bottom to top: the same texels, counted
-        // from the other end.
+        // A render target's rows go bottom to top.
         if (texture.bottom_up()) {
             v0 = 1.f - v0;
             v1 = 1.f - v1;
@@ -877,14 +834,13 @@ namespace tgx {
     }
 
     auto Canvas::fps(Vec2 position, float size) noexcept -> void {
-        // Rounded first, so the color goes with the number shown: "30 fps"
-        // is never orange.
+        // Rounded first, so "30 fps" is never orange.
         const float value = std::round(detail::context().clock.fps);
         const Color color = value >= 30.f ? colors::green
             : value >= 15.f ? colors::orange
             : colors::red;
 
-        // Formatted on the stack: nothing allocated every frame.
+        // On the stack: no allocation every frame.
         std::array<char, 32> buffer{};
         const auto result = std::format_to_n(buffer.data(), buffer.size(), "{:.0f} fps", value);
         const auto length = static_cast<std::size_t>(result.out - buffer.data());
@@ -895,8 +851,7 @@ namespace tgx {
     }
 
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
-        // A canvas that follows the window notices a resize here, at its first
-        // shape after it.
+        // A canvas that follows the window notices a resize here.
         const Surface surface = this->surface();
         if (const Size span = detail::span_of(m_size, m_viewport, surface.units);
             m_transform_stale || span != m_transform_size) {
@@ -931,21 +886,21 @@ namespace tgx {
             return;
         }
 
-        // A point that repeats the one before has no direction: skipped. In a
-        // loop the one before the first is the last.
+        // A repeated point has no direction and is skipped. In a loop, the
+        // one before the first is the last.
         const auto kept = [&](std::size_t i) noexcept {
             if (i == 0 && !closed) {
                 return true;
             }
             return points[i] != points[(i + n - 1) % n];
         };
-        // The next point kept after i: n past the end of a strip, the first
-        // kept one again round a loop.
+        // after(i): the next kept point; n at a strip's end, the first kept
+        // point in a loop.
         std::size_t first = 0;
         while (first < n && !kept(first)) {
             ++first;
         }
-        // A loop of one point over and over.
+        // A loop of one repeated point.
         if (first == n) {
             return;
         }
@@ -956,8 +911,8 @@ namespace tgx {
             }
             return closed && j == n ? first : j;
         };
-        // A loop of two points goes there and back over the same line: drawn
-        // once, or it would show twice as strong where it is see-through.
+        // A loop of two points is one line, drawn once so a transparent
+        // color does not double.
         if (closed && after(after(first)) == first) {
             line(points[first], points[after(first)], color, thickness);
             return;
@@ -971,67 +926,75 @@ namespace tgx {
             const float length = tgx::length(points[to] - points[from]);
             return Line{(points[to] - points[from]) / length, length};
         };
+        // At most half of either line, so the joints at both ends of a line
+        // cannot cross.
+        const auto joint_at = [&](std::size_t at, const Line &in, const Line &out) noexcept {
+            return detail::joint(points[at], in.direction, out.direction, half, std::min(in.length, out.length) / 2.f);
+        };
 
-        // A loop starts at a corner too, with the line that closes it.
-        std::optional<Line> previous;
+        std::size_t a = first;
+        std::size_t b = after(a);
+        // A strip of one point.
+        if (b == n) {
+            return;
+        }
+        Line current = line_between(a, b);
+
+        // A loop starts at a corner too: the one with the closing line.
+        std::optional<detail::Joint> start;
         if (closed) {
             std::size_t last = n - 1;
             while (!kept(last)) {
                 --last;
             }
-            previous = line_between(last, first);
+            start = joint_at(a, line_between(last, a), current);
         }
 
-        std::size_t a = first;
         while (true) {
-            const std::size_t b = after(a);
-            if (b == n) {
-                break;
-            }
+            const Vec2 side = perpendicular(current.direction) * half;
             const std::size_t c = after(b);
-            const auto [direction, length] = line_between(a, b);
-            const Vec2 side = perpendicular(direction) * half;
 
-            // Its start: where the joint before left it, or square.
-            detail::Joint start{points[a] + side, points[a] - side, true};
-            if (previous) {
-                // Half of either line each, so the joints at its two ends
-                // cannot cross.
-                start = detail::joint(
-                    points[a], previous->direction, direction, half, std::min(previous->length, length) / 2.f
-                );
-                if (!start.mitered) {
-                    start = {points[a] + side, points[a] - side, true};
-                }
-            }
-
-            // Its end: shared with the next line when the corner is mitered;
-            // square otherwise, with the corner's outside filled in.
-            detail::Joint end{points[b] + side, points[b] - side, true};
+            // Shared with the next line if mitered; otherwise square, with
+            // the outside of the corner filled in.
+            std::optional<Line> next;
+            std::optional<detail::Joint> end;
             if (c < n) {
-                const auto [next, next_length] = line_between(b, c);
-                const detail::Joint corner = detail::joint(
-                    points[b], direction, next, half, std::min(length, next_length) / 2.f
-                );
-                if (corner.mitered) {
-                    end = corner;
-                } else {
-                    const Vec2 next_side = perpendicular(next) * half;
-                    // The outside is where the lines' edges part: the left
-                    // when the path turns clockwise on screen.
-                    const float outside = cross(direction, next) > 0.f ? 1.f : -1.f;
+                next = line_between(b, c);
+                end = joint_at(b, current, *next);
+                if (!end) {
+                    const Vec2 next_side = perpendicular(next->direction) * half;
+                    // The left side when the path turns clockwise on
+                    // screen.
+                    const float outside = cross(current.direction, next->direction) > 0.f ? 1.f : -1.f;
                     triangle(points[b], points[b] + side * outside, points[b] + next_side * outside, color);
                 }
             }
 
-            quad(start.plus, end.plus, end.minus, start.minus, color);
+            const detail::Joint from = start.value_or(detail::Joint{points[a] + side, points[a] - side});
+            const detail::Joint to = end.value_or(detail::Joint{points[b] + side, points[b] - side});
+            quad(from.plus, to.plus, to.minus, from.minus, color);
 
-            previous = Line{direction, length};
-            a = b;
-            if (a == first) {
+            // A strip ends at its last point, a loop back at its first.
+            if (!next || b == first) {
                 break;
             }
+            start = end;
+            current = *next;
+            a = b;
+            b = c;
         }
+    }
+
+    auto Canvas::segments(float radius, const detail::BatchState &state) const noexcept -> std::size_t {
+        // One unit is pixels / span along the most stretched axis.
+        float pixels_per_unit = 1.f;
+        if (!m_transform_size.empty()) {
+            pixels_per_unit = std::max(
+                static_cast<float>(state.viewport.width) / static_cast<float>(m_transform_size.width),
+                static_cast<float>(state.viewport.height) / static_cast<float>(m_transform_size.height)
+            );
+        }
+        return detail::segments_for(radius * std::abs(m_camera.zoom) * pixels_per_unit);
     }
 
     auto Canvas::surface() const noexcept -> detail::Surface {

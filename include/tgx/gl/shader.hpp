@@ -23,23 +23,21 @@ namespace tgx::gl {
     namespace detail {
         auto delete_program(GlId id) noexcept -> void;
 
-        // What a vertex input or attribute holds, as far as GL's reading of the
-        // buffer is concerned: floats (plain or normalized), signed or unsigned
-        // integers. Mixing them reads garbage.
+        // How GL reads a vertex input or attribute: as floats (plain or
+        // normalized), signed or unsigned integers. A mismatch reads garbage.
         enum class ComponentKind : std::int32_t {
             floating,
             sint,
             uint,
         };
 
-        // An active uniform, as the linker reported it. Arrays are listed once,
-        // by name without the "[0]".
+        // An active uniform. An array is listed once, without "[0]".
         struct ShaderUniform {
             std::string name;
             std::int32_t location{-1};
-            // The GL type enum, e.g. GL_FLOAT_VEC4.
+            // E.g. GL_FLOAT_VEC4.
             std::uint32_t gl_type{0};
-            // Elements, 1 unless it is an array.
+            // 1 unless it is an array.
             std::int32_t count{1};
         };
 
@@ -47,30 +45,29 @@ namespace tgx::gl {
         struct VertexInput {
             std::string name;
             std::uint32_t location{0};
-            // Consecutive locations taken: a mat4 input takes four.
+            // Consecutive locations used. A mat4 uses four.
             std::uint32_t slots{1};
             ComponentKind kind{ComponentKind::floating};
         };
 
-        // An active sampler2D uniform and the texture slot it reads.
+        // An active sampler2D uniform and its texture slot.
         struct ShaderSampler {
             std::string name;
             std::int32_t location{-1};
-            // As last set through a TextureSlot; GL starts every sampler at 0.
+            // Last set with a TextureSlot. GL starts every sampler at 0.
             std::uint32_t slot{0};
         };
 
-        // For Device::draw, which checks them against the vertex array. Empty in
-        // builds without asserts: nothing else reads them.
+        // For Device::draw to check against the vertex array. Empty without
+        // asserts.
         [[nodiscard]] auto vertex_inputs(const Shader &shader) noexcept -> std::span<const VertexInput>;
 
-        // For Device::draw, which checks that every slot read has a texture.
+        // For Device::draw to check that every slot read has a texture.
         [[nodiscard]] auto samplers(const Shader &shader) noexcept -> std::span<const ShaderSampler>;
     }
 
-    // What a uniform can be set with. Color goes as a vec4 with channels in
-    // [0, 1]; a bool uniform takes an int or a uint; a sampler2D takes only a
-    // TextureSlot.
+    // Color is sent as a vec4 in [0, 1]. A bool uniform takes an int or a
+    // uint. A sampler2D takes only a TextureSlot.
     template<typename T>
     concept UniformValue = std::same_as<T, float>
                            || std::same_as<T, std::int32_t>
@@ -86,14 +83,14 @@ namespace tgx::gl {
     class Uniform;
 
     namespace detail {
-        // Where the uniform is, -1 for nowhere: for tgx's own draws, which
-        // write it straight to GL rather than through Shader::set.
+        // -1 if there is none. For tgx's own draws, which write to GL
+        // directly instead of through Shader::set.
         template<UniformValue T>
         [[nodiscard]] constexpr auto location(Uniform<T> uniform) noexcept -> std::int32_t;
     }
 
-    // A uniform of one Shader, looked up by name once and then set with values
-    // of T. A default-constructed one refers to nothing.
+    // A uniform of one Shader, looked up by name once. A default-constructed
+    // one refers to nothing.
     template<UniformValue T>
     class Uniform {
     public:
@@ -108,9 +105,9 @@ namespace tgx::gl {
         Uniform(GlId program, std::int32_t location) noexcept : m_program{program}, m_location{location} {
         }
 
-        // Which Shader it came from, to catch it being set on another one.
+        // To catch setting it on another Shader.
         GlId m_program{0};
-        // -1 when the uniform was not found: setting it does nothing.
+        // -1 when not found. Setting it then does nothing.
         std::int32_t m_location{-1};
     };
 
@@ -119,17 +116,16 @@ namespace tgx::gl {
         return uniform.m_location;
     }
 
-    // A linked GPU program: a vertex and a fragment stage. Sources carry their
-    // own #version line; TGX_GLSL_VERSION (tgx/gl/version.hpp) is the one that
-    // matches the context.
+    // A linked vertex and fragment program. Each source has its own #version
+    // line; TGX_GLSL_VERSION (tgx/gl/version.hpp) matches the context.
     //
-    // Lives inside the Device: created after it, destroyed before it. Shapes
-    // the Canvas drew with it and that still wait in the Device's batch are
-    // drawn first when a uniform of it is set or it goes.
+    // Create it after the Device and destroy it before the Device. Setting a
+    // uniform or destroying it first draws the batched Canvas shapes that use
+    // it.
     class Shader {
     public:
-        // Fails with Error::compile or Error::link. The driver's log is written to
-        // out_log either way: on success it may still hold warnings.
+        // Fails with Error::compile or Error::link. The driver's log always
+        // goes to out_log; on success it may hold warnings.
         [[nodiscard]] static auto from_source(
             std::string_view vertex,
             std::string_view fragment,
@@ -142,18 +138,15 @@ namespace tgx::gl {
         Shader(Shader &&) noexcept = default;
         auto operator=(Shader &&) noexcept -> Shader & = default;
 
-        // Looks a uniform up by name, for setting it later without the name.
-        // Asserts that it is active, of a GLSL type T fits and not an array
-        // (arrays are not supported yet); without asserts a missing one gives a
-        // Uniform that sets nothing.
+        // Asserts that it is active, matches T and is not an array (not
+        // supported yet). Without asserts, a missing one sets nothing.
         //
         //     const auto u_mvp = shader.uniform<Mat4>("u_mvp");
         template<UniformValue T>
         [[nodiscard]] auto uniform(std::string_view name) const noexcept -> Uniform<T>;
 
-        // Makes the program current, as GL 3.3 can only set uniforms of the
-        // current one, and writes the value. The value converts to T, so an int
-        // literal sets a float uniform.
+        // Makes the program current: GL 3.3 sets uniforms only on the current
+        // program. The value converts to T, so an int literal sets a float.
         template<UniformValue T>
         auto set(Uniform<T> uniform, const std::type_identity_t<T> &value) noexcept -> void;
 

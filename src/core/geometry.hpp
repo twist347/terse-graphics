@@ -9,12 +9,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <numbers>
+#include <optional>
 
-// The arithmetic under drawing and input, kept apart from GL so the tests
-// reach it.
+// Math for drawing and input, apart from GL so tests can use it.
 namespace tgx::detail {
-    // Segments for a circle: enough that no edge strays more than a quarter
-    // pixel from the true circle, at the size it shows in pixels.
+    // Segments for a circle: enough that no edge is more than a quarter pixel
+    // off the true circle.
     inline constexpr float circle_tolerance = 0.25f;
     inline constexpr std::size_t min_segments = 8;
     inline constexpr std::size_t max_segments = 1024;
@@ -23,9 +23,9 @@ namespace tgx::detail {
         if (pixel_radius <= circle_tolerance) {
             return min_segments;
         }
-        // An edge of a circle split into n strays r * (1 - cos(pi / n)) from it.
-        // A huge radius rounds the cosine to 1 and n to infinity, which no
-        // cast survives: clamped while still a float.
+        // An edge is up to r * (1 - cos(pi / n)) off. A huge radius rounds
+        // the cosine to 1 and n to infinity, which breaks an integer cast, so
+        // n is clamped while still a float.
         const float n = std::numbers::pi_v<float> / std::acos(1.f - circle_tolerance / pixel_radius);
         if (!(n < static_cast<float>(max_segments))) {
             return max_segments;
@@ -33,8 +33,8 @@ namespace tgx::detail {
         return std::max(static_cast<std::size_t>(std::ceil(n)), min_segments);
     }
 
-    // The area a canvas's coordinates span: its own size, else the size of
-    // what it covers, its viewport or the whole surface (units).
+    // A canvas's coordinate space: its size if set, else its viewport's, else
+    // units.
     [[nodiscard]] inline auto span_of(Size size, Rect viewport, Size units) noexcept -> Size {
         if (!size.empty()) {
             return size;
@@ -45,50 +45,53 @@ namespace tgx::detail {
         return units;
     }
 
-    // Where two lines of a strip meet at a corner: the points both share on
-    // either side, plus along the first line's perpendicular, minus the
-    // other way. Not mitered when the corner is too sharp for that, turns
-    // straight back, or would reach along a line more than room: the lines
-    // then end square at it.
+    // Where two lines of a strip meet: the points both share, plus along the
+    // first line's perpendicular and minus the other way.
     struct Joint {
         Vec2 plus;
         Vec2 minus;
-        bool mitered;
     };
 
-    // How far a mitered corner may reach out from the line's middle, in
-    // halves of its thickness: SVG's default miter limit of 4 thicknesses
-    // from tip to tip.
+    // How far a miter may reach from the line's center, in half thicknesses.
+    // Matches SVG's default miter limit of 4.
     inline constexpr float miter_limit = 4.f;
 
-    // Below this squared length the two lines' perpendiculars cancel out:
-    // the path turns straight back, and no miter points anywhere.
+    // Below this squared length the perpendiculars cancel: the path turns
+    // straight back and the miter has no direction.
     inline constexpr float straight_back = 1e-6f;
 
-    // in and out are the directions of the lines, of length 1.
-    [[nodiscard]] inline auto joint(Vec2 at, Vec2 in, Vec2 out, float half, float room) noexcept -> Joint {
+    // The mitered joint of lines with unit directions in and out, or none
+    // when too sharp, when the path turns straight back, or when the miter
+    // would reach along a line further than room: the lines then end square.
+    [[nodiscard]] inline auto joint(
+        Vec2 at,
+        Vec2 in,
+        Vec2 out,
+        float half,
+        float room
+    ) noexcept -> std::optional<Joint> {
         const Vec2 sum = perpendicular(in) + perpendicular(out);
         if (length_squared(sum) < straight_back) {
-            return {at, at, false};
+            return std::nullopt;
         }
         const Vec2 miter = normalize(sum);
-        // Projected onto the line's own side, the miter reaches half out.
+        // Projected onto the perpendicular, the miter must reach half the
+        // thickness.
         const float reach = half / dot(miter, perpendicular(out));
         if (reach > half * miter_limit) {
-            return {at, at, false};
+            return std::nullopt;
         }
-        // The inside point slides back along both lines; past the far end of
-        // a short one, its band would twist over itself.
+        // The inner point moves back along both lines; past the far end of a
+        // short line, that line would twist.
         const Vec2 offset = miter * reach;
         if (std::abs(dot(offset, out)) > room) {
-            return {at, at, false};
+            return std::nullopt;
         }
-        return {at + offset, at - offset, true};
+        return Joint{at + offset, at - offset};
     }
 
-    // Whether the colors of a quad's corners (clockwise) blend between them
-    // as two triangles split along a to c would: when a and c add up to the
-    // same as b and d, channel by channel. Then the diagonal does not show.
+    // Whether the diagonal of a quad (corners clockwise) would not show: a + c
+    // equals b + d in every channel.
     [[nodiscard]] inline auto blends_flat(const std::array<Color, 4> &colors) noexcept -> bool {
         const auto flat = [&](std::uint8_t Color::*channel) noexcept {
             return colors[0].*channel + colors[2].*channel == colors[1].*channel + colors[3].*channel;
@@ -96,7 +99,7 @@ namespace tgx::detail {
         return flat(&Color::r) && flat(&Color::g) && flat(&Color::b) && flat(&Color::a);
     }
 
-    // The four corners' colors mixed evenly, rounded.
+    // Rounded.
     [[nodiscard]] inline auto average(const std::array<Color, 4> &colors) noexcept -> Color {
         const auto mix = [&](std::uint8_t Color::*channel) noexcept {
             const int sum = colors[0].*channel + colors[1].*channel + colors[2].*channel + colors[3].*channel;
@@ -105,8 +108,7 @@ namespace tgx::detail {
         return {mix(&Color::r), mix(&Color::g), mix(&Color::b), mix(&Color::a)};
     }
 
-    // Where the held sides point, of length 1, or 0 when nothing is held or
-    // opposite sides cancel out.
+    // 0 when none is held or opposites cancel.
     [[nodiscard]] inline auto unit_direction(bool left, bool right, bool up, bool down) noexcept -> Vec2 {
         const Vec2 direction{
             static_cast<float>(right) - static_cast<float>(left),

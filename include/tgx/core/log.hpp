@@ -10,7 +10,7 @@ namespace tgx {
         info,
         warn,
         error,
-        // Only as a threshold: drops everything.
+        // Only a threshold: drops everything.
         off,
     };
 
@@ -25,27 +25,24 @@ namespace tgx {
         return "unknown";
     }
 
-    // Receives one whole message, without a trailing newline. It is called on
-    // the thread that made the tgx call, GL driver messages included: they are
-    // delivered synchronously. tgx itself runs on the main thread only.
+    // Gets one whole message, without a trailing newline, on the thread that
+    // made the tgx call. GL driver messages too: they are synchronous.
     using LogSink = void (*)(LogLevel level, std::string_view message, void *user) noexcept;
 
-    // nullptr restores the default sink, which writes warnings and errors to
-    // stderr and everything else to stdout. Not synchronized with logging:
-    // set it before creating the App.
+    // nullptr restores the default: warnings and errors to stderr, the rest
+    // to stdout. Not synchronized, so set it before creating the App.
     auto set_log_sink(LogSink sink, void *user = nullptr) noexcept -> void;
 
-    // Messages below the level are dropped before they are formatted. The
-    // default is warn: quiet unless something is wrong. Set info to also see
-    // at startup what it runs on: the tgx and GLFW versions and the windowing
-    // system, the window's sizes, the monitor, the working directory, the GL
-    // context the driver gave and the audio output.
+    // Lower messages are dropped before formatting. Default warn: quiet
+    // unless something is wrong. info also logs at startup what tgx runs on:
+    // versions, windowing system, window sizes, monitor, working directory,
+    // GL context and audio output.
     auto set_log_level(LogLevel level) noexcept -> void;
 
     [[nodiscard]] auto log_level() noexcept -> LogLevel;
 }
 
-// std::format("{}", level) prints to_str(level); string specs such as width apply.
+// Prints to_str(level); string specs such as width work.
 template<>
 struct std::formatter<tgx::LogLevel> : std::formatter<std::string_view> {
     auto format(tgx::LogLevel level, std::format_context &ctx) const {

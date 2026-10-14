@@ -5,8 +5,7 @@
 #include <system_error>
 
 namespace {
-    // A directory opens fine on some systems and reports a size that is
-    // anything but its contents (LLONG_MAX on ext4).
+    // A directory may open fine and report a bogus size (LLONG_MAX on ext4).
     [[nodiscard]] auto regular_file(const std::filesystem::path &path) -> bool {
         std::error_code err;
         return std::filesystem::is_regular_file(path, err);
@@ -28,8 +27,7 @@ namespace tgx {
             return std::unexpected{Error::io};
         }
 
-        // Opened at the end, so the position is the size; -1 for a stream that
-        // cannot tell.
+        // Opened at the end, so this is the size; -1 if unknown.
         const std::streamoff size = file.tellg();
         if (size < 0) {
             return std::unexpected{Error::io};
@@ -44,8 +42,8 @@ namespace tgx {
     }
 
     auto detail::write_file(const std::filesystem::path &path, std::span<const std::byte> bytes) -> Result<void> {
-        // Written beside it first and put in its place once whole, so a write
-        // that fails (a full disk) leaves the old file as it was.
+        // Written next to it, then moved into place, so a failed write (a
+        // full disk) leaves the old file unchanged.
         std::filesystem::path temp = path;
         temp += ".tgx-partial";
 
@@ -54,17 +52,18 @@ namespace tgx {
             return std::unexpected{Error::io};
         }
         file.write(reinterpret_cast<const char *>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-        // The last of it reaches the disk only now: a full disk shows here.
+        // The last bytes are written only now, so a full disk shows here.
         file.close();
 
-        std::error_code err;
         if (file) {
+            std::error_code err;
             std::filesystem::rename(temp, path, err);
+            if (!err) {
+                return {};
+            }
         }
-        if (!file || err) {
-            std::filesystem::remove(temp, err);
-            return std::unexpected{Error::io};
-        }
-        return {};
+        std::error_code ignored;
+        std::filesystem::remove(temp, ignored);
+        return std::unexpected{Error::io};
     }
 }

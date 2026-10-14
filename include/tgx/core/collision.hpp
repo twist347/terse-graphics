@@ -17,19 +17,16 @@ namespace tgx {
         [[nodiscard]] constexpr auto operator==(const Circle &) const noexcept -> bool = default;
     };
 
-    // Checks for 2D games: whether a point is inside a shape, whether two
-    // shapes overlap, where they meet. Rects are taken with sizes of zero or
-    // more, as the Canvas draws them, and circles with a radius of zero or
-    // more (asserted). A rect of no area has nothing inside: it contains no
-    // point and overlaps nothing, as intersection() shares nothing with it.
+    // Collision checks: point in shape, shapes overlapping, where they meet.
+    // Rect sizes and circle radii must be zero or more (asserted). A rect with
+    // no area contains no point, overlaps nothing, and intersects to empty.
 
     namespace detail {
-        // Asserted where they are taken, so the message names the caller.
+        // Asserted by the callers, so the message names them.
         [[nodiscard]] constexpr auto valid(Rect rect) noexcept -> bool { return rect.width >= 0.f && rect.height >= 0.f; }
 
-        // Zero or more and finite, for the Canvas's circles too. Compared
-        // with the largest float rather than std::isfinite, to stay constexpr
-        // on every compiler: NaN and infinity fail both ways.
+        // Zero or more and finite; also used by the Canvas. Not
+        // std::isfinite, to stay constexpr on every compiler.
         [[nodiscard]] constexpr auto valid_radius(float radius) noexcept -> bool {
             return radius >= 0.f && radius <= std::numeric_limits<float>::max();
         }
@@ -37,8 +34,8 @@ namespace tgx {
         [[nodiscard]] constexpr auto valid(Circle circle) noexcept -> bool { return valid_radius(circle.radius); }
     }
 
-    // Its left and top edges are inside, its right and bottom edges outside,
-    // so a point on the line between two tiles is in exactly one of them.
+    // Left and top edges are inside, right and bottom outside, so a point
+    // between two tiles is in exactly one.
     [[nodiscard]] constexpr auto contains(Rect rect, Vec2 point) noexcept -> bool {
         TGX_ASSERT_MSG(detail::valid(rect), "rect of size {}x{}", rect.width, rect.height);
 
@@ -54,14 +51,13 @@ namespace tgx {
         return length_squared(d) <= circle.radius * circle.radius;
     }
 
-    // The triangle a b c, either way round; the edges count as inside. One
-    // with no area, its corners on a line, has no inside.
+    // The triangle a b c, either winding. The edges count as inside. A
+    // triangle with no area has no inside.
     [[nodiscard]] constexpr auto contains(Vec2 a, Vec2 b, Vec2 c, Vec2 point) noexcept -> bool {
         if (cross(b - a, c - a) == 0.f) {
             return false;
         }
-        // Which side of each edge the point is on: inside it is the same side
-        // of all three, or on one of them.
+        // An inside point is on the same side of all three edges, or on one.
         const float ab = cross(b - a, point - a);
         const float bc = cross(c - b, point - b);
         const float ca = cross(a - c, point - c);
@@ -70,17 +66,17 @@ namespace tgx {
         return !(any_negative && any_positive);
     }
 
-    // The polygon through the points in order, closed back to the first,
-    // either way round, convex or not; where it crosses itself, the parts
-    // covered an odd number of times are inside. A point exactly on an edge
-    // may come out either way. Fewer than three points have no inside.
+    // The closed polygon through the points, any winding, convex or not. If
+    // it crosses itself, parts covered an odd number of times are inside. A
+    // point exactly on an edge may give either result. Fewer than three
+    // points have no inside.
     [[nodiscard]] constexpr auto contains(std::span<const Vec2> polygon, Vec2 point) noexcept -> bool {
         if (polygon.size() < 3) {
             return false;
         }
-        // A ray from the point to the right crosses the edges an odd number of
-        // times from inside. A corner level with the point counts as above
-        // it, so a ray through a corner crosses once, not twice.
+        // A ray to the right from an inside point crosses an odd number of
+        // edges. A corner at the point's height counts as above it, so a ray
+        // through a corner crosses once.
         bool inside = false;
         for (std::size_t i = 0, j = polygon.size() - 1; i < polygon.size(); j = i++) {
             const Vec2 a = polygon[i];
@@ -95,8 +91,7 @@ namespace tgx {
         return inside;
     }
 
-    // Shapes that only touch, edge to edge, do not overlap: two tiles side by
-    // side are not in each other.
+    // Touching is not overlapping: two tiles side by side do not overlap.
     [[nodiscard]] constexpr auto overlaps(Rect a, Rect b) noexcept -> bool {
         TGX_ASSERT_MSG(detail::valid(a), "rect of size {}x{}", a.width, a.height);
         TGX_ASSERT_MSG(detail::valid(b), "rect of size {}x{}", b.width, b.height);
@@ -116,14 +111,13 @@ namespace tgx {
     }
 
     [[nodiscard]] constexpr auto overlaps(Rect rect, Circle circle) noexcept -> bool {
-        // A negative size would give clamp its bounds the wrong way round.
+        // A negative size would put the clamp bounds in the wrong order.
         TGX_ASSERT_MSG(detail::valid(rect), "rect of size {}x{}", rect.width, rect.height);
         TGX_ASSERT_MSG(detail::valid(circle), "circle of radius {}", circle.radius);
 
         if (rect.empty()) {
             return false;
         }
-        // The rect's point nearest the circle's center.
         const Vec2 nearest{
             std::clamp(circle.center.x, rect.x, rect.right()),
             std::clamp(circle.center.y, rect.y, rect.bottom()),
@@ -136,9 +130,8 @@ namespace tgx {
         return overlaps(rect, circle);
     }
 
-    // The point of the segment from a to b nearest the point: the foot of the
-    // perpendicular, or the nearer end. E.g. where to push a ball out of a
-    // wall from.
+    // The point on the segment a b nearest to point, e.g. to push a ball
+    // away from a wall.
     [[nodiscard]] constexpr auto closest_point(Vec2 a, Vec2 b, Vec2 point) noexcept -> Vec2 {
         const Vec2 ab = b - a;
         const float squared = length_squared(ab);
@@ -149,8 +142,8 @@ namespace tgx {
         return a + ab * t;
     }
 
-    // The circle and the segment from a to b; touching is not overlapping. A
-    // point near a line is a small circle: overlaps(Circle{point, 2}, a, b).
+    // The circle and the segment a b. Touching is not overlapping. For a
+    // point near a line, use a small circle: overlaps(Circle{point, 2}, a, b).
     [[nodiscard]] constexpr auto overlaps(Circle circle, Vec2 a, Vec2 b) noexcept -> bool {
         TGX_ASSERT_MSG(detail::valid(circle), "circle of radius {}", circle.radius);
 
@@ -158,9 +151,8 @@ namespace tgx {
         return length_squared(d) < circle.radius * circle.radius;
     }
 
-    // The part two rects share; an empty Rect when they do not overlap. Its
-    // width and height are how far one is into the other, e.g. how far to push
-    // a player back out of a wall.
+    // The overlapping part, or empty. Its size is how deep one is in the
+    // other, e.g. how far to push a player out of a wall.
     [[nodiscard]] constexpr auto intersection(Rect a, Rect b) noexcept -> Rect {
         TGX_ASSERT_MSG(detail::valid(a), "rect of size {}x{}", a.width, a.height);
         TGX_ASSERT_MSG(detail::valid(b), "rect of size {}x{}", b.width, b.height);
@@ -175,9 +167,8 @@ namespace tgx {
         return {left, top, right - left, bottom - top};
     }
 
-    // Where the segments from a1 to a2 and from b1 to b2 cross, ends included.
-    // Parallel segments have no single such point, so none, even if they lie
-    // along each other.
+    // Where the segments a1 a2 and b1 b2 cross, ends included. Parallel
+    // segments give none, even on top of each other.
     [[nodiscard]] constexpr auto intersection(Vec2 a1, Vec2 a2, Vec2 b1, Vec2 b2) noexcept -> std::optional<Vec2> {
         const Vec2 a = a2 - a1;
         const Vec2 b = b2 - b1;
@@ -185,8 +176,7 @@ namespace tgx {
         if (denominator == 0.f) {
             return std::nullopt;
         }
-        // How far along each segment the lines cross, 0 at its start, 1 at
-        // its end.
+        // Fractions along each segment: 0 at its start, 1 at its end.
         const Vec2 start = b1 - a1;
         const float t = cross(start, b) / denominator;
         const float u = cross(start, a) / denominator;

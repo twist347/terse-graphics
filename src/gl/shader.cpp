@@ -33,14 +33,14 @@ namespace {
     // Stage objects are only needed until the program is linked.
     using Stage = tgx::detail::Handle<delete_shader>;
 
-    // Shaders and programs keep their logs behind different, same-shaped calls.
+    // Shaders and programs read logs with different calls of the same shape.
     enum class LogOf {
         shader,
         program,
     };
 
-    // Appends "<label>:\n<log>" when the driver has anything to say. The length
-    // GL reports includes the terminating null.
+    // Appends "<label>:\n<log>" when the log is not empty. GL's length
+    // includes the terminating null.
     auto append_log(std::string *out_log, std::string_view label, GLuint object, LogOf kind) -> void {
         if (!out_log) {
             return;
@@ -59,8 +59,8 @@ namespace {
         out_log->append(label);
         out_log->append(":\n");
 
-        // GL writes at most length bytes counting its own terminator: make room
-        // for that, then shrink to what it actually produced.
+        // Room for length bytes with the terminator, then shrink to what GL
+        // wrote.
         const std::size_t at = out_log->size();
         out_log->resize(at + static_cast<std::size_t>(length));
         GLsizei written = 0;
@@ -71,7 +71,7 @@ namespace {
         }
         out_log->resize(at + static_cast<std::size_t>(written));
 
-        // Non-empty for sure: "<label>:\n" is already in there.
+        // Never empty here: "<label>:\n" is already in it.
         if (out_log->back() != '\n') {
             out_log->push_back('\n');
         }
@@ -86,7 +86,7 @@ namespace {
     ) -> Stage {
         TGX_ASSERT(std::in_range<GLint>(source.size()));
 
-        // Owned from the start: append_log allocates and may throw.
+        // Owned right away: append_log may throw.
         Stage shader{glCreateShader(stage)};
 
         const GLchar *text = source.data();
@@ -118,7 +118,7 @@ namespace {
         }
     }
 
-    // A matCxR input takes one location per column.
+    // A matCxR input uses one location per column.
     [[nodiscard]] constexpr auto slots_of(GLenum type) noexcept -> std::uint32_t {
         switch (type) {
             case GL_FLOAT_MAT2:
@@ -141,8 +141,7 @@ namespace {
         glGetProgramiv(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_length);
 
         std::vector<ShaderUniform> uniforms;
-        // Room for the longest name and GL's terminator, which the location
-        // query below relies on.
+        // Longest name plus GL's terminator, which the location query needs.
         std::string name(static_cast<std::size_t>(max_length), '\0');
         for (GLint i = 0; i < count; ++i) {
             GLsizei length = 0;
@@ -150,15 +149,15 @@ namespace {
             GLenum type = 0;
             glGetActiveUniform(program, static_cast<GLuint>(i), max_length, &length, &size, &type, name.data());
 
-            // Members of uniform blocks have none: they are set through the
-            // block's buffer, not one by one.
+            // Uniform block members have no location; the block's buffer sets
+            // them.
             const GLint location = glGetUniformLocation(program, name.c_str());
             if (location < 0) {
                 continue;
             }
 
-            // Arrays are reported by their first element; the location found
-            // is the array's.
+            // An array is reported by its first element, at the array's
+            // location.
             std::string_view base{name.data(), static_cast<std::size_t>(length)};
             if (base.ends_with("[0]")) {
                 base.remove_suffix(3);
@@ -178,8 +177,7 @@ namespace {
         return samplers;
     }
 
-    // For the vertex input assert in Device::draw only: unused with asserts
-    // off.
+    // Only for the vertex input assert in Device::draw.
     [[maybe_unused, nodiscard]] auto collect_vertex_inputs(GLuint program) -> std::vector<VertexInput> {
         GLint count = 0;
         GLint max_length = 0;
@@ -194,7 +192,7 @@ namespace {
             GLenum type = 0;
             glGetActiveAttrib(program, static_cast<GLuint>(i), max_length, &length, &size, &type, name.data());
 
-            // Built-ins such as gl_VertexID come from GL, not from a buffer.
+            // Skips built-ins such as gl_VertexID.
             const GLint location = glGetAttribLocation(program, name.c_str());
             if (location < 0) {
                 continue;
@@ -210,8 +208,7 @@ namespace {
         return inputs;
     }
 
-    // GLSL spelling of a uniform type, for assert messages: unused with
-    // asserts off.
+    // For assert messages.
     [[maybe_unused, nodiscard]] constexpr auto glsl_name(GLenum type) noexcept -> const char * {
         switch (type) {
             case GL_FLOAT: return "float";
@@ -244,7 +241,7 @@ namespace {
         }
     }
 
-    // The uniform's location, or -1 if there is no such uniform.
+    // -1 if there is no such uniform.
     [[nodiscard]] auto find_location(
         std::span<const ShaderUniform> uniforms,
         std::string_view name,
@@ -276,9 +273,8 @@ namespace {
         return uniform->location;
     }
 
-    // How a value of T reaches a uniform: the GLSL types it may be set on, and
-    // the glUniform* call that writes it to the current program. One per type
-    // UniformValue admits.
+    // The GLSL types T can set, and the glUniform* call that writes it to the
+    // current program. One per UniformValue type.
     template<typename T>
     struct UniformTraits;
 
@@ -366,7 +362,7 @@ namespace {
 
 namespace tgx::gl {
     auto detail::delete_program(GlId id) noexcept -> void {
-        // Shapes added before keep the program they were added with.
+        // Draws the batched shapes while their program still exists.
         tgx::detail::flush_shader_use(id);
         tgx::detail::context().forget_program(id);
         glDeleteProgram(id);
@@ -389,8 +385,7 @@ namespace tgx::gl {
             out_log->clear();
         }
 
-        // Both stages are compiled even if the first fails, so one run reports
-        // every error.
+        // Compiles both stages even if one fails, to report all errors.
         const Stage vs = compile(GL_VERTEX_SHADER, "vertex", vertex, out_log);
         const Stage fs = compile(GL_FRAGMENT_SHADER, "fragment", fragment, out_log);
         if (!vs || !fs) {
@@ -402,7 +397,7 @@ namespace tgx::gl {
         glAttachShader(program.get(), fs.get());
         glLinkProgram(program.get());
 
-        // The program keeps what it linked; the stages are deleted on return.
+        // The linked program does not need the stages.
         glDetachShader(program.get(), vs.get());
         glDetachShader(program.get(), fs.get());
 
@@ -414,8 +409,7 @@ namespace tgx::gl {
             return std::unexpected{Error::link};
         }
 
-        // Read before the handle moves into the Shader. The vertex inputs only
-        // feed an assert in Device::draw, so builds without asserts skip them.
+        // Read before the handle moves. Vertex inputs are only for an assert.
         auto uniforms = collect_uniforms(program.get());
         auto samplers = collect_samplers(uniforms);
         std::vector<VertexInput> inputs;
@@ -438,7 +432,7 @@ namespace tgx::gl {
             return;
         }
 
-        // Shapes added before keep the values they were added with.
+        // Draws the batched shapes first, so they keep the old values.
         tgx::detail::flush_shader_use(id());
         if constexpr (std::same_as<T, TextureSlot>) {
             TGX_ASSERT_MSG(
@@ -456,8 +450,7 @@ namespace tgx::gl {
         UniformTraits<T>::upload(uniform.m_location, value);
     }
 
-    // Every type UniformValue admits, so the templates need no definition in
-    // the header.
+    // Every UniformValue type, so the header needs no definitions.
     template auto Shader::uniform<float>(std::string_view) const noexcept -> Uniform<float>;
     template auto Shader::uniform<std::int32_t>(std::string_view) const noexcept -> Uniform<std::int32_t>;
     template auto Shader::uniform<std::uint32_t>(std::string_view) const noexcept -> Uniform<std::uint32_t>;
@@ -481,7 +474,7 @@ namespace tgx::gl {
 
 namespace tgx::gl {
     auto detail::upload_mat4(std::int32_t location, const Mat4 &value) noexcept -> void {
-        // Column-major already, so no transpose.
+        // Mat4 is column-major: no transpose.
         const auto floats = std::bit_cast<std::array<float, 16>>(value);
         glUniformMatrix4fv(location, 1, GL_FALSE, floats.data());
     }

@@ -12,32 +12,31 @@
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <utility>
 
 namespace {
-    // The one window: its handle, and its sizes as GLFW last reported them,
-    // kept by callbacks rather than asked for on every use.
+    // Sizes are stored by callbacks, not queried on every use.
     struct WindowState {
         GLFWwindow *handle{nullptr};
         tgx::Size size{};
         tgx::Size framebuffer_size{};
-        // Both sizes as the poll before the last one left them, and whether
-        // the last one left them different. Compared at the poll rather than
-        // flagged by the callbacks, which GLFW may also call outside a poll
-        // (on Wayland, from inside glfwSetWindowSize).
+        // Compared at the poll, not flagged by the callbacks: GLFW may call
+        // those outside a poll (on Wayland, inside glfwSetWindowSize).
         tgx::Size polled_size{};
         tgx::Size polled_framebuffer_size{};
         bool resized{false};
         bool focused{false};
         bool minimized{false};
-        // Set again after leaving or entering fullscreen: some drivers reset
-        // the swap interval when the window changes monitor.
+        // Reapplied after fullscreen changes: some drivers reset the swap
+        // interval when the window changes monitor.
         bool vsync{true};
-        // Where the window was and how big, to go back to from fullscreen.
+        // Restored when leaving fullscreen.
         int windowed_x{0};
         int windowed_y{0};
         tgx::Size windowed_size{};
@@ -46,8 +45,8 @@ namespace {
     WindowState s_window;
 
     // Both sizes on either callback: GLFW does not always report both (on
-    // Wayland, glfwSetWindowSize reports only the framebuffer). Asking is a
-    // round trip on X11, but only on a resize.
+    // Wayland, glfwSetWindowSize reports only the framebuffer). A round trip
+    // on X11, but only on a resize.
     auto refresh_sizes() noexcept -> void {
         glfwGetWindowSize(s_window.handle, &s_window.size.width, &s_window.size.height);
         glfwGetFramebufferSize(s_window.handle, &s_window.framebuffer_size.width, &s_window.framebuffer_size.height);
@@ -69,14 +68,18 @@ namespace {
         glfwSwapInterval(vsync ? 1 : 0);
     }
 
-    // Wayland lets no client know or set where its window is: asking makes
-    // GLFW report an error.
+    // Wayland does not let a client get or set its window position; asking
+    // makes GLFW report an error.
     [[nodiscard]] auto positions_known() noexcept -> bool {
         return glfwGetPlatform() != GLFW_PLATFORM_WAYLAND;
     }
 
-    // The monitor the window covers the most of, the primary one when that
-    // cannot be told.
+    // How much [a, a + a_size) and [b, b + b_size) share.
+    [[nodiscard]] auto overlap(int a, int a_size, int b, int b_size) noexcept -> long {
+        return std::max(0, std::min(a + a_size, b + b_size) - std::max(a, b));
+    }
+
+    // The monitor the window covers most, else the primary one.
     [[nodiscard]] auto monitor_of_window() noexcept -> GLFWmonitor * {
         GLFWmonitor *best = glfwGetPrimaryMonitor();
         if (!positions_known()) {
@@ -91,24 +94,69 @@ namespace {
         int count = 0;
         GLFWmonitor **monitors = glfwGetMonitors(&count);
         long best_area = 0;
-        for (int i = 0; i < count; ++i) {
+        for (GLFWmonitor *monitor: std::span{monitors, static_cast<std::size_t>(count)}) {
             int mx = 0;
             int my = 0;
-            glfwGetMonitorPos(monitors[i], &mx, &my);
-            const GLFWvidmode *mode = glfwGetVideoMode(monitors[i]);
+            glfwGetMonitorPos(monitor, &mx, &my);
+            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
             if (!mode) {
                 continue;
             }
-            // Monitor positions and video modes are in screen coordinates,
-            // like the window's.
-            const long w = std::max(0, std::min(x + size.width, mx + mode->width) - std::max(x, mx));
-            const long h = std::max(0, std::min(y + size.height, my + mode->height) - std::max(y, my));
-            if (w * h > best_area) {
-                best_area = w * h;
-                best = monitors[i];
+            // All in screen coordinates.
+            const long area = overlap(x, size.width, mx, mode->width) * overlap(y, size.height, my, mode->height);
+            if (area > best_area) {
+                best_area = area;
+                best = monitor;
             }
         }
         return best;
+    }
+
+    // Covers the monitor the window is mostly on, at its current mode: no
+    // mode switch, just borderless. False if there is no monitor to cover.
+    auto enter_fullscreen() noexcept -> bool {
+        // A minimized window has no size to go back to (0x0 on Windows).
+        if (s_window.minimized) {
+            glfwRestoreWindow(s_window.handle);
+            refresh_sizes();
+        }
+        if (positions_known()) {
+            glfwGetWindowPos(s_window.handle, &s_window.windowed_x, &s_window.windowed_y);
+        }
+        s_window.windowed_size = s_window.size;
+
+        GLFWmonitor *monitor = monitor_of_window();
+        const GLFWvidmode *mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+        if (!mode) {
+            return false;
+        }
+        glfwSetWindowMonitor(s_window.handle, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        return true;
+    }
+
+    // Back to the size and position before fullscreen. Wayland ignores the
+    // position; the compositor places the window.
+    auto leave_fullscreen() noexcept -> void {
+        glfwSetWindowMonitor(
+            s_window.handle,
+            nullptr,
+            s_window.windowed_x,
+            s_window.windowed_y,
+            s_window.windowed_size.width,
+            s_window.windowed_size.height,
+            GLFW_DONT_CARE
+        );
+    }
+
+    // The hints are hard requirements: no older context. Creating also fails
+    // with no OpenGL at all or no pixel format with a depth buffer.
+    [[nodiscard]] auto create_error() noexcept -> tgx::Error {
+        switch (glfwGetError(nullptr)) {
+            case GLFW_VERSION_UNAVAILABLE:
+            case GLFW_API_UNAVAILABLE:
+            case GLFW_FORMAT_UNAVAILABLE: return tgx::Error::unsupported;
+            default: return tgx::Error::platform;
+        }
     }
 
     auto on_glfw_error(int code, const char *desc) noexcept -> void {
@@ -125,9 +173,9 @@ namespace {
         }
     }
 
-    // What a bug report needs first: which tgx, on which windowing system,
-    // the sizes the window got (a scaled display makes the framebuffer
-    // larger), the monitor, and where relative paths start from.
+    // What a bug report needs first: version, windowing system, sizes (a
+    // scaled display makes the framebuffer larger), monitor, and the
+    // directory relative paths start from.
     auto log_window_info() noexcept -> void {
         if (!tgx::detail::log_enabled(tgx::LogLevel::info)) {
             return;
@@ -172,36 +220,25 @@ namespace tgx {
         }
 
         glfwDefaultWindowHints();
-        // Draws into the window may test depth (Device asserts only render
-        // targets), and raw GL may use a stencil, which tgx itself does not:
-        // asked for rather than left to GLFW's defaults.
+        // Explicit, not GLFW's defaults. Window draws may use depth testing
+        // (Device asserts it only for render targets), and raw GL a stencil.
         glfwWindowHint(GLFW_DEPTH_BITS, 24);
         glfwWindowHint(GLFW_STENCIL_BITS, 8);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, gl::version_major);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, gl::version_minor);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        // Required by macOS for any core context; ignored elsewhere, where core
-        // profiles have no deprecated functions left to remove anyway.
+        // macOS requires it for any core context. Ignored elsewhere.
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, params.debug_context ? GLFW_TRUE : GLFW_FALSE);
-        // GLFW_AUTO_ICONIFY stays on: a fullscreen window minimizes when it
-        // loses focus. GLFW keeps a fullscreen window above all others
-        // (Windows, macOS) and lowers it only when it minimizes, so without
-        // that alt-tab would leave the game covering the monitor.
+        // GLFW_AUTO_ICONIFY stays on. GLFW keeps a fullscreen window on top
+        // (Windows, macOS) until it minimizes; otherwise alt-tab would leave
+        // it covering the monitor.
 
         GLFWwindow *handle = glfwCreateWindow(
             params.size.width, params.size.height, params.title, nullptr, nullptr
         );
         if (!handle) {
-            // The hints above are a hard requirement: GLFW refuses rather than
-            // hand out an older context, no OpenGL at all, or no pixel format
-            // with a depth buffer.
-            const int code = glfwGetError(nullptr);
-            const Error error = code == GLFW_VERSION_UNAVAILABLE
-                                        || code == GLFW_API_UNAVAILABLE
-                                        || code == GLFW_FORMAT_UNAVAILABLE
-                                    ? Error::unsupported
-                                    : Error::platform;
+            const Error error = create_error();
             glfwTerminate();
             return std::unexpected{error};
         }
@@ -212,12 +249,12 @@ namespace tgx {
         s_window.handle = handle;
         s_window.vsync = params.vsync;
         refresh_sizes();
-        // The sizes it starts with are not a resize.
+        // Starting sizes are not a resize.
         s_window.polled_size = s_window.size;
         s_window.polled_framebuffer_size = s_window.framebuffer_size;
         glfwSetWindowSizeCallback(handle, on_resize);
         glfwSetFramebufferSizeCallback(handle, on_resize);
-        // As it starts; the callbacks keep both up to date from here.
+        // From here the callbacks update these.
         s_window.focused = glfwGetWindowAttrib(handle, GLFW_FOCUSED) == GLFW_TRUE;
         s_window.minimized = glfwGetWindowAttrib(handle, GLFW_ICONIFIED) == GLFW_TRUE;
         glfwSetWindowFocusCallback(handle, on_focus);
@@ -297,40 +334,16 @@ namespace tgx {
         }
 
         if (fullscreen) {
-            // A minimized window has no size to go back to (0x0 on Windows).
-            if (s_window.minimized) {
-                glfwRestoreWindow(s_window.handle);
-                refresh_sizes();
-            }
-            if (positions_known()) {
-                glfwGetWindowPos(s_window.handle, &s_window.windowed_x, &s_window.windowed_y);
-            }
-            s_window.windowed_size = s_window.size;
-
-            GLFWmonitor *monitor = monitor_of_window();
-            const GLFWvidmode *mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
-            if (!mode) {
+            if (!enter_fullscreen()) {
                 return;
             }
-            // The monitor's own mode: GLFW then switches nothing, the window
-            // only loses its border and covers it.
-            glfwSetWindowMonitor(s_window.handle, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
         } else {
-            // On Wayland the position is ignored: the compositor places it.
-            glfwSetWindowMonitor(
-                s_window.handle,
-                nullptr,
-                s_window.windowed_x,
-                s_window.windowed_y,
-                s_window.windowed_size.width,
-                s_window.windowed_size.height,
-                GLFW_DONT_CARE
-            );
+            leave_fullscreen();
         }
         set_swap_interval(s_window.vsync);
     }
 
-    // Asked of GLFW rather than kept alongside it: one place to be true.
+    // Queried, not stored: one source of truth.
     auto Window::fullscreen() const noexcept -> bool {
         return static_cast<bool>(glfwGetWindowMonitor(s_window.handle));
     }

@@ -19,26 +19,26 @@ namespace tgx::gl {
         auto delete_vertex_array(GlId id) noexcept -> void;
     }
 
-    // How one attribute is stored in the buffer and read by the shader. Names
-    // follow WebGPU: component type, then count.
+    // How one attribute is stored and read. Names follow WebGPU: component
+    // type, then count.
     enum class VertexFormat : std::int32_t {
         float32,
         float32x2,
         float32x3,
         float32x4,
-        // Four bytes read as floats in [0, 1]; a Color fits as is.
+        // Four bytes read as floats in [0, 1]. A Color fits as is.
         unorm8x4,
         uint32,
         sint32,
     };
 
-    // A vertex the GPU reads field by field: copied byte for byte and laid out
-    // plainly, so the offsets of its fields mean what the GPU will read.
+    // Copied byte for byte, with a plain layout, so field offsets match what
+    // the GPU reads.
     template<typename T>
     concept VertexElement = BufferElement<T> && std::is_standard_layout_v<T>;
 
-    // The format a vertex field of type T is read with. Fails to compile for a
-    // type with no natural format; describe such a field by hand.
+    // Fails to compile for a type with no natural format; describe such a
+    // field by hand.
     template<typename T>
     [[nodiscard]] consteval auto vertex_format_of() noexcept -> VertexFormat {
         using enum VertexFormat;
@@ -65,15 +65,15 @@ namespace tgx::gl {
         // Matches layout(location = N) in the vertex shader.
         std::uint32_t location{0};
         VertexFormat format{VertexFormat::float32};
-        // Byte offset inside one vertex, usually offsetof(Vertex, field).
+        // Bytes, usually offsetof(Vertex, field).
         std::size_t offset{0};
 
-        // Format and offset taken from the field itself:
+        // Takes the format and offset from the field itself:
         //
         //     VertexAttribute::of(0, &Vertex::position)
         //
-        // Not constexpr: offsetof needs the field's name, and a member pointer
-        // only gives up its offset measured on a real object.
+        // Not constexpr: a member pointer's offset is measured on a real
+        // object.
         template<VertexElement Vertex, typename Field>
             requires std::is_default_constructible_v<Vertex>
         [[nodiscard]] static auto of(std::uint32_t location, Field Vertex::*field) noexcept -> VertexAttribute {
@@ -93,26 +93,23 @@ namespace tgx::gl {
         uint32,
     };
 
-    // What an index buffer can hold.
     template<typename T>
     concept IndexElement = std::same_as<T, std::uint16_t> || std::same_as<T, std::uint32_t>;
 
-    // The IndexType an index buffer of Is is read with.
     template<IndexElement I>
     [[nodiscard]] consteval auto index_type_of() noexcept -> IndexType {
         return std::same_as<I, std::uint32_t> ? IndexType::uint32 : IndexType::uint16;
     }
 
-    // Describes interleaved vertices of one fixed layout and which buffers feed
-    // them. The layout is set at creation; buffers can be swapped later.
+    // Interleaved vertices with a layout fixed at creation, and the buffers
+    // they come from. Buffers can be swapped.
     //
-    // Buffers are borrowed, not owned: they must outlive every draw that uses
-    // this vertex array. Lives inside the Device: created after it, destroyed
-    // before it.
+    // Buffers are borrowed: they must outlive every draw that uses them.
+    // Create it after the Device and destroy it before the Device.
     class VertexArray {
     public:
-        // Attribute locations must be below this: the lower bound every GL 3.3
-        // implementation guarantees for GL_MAX_VERTEX_ATTRIBS.
+        // Attribute locations must be below this: the GL_MAX_VERTEX_ATTRIBS
+        // that GL 3.3 guarantees.
         static constexpr std::uint32_t max_attributes = 16;
 
         [[nodiscard]] static auto create(
@@ -134,9 +131,8 @@ namespace tgx::gl {
         VertexArray(VertexArray &&) noexcept = default;
         auto operator=(VertexArray &&) noexcept -> VertexArray & = default;
 
-        // Feeds the vertices from the buffer, starting at its first-th element.
-        // The elements must be the vertices this array was created for; their
-        // size is checked against the stride.
+        // Vertices start at index first. Asserts that sizeof(V) is the
+        // stride.
         template<VertexElement V>
         auto set_vertex_buffer(const Buffer<V> &buffer, std::size_t first = 0) noexcept -> void {
             TGX_ASSERT_MSG(
@@ -149,7 +145,7 @@ namespace tgx::gl {
             attach_vertex_buffer(buffer.id(), first * sizeof(V), buffer.size() - first);
         }
 
-        // Draws go by the indices from now on; their type comes from the buffer.
+        // From now on, draws use the indices.
         template<IndexElement I>
         auto set_index_buffer(const Buffer<I> &buffer) noexcept -> void {
             attach_index_buffer(buffer.id(), index_type_of<I>(), buffer.size());
@@ -159,11 +155,10 @@ namespace tgx::gl {
 
         [[nodiscard]] auto stride() const noexcept -> std::size_t { return m_stride; }
 
-        // Vertices the attached vertex buffer holds from its first one used; 0
-        // until one is attached.
+        // Counted from the first one used. 0 until a buffer is attached.
         [[nodiscard]] auto vertex_count() const noexcept -> std::size_t { return m_vertex_count; }
 
-        // Indices the attached index buffer holds; 0 until one is attached.
+        // 0 until a buffer is attached.
         [[nodiscard]] auto index_count() const noexcept -> std::size_t { return m_index_count; }
 
         [[nodiscard]] auto has_index_buffer() const noexcept -> bool { return m_has_index_buffer; }
@@ -188,11 +183,11 @@ namespace tgx::gl {
 
         tgx::detail::Handle<detail::delete_vertex_array> m_handle;
         std::size_t m_stride{0};
-        // GL 3.3 ties an attribute's format to the buffer it reads from, so the
-        // layout is kept here and handed to GL again whenever the buffer changes.
+        // GL 3.3 ties an attribute's format to its buffer, so the layout is
+        // kept to give to GL again when the buffer changes.
         std::array<VertexAttribute, max_attributes> m_attributes{};
         std::size_t m_attribute_count{0};
-        // Taken at attach time: buffer sizes are fixed at creation.
+        // Stored on attach. Buffer sizes are fixed.
         std::size_t m_vertex_count{0};
         std::size_t m_index_count{0};
         IndexType m_index_type{IndexType::uint16};

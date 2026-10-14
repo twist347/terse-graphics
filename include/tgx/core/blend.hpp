@@ -3,21 +3,20 @@
 #include <cstdint>
 
 namespace tgx {
-    // How a draw's colors combine with what the framebuffer already holds.
-    // Colors are straight (not premultiplied) unless the mode says otherwise.
+    // How a draw's colors combine with the framebuffer's. Colors are straight
+    // (not premultiplied) unless the mode says otherwise.
     enum class Blend : std::int32_t {
-        // Overwrites; alpha has no effect.
+        // Overwrites the framebuffer; alpha has no effect.
         none,
-        // src * a + dst * (1 - a): ordinary transparency.
+        // src * a + dst * (1 - a): plain transparency.
         alpha,
-        // src + dst * (1 - a), for colors already multiplied by their alpha.
+        // src + dst * (1 - a), for premultiplied colors.
         premultiplied,
-        // src * a + dst: light adding up, as in glows and particles.
+        // src * a + dst: adds light, for glows and particles.
         additive,
-        // src * dst, faded towards dst as alpha drops: darkening and tinting.
-        // Like premultiplied, it wants colors already multiplied by their alpha
-        // (Color::premultiplied()); a straight see-through color would come out
-        // lighter than dst. Opaque colors are the same either way.
+        // src * dst, fading towards dst as alpha drops: for darkening and
+        // tinting. Needs premultiplied colors (Color::premultiplied()); a
+        // straight transparent color comes out lighter than dst.
         multiply,
     };
 }

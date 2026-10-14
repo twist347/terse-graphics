@@ -17,40 +17,37 @@ namespace tgx {
         struct MusicStream;
     }
 
-    // How one sound is played: Audio::play takes it.
+    // Settings for one Audio::play.
     //
     //     app->audio().play(jump, {.volume = 0.5f, .pan = -0.3f});
     struct PlayParams {
-        // 1 as recorded, 0 silent; not below 0.
+        // 1 as recorded, 0 silent. Not below 0.
         float volume{1.f};
-        // -1 all left, 0 in the middle, 1 all right; nothing beyond.
+        // -1 left, 0 center, 1 right. Within [-1, 1].
         float pan{0.f};
-        // 1 as recorded; 2 an octave higher, and twice as fast. Above 0.
+        // 1 as recorded, 2 an octave higher and twice as fast. Above 0.
         float pitch{1.f};
     };
 
-    // A short sound held whole in memory, decoded once: a jump, a shot, a
-    // click. Played with Audio::play, as many times at once as it is asked
-    // to, each to its end.
+    // A short sound kept whole in memory: a jump, a shot, a click. Can play
+    // many times at once; each play runs to its end.
     //
-    // Needs no Audio to be made, only to be played. Destroying it, or moving
-    // another into it, stops what of it is still playing; moving it keeps
-    // it playing. It may be loaded on any thread, but is destroyed on the
-    // one that plays it.
+    // Needs an Audio only to play. Destroying it, or moving another sound
+    // into it, stops its plays; moving it keeps them playing. Load on any
+    // thread, destroy on the thread that plays it.
     class Sound {
     public:
-        // Reads a WAV, OGG Vorbis, MP3 or FLAC file. Fails with Error::io
-        // when the file cannot be read, Error::decode when it is not sound in
-        // one of those formats.
+        // WAV, OGG Vorbis, MP3 or FLAC. Fails with Error::io if the file
+        // cannot be read, Error::decode if it is not one of those formats.
         [[nodiscard]] static auto load(const std::filesystem::path &path) -> Result<Sound>;
 
-        // The same from the bytes of such a file already in memory, e.g. an
-        // embedded asset. Fails with Error::decode.
+        // Like load(), from file bytes in memory, e.g. an embedded asset.
+        // Fails with Error::decode.
         [[nodiscard]] static auto decode(std::span<const std::byte> encoded) -> Result<Sound>;
 
-        // A sound made in code: samples in [-1, 1], interleaved by channel
-        // (left, right, left, ... for two; up to 254 channels), sample_rate
-        // of them a second for each channel. Copied.
+        // A sound made in code. samples are in [-1, 1], interleaved by
+        // channel (left, right, left, ...; up to 254 channels). sample_rate is
+        // per channel. The samples are copied.
         //
         //     // a second of 440 Hz: samples[i] = std::sin(2 * pi * 440 * i / 44100)
         //     auto beep = tgx::Sound::from_samples(samples, 1, 44100);
@@ -80,35 +77,31 @@ namespace tgx {
 
         Sound(std::vector<float> samples, int channels, int sample_rate) noexcept;
 
-        // Stops what of it is playing.
+        // Stops its plays.
         auto release() noexcept -> void;
 
         std::vector<float> m_samples;
         int m_channels{0};
         int m_sample_rate{0};
-        // Which voices are its, 0 once moved from. A moved vector keeps its
-        // buffer, so voices of it play on from the same samples.
+        // Tags the voices playing this sound; 0 once moved from. A moved
+        // vector keeps its buffer, so those voices play on.
         std::uint32_t m_id{0};
     };
 
-    // A long piece, music or ambience, read from its file a little at a time
-    // while it plays rather than held whole. Controls itself; nothing needs
-    // calling every frame.
+    // Music or ambience, streamed from its file. Needs no per-frame calls.
     //
     //     auto music = tgx::Music::load("theme.ogg");
     //     music->set_looping(true);
     //     music->play();
     //
-    // Lives inside the Audio: loaded after it, destroyed before it. With the
-    // Audio silent, or with none at all, it loads and answers but plays
-    // nothing, and stays so even once an Audio is made.
+    // Load it after the Audio and destroy it before. With the Audio silent,
+    // or no Audio, it loads and its getters work but it plays nothing, even
+    // after an Audio is created later.
     class Music {
     public:
-        // Opens a WAV, OGG Vorbis, MP3 or FLAC file, stopped at its start.
-        // Fails with Error::io when the file cannot be read, Error::decode
-        // when it is not sound in one of those formats. Where the stream
-        // cannot tell its length (OGG Vorbis; any format on Windows, and with
-        // the Audio silent), the whole file is read once to measure it.
+        // Stopped at the start. Formats and errors as in Sound::load. If the
+        // stream cannot report its length (OGG Vorbis; any format on Windows
+        // or with the Audio silent), the whole file is read once to measure it.
         [[nodiscard]] static auto load(const std::filesystem::path &path) -> Result<Music>;
 
         Music(const Music &) = delete;
@@ -119,36 +112,36 @@ namespace tgx {
 
         ~Music();
 
-        // Plays from where it is: its start, or where pause() left it.
+        // From the current position.
         auto play() noexcept -> void;
 
-        // Stops where it is, to go on from there.
+        // Keeps the position for play().
         auto pause() noexcept -> void;
 
-        // Stops and goes back to the start.
+        // Back to the start.
         auto stop() noexcept -> void;
 
-        // Whether it is playing now; false once it has ended, unless looping.
+        // False once it has ended, unless it loops.
         [[nodiscard]] auto playing() const noexcept -> bool;
 
-        // Starts over at its end; off by default.
+        // Starts over after the end. Off by default.
         auto set_looping(bool looping) noexcept -> void;
 
         [[nodiscard]] auto looping() const noexcept -> bool;
 
-        // 1 as recorded (the default), 0 silent; not below 0.
+        // 1 as recorded (default), 0 silent. Not below 0.
         auto set_volume(float volume) noexcept -> void;
 
         [[nodiscard]] auto volume() const noexcept -> float;
 
-        // Moves to the second, playing or not. Past the end it is at the end,
-        // or, looping, as far round again.
+        // Playing or not. Past the end: the end, or wrapped around when
+        // looping.
         auto seek(double seconds) noexcept -> void;
 
-        // In seconds from its start.
+        // In seconds.
         [[nodiscard]] auto position() const noexcept -> double;
 
-        // In seconds; 0 if the file does not tell.
+        // In seconds; 0 if the file does not report it.
         [[nodiscard]] auto duration() const noexcept -> double;
 
     private:
@@ -157,18 +150,14 @@ namespace tgx {
         std::unique_ptr<detail::MusicStream> m_stream;
     };
 
-    // The sound output, one per process, as the Window is the one window. App
-    // makes it; app->audio() reaches it. Like the Device, it only owns the
-    // output and its state is kept in one place inside tgx, so it can be moved
-    // freely.
+    // The sound output, one per process. App creates it: app->audio(). Its
+    // state lives inside tgx, so it moves freely.
     //
-    // Never fails: without an output device (no sound card, a headless
-    // machine) it stays silent, says so in the log, and everything else works
-    // as before, Sounds and Music loading included. A game runs the same
-    // without sound.
+    // Never fails. Without an output device (no sound card, headless) it
+    // stays silent and logs it; everything else, loading included, works.
     class Audio {
     public:
-        // Opens the system's default output.
+        // The system's default output.
         [[nodiscard]] static auto create() noexcept -> Audio;
 
         Audio(const Audio &) = delete;
@@ -181,19 +170,17 @@ namespace tgx {
 
         ~Audio();
 
-        // Whether there is an output to hear: false when it stays silent.
+        // False when silent.
         [[nodiscard]] auto active() const noexcept -> bool;
 
-        // Starts the sound from its beginning, on top of whatever plays,
-        // itself included. Up to 64 sounds play at once; past that the one
-        // playing longest is cut off for it.
+        // From the start, on top of whatever plays, the same sound included.
+        // Up to 64 at once; past that, the oldest play is cut off.
         auto play(const Sound &sound, const PlayParams &params = {}) noexcept -> void;
 
-        // Cuts off every play of the sound still going.
+        // Stops every play of the sound.
         auto stop(const Sound &sound) noexcept -> void;
 
-        // Of everything, Sounds and Music alike: 1 as they are, 0 silent; not
-        // below 0.
+        // Master volume for Sounds and Music. 1 as is, 0 silent. Not below 0.
         auto set_volume(float volume) noexcept -> void;
 
         [[nodiscard]] auto volume() const noexcept -> float;
@@ -204,7 +191,7 @@ namespace tgx {
 
         auto release() noexcept -> void;
 
-        // False once moved from: the output is someone else's to close.
+        // False once moved from: another Audio closes the output.
         bool m_owned{false};
     };
 }

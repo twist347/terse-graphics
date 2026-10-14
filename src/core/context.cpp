@@ -25,17 +25,6 @@ static_assert(std::is_same_v<GLuint, tgx::GlId>);
 namespace {
     tgx::detail::Context s_context;
 
-    // Draws the batch now if it is to be drawn with the object (uses says
-    // whether), before the object changes or goes.
-    auto flush_if_used(
-        bool (tgx::detail::Batch::*uses)(tgx::GlId) const noexcept,
-        tgx::GlId id
-    ) noexcept -> void {
-        if (s_context.batch && (s_context.batch.get()->*uses)(id)) {
-            s_context.batch->flush(s_context);
-        }
-    }
-
     auto apply_clear_color(tgx::Color color) noexcept -> void {
         const tgx::Vec4 unit = tgx::to_vec4(color);
         glClearColor(unit.x, unit.y, unit.z, unit.w);
@@ -73,8 +62,8 @@ namespace {
         GLenum dst_alpha;
     };
 
-    // The alpha channel is kept as coverage: it builds up the way paint would,
-    // which is what a later draw of this framebuffer as a texture expects.
+    // Alpha stores coverage, building up like layers of paint, as a later
+    // draw of this framebuffer as a texture expects.
     [[nodiscard]] constexpr auto to_gl(tgx::Blend blend) noexcept -> GlBlend {
         using enum tgx::Blend;
         switch (blend) {
@@ -100,7 +89,7 @@ namespace {
     [[nodiscard]] constexpr auto to_gl(tgx::gl::Cull cull) noexcept -> GLenum {
         using enum tgx::gl::Cull;
         switch (cull) {
-            // Never reaches GL: culling is switched off instead.
+            // Never sent to GL: culling is disabled instead.
             case none:
             case back: return GL_BACK;
             case front: return GL_FRONT;
@@ -125,9 +114,9 @@ namespace {
         }
     }
 
-    // A setting whose none is a capability switched off: going to or from
-    // none switches it, any other value is set through apply. Nothing is
-    // touched when it stays the same, and a value is never set for none.
+    // For a setting whose none means a disabled GL capability: toggles the
+    // capability on a change to or from none, and calls apply for any other
+    // value. Does nothing if the setting is unchanged.
     template<typename Setting, typename Apply>
     auto apply_switched(Setting current, Setting next, GLenum capability, Apply apply) noexcept -> void {
         if (next == current) {
@@ -141,8 +130,7 @@ namespace {
         }
     }
 
-    // Brings GL from the state current describes to next, touching only what
-    // differs.
+    // Touches only what differs.
     auto apply_state(tgx::gl::RenderState &current, const tgx::gl::RenderState &next) noexcept -> void {
         apply_switched(current.blend, next.blend, GL_BLEND, [](tgx::Blend blend) noexcept {
             const GlBlend factors = to_gl(blend);
@@ -185,8 +173,8 @@ namespace tgx {
         glDepthMask(GL_TRUE);
         glDisable(GL_CULL_FACE);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        // Off by default, which leaves points 1 pixel whatever a shader writes
-        // to gl_PointSize. Never switched off again.
+        // Off by default, which keeps points at 1 pixel whatever the shader
+        // writes to gl_PointSize. Never disabled again.
         glEnable(GL_PROGRAM_POINT_SIZE);
         glActiveTexture(GL_TEXTURE0);
         glUseProgram(0);
@@ -195,9 +183,8 @@ namespace tgx {
         apply_clear_color(clear_color);
         apply_clear_depth(clear_depth);
 
-        // Set rather than assumed, like the rest: draws only change the
-        // viewport when theirs differs from this. The whole framebuffer is the
-        // same from either corner.
+        // Set, not assumed: draws change the viewport only when theirs
+        // differs. The whole framebuffer is the same from either corner.
         gl_viewport = surface_of({}).viewport();
         glViewport(0, 0, gl_viewport.width, gl_viewport.height);
     }
@@ -215,8 +202,7 @@ namespace tgx {
 
         if (call.color) {
             // A render target holds premultiplied colors, as Blend::alpha
-            // leaves them; a straight see-through one would show brighter
-            // than asked.
+            // leaves them; a straight transparent color would show brighter.
             const Color color = call.target.framebuffer != 0 ? call.color->premultiplied() : *call.color;
             if (color != clear_color) {
                 clear_color = color;
@@ -229,20 +215,19 @@ namespace tgx {
                 clear_depth = *call.depth;
                 apply_clear_depth(clear_depth);
             }
+            // Clearing depth obeys the depth write mask, which a draw may
+            // have turned off.
+            if (!state.depth_write) {
+                glDepthMask(GL_TRUE);
+                state.depth_write = true;
+            }
             bits |= GL_DEPTH_BUFFER_BIT;
         }
 
         if (bits == 0) {
             return;
         }
-
-        // Clearing depth obeys the depth write mask like any draw, so a draw
-        // that turned writes off would leave the old depth in place.
-        if ((bits & GL_DEPTH_BUFFER_BIT) != 0 && !state.depth_write) {
-            glDepthMask(GL_TRUE);
-            state.depth_write = true;
-        }
-        // The whole of it: glClear ignores the viewport.
+        // glClear ignores the viewport.
         bind_framebuffer(call.target.framebuffer);
         glClear(bits);
     }
@@ -257,9 +242,8 @@ namespace tgx {
             return;
         }
 
-        // Turned here, against the target as it is when drawn into, not when
-        // the draw was asked for: a rectangle from the top-left stays at the
-        // top-left even if the window was resized in between.
+        // Flipped with the target's size now, not when the draw was asked
+        // for, so the top-left stays the top-left across a resize.
         const gl::Viewport flipped{
             call.viewport.x,
             surface_of(call.target).pixels.height - call.viewport.y - call.viewport.height,
@@ -292,8 +276,8 @@ namespace tgx {
                                            ? sizeof(std::uint32_t)
                                            : sizeof(std::uint16_t);
 
-        // GL takes the start of an indexed draw as a byte offset into the index
-        // buffer, passed where a pointer used to go.
+        // GL takes the start as a byte offset into the index buffer, passed
+        // as a pointer.
         const auto *start = reinterpret_cast<const void *>(call.first * index_size);
         glDrawElements(mode, count, to_gl(*call.index_type), start);
     }
@@ -312,11 +296,7 @@ namespace tgx {
         const auto pixels = image.pixels();
         const auto width = static_cast<std::size_t>(size.width);
         for (std::size_t top = 0, bottom = static_cast<std::size_t>(size.height) - 1; top < bottom; ++top, --bottom) {
-            std::swap_ranges(
-                pixels.begin() + static_cast<std::ptrdiff_t>(top * width),
-                pixels.begin() + static_cast<std::ptrdiff_t>((top + 1) * width),
-                pixels.begin() + static_cast<std::ptrdiff_t>(bottom * width)
-            );
+            std::ranges::swap_ranges(pixels.subspan(top * width, width), pixels.subspan(bottom * width, width));
         }
         return image;
     }
@@ -382,14 +362,20 @@ namespace tgx {
     }
 
     auto detail::flush_texture_use(GlId texture) noexcept -> void {
-        flush_if_used(&Batch::uses_texture, texture);
+        if (s_context.batch && s_context.batch->uses_texture(texture)) {
+            s_context.flush();
+        }
     }
 
     auto detail::flush_shader_use(GlId program) noexcept -> void {
-        flush_if_used(&Batch::uses_shader, program);
+        if (s_context.batch && s_context.batch->uses_shader(program)) {
+            s_context.flush();
+        }
     }
 
     auto detail::flush_target_use(GlId framebuffer) noexcept -> void {
-        flush_if_used(&Batch::uses_target, framebuffer);
+        if (s_context.batch && s_context.batch->uses_target(framebuffer)) {
+            s_context.flush();
+        }
     }
 }

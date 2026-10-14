@@ -33,7 +33,7 @@ namespace tgx {
     using Result = std::expected<T, Error>;
 }
 
-// std::format("{}", err) prints to_str(err); string specs such as width apply.
+// Prints to_str(err); string specs such as width work.
 template<>
 struct std::formatter<tgx::Error> : std::formatter<std::string_view> {
     auto format(tgx::Error err, std::format_context &ctx) const {

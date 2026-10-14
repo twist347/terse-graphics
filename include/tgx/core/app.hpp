@@ -9,32 +9,27 @@
 #include "tgx/core/window.hpp"
 
 namespace tgx {
-    // The simple way in: creates the window, the device, a canvas and the
-    // audio in the right order, failing as one call, owns them, tears them
-    // down in the reverse order, and gives the frame loop in three words.
-    // The audio never fails it: without an output device it stays silent.
-    // The layers underneath stay public for anything this does not cover.
+    // The easy way to start: creates and owns the window, device, a canvas
+    // and audio, all or nothing. Without an audio output device it stays
+    // silent instead of failing. The lower layers stay public.
     //
-    // App's own methods are the frame loop (should_close, poll_events,
-    // swap_buffers). Everything else belongs to a part and is reached through
-    // it: app->window().resized(), app->input(), app->canvas(),
-    // app->clock(), app->audio(), ... New features come as new parts, not as
-    // more methods here.
+    // Its own methods are the frame loop; the rest is reached through parts:
+    // app->window().resized(), app->canvas(), ... New features become new
+    // parts, not methods here.
     class App {
     public:
-        // Fails as Window::create, then Device::create do.
+        // Fails the way Window::create, then Device::create, fail.
         [[nodiscard]] static auto create(const WindowParams &params = {}) -> Result<App>;
 
         App(App &&) noexcept = default;
-        // Member-wise assignment would replace the window before the device
-        // that depends on it; with one window per process there is nothing
-        // useful to assign anyway.
+        // Would replace the window before the device that depends on it.
+        // Useless with one window per process anyway.
         auto operator=(App &&) noexcept -> App & = delete;
 
         App(const App &) = delete;
         auto operator=(const App &) -> App & = delete;
 
-        // The frame loop, in the same shape as a plain GLFW one:
+        // The frame loop, like a plain GLFW one:
         //
         //     while (!app->should_close()) {
         //         app->poll_events();
@@ -42,7 +37,7 @@ namespace tgx {
         //         app->swap_buffers();
         //     }
         //
-        // The same as window().should_close(), window().poll_events() and
+        // Same as window().should_close(), window().poll_events() and
         // device().present().
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
@@ -50,7 +45,7 @@ namespace tgx {
 
         auto swap_buffers() noexcept -> void;
 
-        // The parts; const for a const App (deducing this: one method for both).
+        // Const for a const App.
         [[nodiscard]] auto window(this auto &self) noexcept -> auto & { return self.m_window; }
         [[nodiscard]] auto input() const noexcept -> const Input & { return m_window.input(); }
         [[nodiscard]] auto device(this auto &self) noexcept -> auto & { return self.m_device; }
@@ -61,8 +56,7 @@ namespace tgx {
     private:
         App(Window window, Device device, Canvas canvas, Audio audio) noexcept;
 
-        // Declaration order is teardown order reversed: audio, canvas,
-        // device, window.
+        // Destroyed in reverse order: audio, canvas, device, window.
         Window m_window;
         Device m_device;
         Canvas m_canvas;

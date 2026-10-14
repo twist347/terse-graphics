@@ -8,16 +8,15 @@
 #include <vector>
 
 namespace tgx::detail {
-    // Whether the path is a regular file that opens for reading: what
-    // Error::io means, for what opens the file another way.
+    // A regular file that opens for reading: the check behind Error::io, for
+    // code that opens the file another way.
     [[nodiscard]] auto readable(const std::filesystem::path &path) -> bool;
 
-    // The whole file, or Error::io if it cannot be opened or read through.
-    // Read through a stream rather than stdio, which cannot open non-ASCII
-    // paths on Windows; what loads assets (Image, Sound) decodes from this.
+    // The whole file, or Error::io. A stream, not stdio, which cannot open
+    // non-ASCII paths on Windows. Image and Sound decode from this.
     [[nodiscard]] auto read_file(const std::filesystem::path &path) -> Result<std::vector<std::byte>>;
 
-    // The bytes as the whole file, made or replaced; Error::io if it cannot
-    // be written through, and then an old file is left as it was.
+    // Creates or replaces the file. On Error::io an old file is left
+    // unchanged.
     [[nodiscard]] auto write_file(const std::filesystem::path &path, std::span<const std::byte> bytes) -> Result<void>;
 }

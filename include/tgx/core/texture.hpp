@@ -17,63 +17,54 @@ namespace tgx {
     enum class TextureAccess : std::int32_t {
         // Contents are fixed at creation.
         immutable,
-        // Contents can be rewritten with Texture::update.
+        // Rewritable with Texture::update.
         dynamic,
     };
 
-    // How a texel is picked when the texture is drawn larger or smaller than
-    // it is.
+    // Sampling when drawn larger or smaller than its size.
     enum class TextureFilter : std::int32_t {
-        // The closest texel: sharp squares, for pixel art.
+        // Sharp squares, for pixel art.
         nearest,
-        // A blend of the four closest texels: smooth.
+        // Smooth: a blend of the four nearest texels.
         linear,
     };
 
-    // What texture coordinates outside [0, 1] read, on both axes.
+    // What coordinates outside [0, 1] read, on both axes.
     enum class TextureWrap : std::int32_t {
-        // The edge texels, stretched.
+        // The edge texels.
         clamp,
-        // The texture again, tiled.
+        // The texture tiled.
         repeat,
-        // The texture again, every other copy flipped.
+        // Tiled, every other copy mirrored.
         mirror,
     };
 
     struct TextureParams {
         TextureFilter filter{TextureFilter::linear};
         TextureWrap wrap{TextureWrap::clamp};
-        // Halved copies down to 1x1, built at creation and after every update,
-        // so a texture drawn much smaller than it is does not shimmer. A third
-        // more memory; 2D drawing near natural size does without.
+        // Halved copies down to 1x1, rebuilt after every update, so a texture
+        // drawn much smaller does not shimmer. A third more memory; 2D drawing
+        // near natural size does not need them.
         bool mipmaps{false};
         TextureAccess access{TextureAccess::immutable};
     };
 
-    // A 2D RGBA8 texture on the GPU, of a size fixed at creation. Texture
-    // coordinates (0, 0) are the top-left pixel of the image it was made from,
-    // (1, 1) the bottom-right; a render target's is the other way up
-    // (bottom_up()).
+    // A 2D RGBA8 texture on the GPU, fixed size. (0, 0) is the image's
+    // top-left pixel, (1, 1) the bottom-right; a render target's texture is
+    // upside down (bottom_up()). Used by both the Canvas and Device::draw.
     //
-    // Unlike the gl:: resources it has nothing GL-specific to configure, so it
-    // serves both the Canvas and Device::draw; id() is the way out to raw GL.
-    //
-    // Lives inside the Device: created after it, destroyed before it. Sprites
-    // of it still waiting in the Device's batch are drawn first when it is
-    // updated or goes.
+    // Create it after the Device and destroy it before the Device. Waiting
+    // sprites of it are drawn before it is updated or destroyed.
     class Texture {
     public:
-        // Filled from the image, which must not be empty. Fails with
-        // Error::unsupported when a side exceeds what the driver allows,
-        // Error::out_of_memory when the GPU has no room for it, Error::platform
-        // when the driver fails otherwise.
+        // The image must not be empty. Fails with Error::unsupported over the
+        // driver's size limit, Error::out_of_memory, or Error::platform.
         [[nodiscard]] static auto create(
             const Image &image,
             const TextureParams &params = {}
         ) noexcept -> Result<Texture>;
 
-        // Image::load and create() in one, failing as either does: Error::io
-        // or Error::decode for the file, then as create() for the texture.
+        // Image::load and create() in one call, and fails like either.
         //
         //     auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
         [[nodiscard]] static auto load(
@@ -81,8 +72,8 @@ namespace tgx {
             const TextureParams &params = {}
         ) -> Result<Texture>;
 
-        // Uninitialized, to be filled with update(): params.access must be
-        // dynamic (asserted). Fails as the create() above.
+        // Uninitialized, to fill with update(). params.access must be dynamic
+        // (asserted). Fails like the create() above.
         [[nodiscard]] static auto create(
             Size size,
             const TextureParams &params
@@ -94,8 +85,8 @@ namespace tgx {
         Texture(Texture &&) noexcept = default;
         auto operator=(Texture &&) noexcept -> Texture & = default;
 
-        // Overwrites the pixels the image covers when its top-left pixel is put
-        // at (x, y); only for dynamic textures, and the image must fit.
+        // The image's top-left goes at (x, y). Dynamic textures only; the
+        // image must fit.
         auto update(int x, int y, const Image &image) noexcept -> void;
 
         [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
@@ -104,9 +95,8 @@ namespace tgx {
 
         [[nodiscard]] auto params() const noexcept -> const TextureParams & { return m_params; }
 
-        // Whether its rows run bottom to top, as GL draws: true only for a
-        // RenderTarget's. Sprites of it come out the right way up anyway; a
-        // shader of your own reads v = 0 as its bottom.
+        // Rows go bottom to top: only a RenderTarget's texture. Sprites are
+        // still drawn upright; in your own shader v = 0 is the bottom.
         [[nodiscard]] auto bottom_up() const noexcept -> bool { return m_bottom_up; }
 
     private:

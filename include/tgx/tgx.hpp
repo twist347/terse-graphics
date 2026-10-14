@@ -1,13 +1,13 @@
 #pragma once
 
-// tgx, whole: the one header a program includes. The other headers under
-// tgx/ are how it is put together, not entry points; their paths may change.
+// All of tgx, in the one header to include. The other headers' paths may
+// change.
 //
-// Two levels. tgx:: is a window, a loop, and 2D drawing on the Canvas, with
-// images, textures, sound and the math and checks games need; normal use
-// needs nothing more. tgx::gl:: is the OpenGL level underneath, for drawing
-// with your own shaders and buffers: the Device's draw calls and the raw
-// resources they take, mixing with the Canvas in the same frame.
+// Two levels. tgx:: gives a window, a loop, 2D drawing on the Canvas,
+// images, textures, sound, math and checks: all normal use needs.
+// tgx::gl:: is the OpenGL level below, for your own shaders and buffers:
+// the Device's draw calls and their resources. It mixes with the Canvas in
+// the same frame.
 
 #include "tgx/core/app.hpp"
 #include "tgx/core/assert.hpp"

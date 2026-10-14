@@ -7,14 +7,14 @@
 #include <cstdint>
 
 namespace tgx::detail::default_font {
-    // Glyphs sit on one line this tall, the line spacing too.
+    // Also the line spacing.
     inline constexpr int line_height = 16;
 
     inline constexpr char first = ' ';
     inline constexpr char last = '~';
 
-    // Where a glyph is in the atlas, and how far it moves the pen: its
-    // width. Every glyph is the full line tall.
+    // Place in the atlas. width is also the pen advance. Every glyph is a
+    // full line tall.
     struct Glyph {
         std::uint16_t x;
         std::uint8_t width;
@@ -119,15 +119,15 @@ namespace tgx::detail::default_font {
     };
     static_assert(glyphs.size() == static_cast<std::size_t>(last - first + 1));
 
-    // The atlas: the glyphs in a row, then a white block for shapes at
+    // The atlas: glyphs in one row, then a white block for shapes at
     // (white_x, 0).
     inline constexpr int atlas_width = 858;
     inline constexpr int atlas_height = 16;
     inline constexpr int white_x = 855;
     inline constexpr int white_size = 3;
 
-    // Its rows top to bottom, a bit per pixel, the leftmost in the most
-    // significant bit; each row starts on a whole byte.
+    // Rows top to bottom, one bit per pixel, leftmost in the high bit. Each
+    // row starts on a new byte.
     inline constexpr int row_bytes = 108;
     inline constexpr std::array<std::uint8_t, 1728> bits{
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

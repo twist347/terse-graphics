@@ -5,36 +5,32 @@
 #include <cmath>
 
 namespace tgx {
-    // A 2D view of the world for the Canvas: the world point target appears at
-    // the canvas point offset, turned by rotation and scaled by zoom around it.
-    // The default one shows the world as it is, one unit to one canvas unit.
+    // Shows the world point target at the canvas point offset, rotated and
+    // zoomed around it. The default camera changes nothing.
     //
     //     canvas.set_camera({.target = player, .offset = {640, 360}, .zoom = 2.f});
     struct Camera2D {
         Vec2 target{};
-        // Usually the middle of the canvas, to keep target there.
+        // Usually the canvas center, to keep target centered.
         Vec2 offset{};
-        // Radians, clockwise on screen, like Canvas rotations.
+        // Radians, clockwise.
         float rotation{0.f};
         float zoom{1.f};
 
         [[nodiscard]] constexpr auto operator==(const Camera2D &) const noexcept -> bool = default;
 
-        // Where a world point shows up on the canvas. Canvas::to_screen goes
-        // on to the window.
+        // To canvas coordinates. Canvas::to_screen goes on to the window.
         [[nodiscard]] auto to_screen(Vec2 world) const noexcept -> Vec2 {
             return rotate((world - target) * zoom, rotation) + offset;
         }
 
-        // The world point under a point of the canvas. For a point of what
-        // the canvas draws into, such as the mouse in the window,
-        // Canvas::to_world: it also knows where the canvas lies in it and how
-        // it is stretched.
+        // From canvas coordinates. For a window point, such as the mouse,
+        // use Canvas::to_world, which accounts for the viewport and size.
         [[nodiscard]] auto to_world(Vec2 point) const noexcept -> Vec2 {
             return rotate(point - offset, -rotation) / zoom + target;
         }
 
-        // The same as to_screen, as a matrix for a shader.
+        // to_screen as a matrix, for a shader.
         [[nodiscard]] auto matrix() const noexcept -> Mat4 {
             const float c = std::cos(rotation) * zoom;
             const float s = std::sin(rotation) * zoom;

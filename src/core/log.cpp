@@ -6,11 +6,9 @@
 #include <cstdio>
 
 namespace {
-    // Problems go to stderr, the rest to stdout. stdout is flushed on every
-    // message: it is block-buffered when redirected, and would otherwise land
-    // after later stderr output in a shared log. One fprintf per message: stdio
-    // locks the stream per call, so lines from different threads do not
-    // interleave.
+    // stdout is flushed every message: redirected, it is block-buffered and
+    // would land after later stderr output. One fprintf per message, so
+    // stdio's per-call lock keeps threads' lines apart.
     auto default_sink(tgx::LogLevel level, std::string_view message, void *) noexcept -> void {
         const bool problem = level >= tgx::LogLevel::warn;
         FILE *out = problem ? stderr : stdout;
@@ -29,7 +27,7 @@ namespace {
 
     tgx::LogSink s_sink = default_sink;
     void *s_user = nullptr;
-    // Atomic because the level is read on every log call, from any thread.
+    // Every log call reads it, from any thread.
     std::atomic<tgx::LogLevel> s_level{tgx::LogLevel::warn};
 }
 

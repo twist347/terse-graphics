@@ -35,26 +35,26 @@ TEST_CASE("line joints") {
 
     SUBCASE("a right angle is mitered, its points the diagonal away") {
         const auto j = joint(at, {1, 0}, {0, 1}, half, 100.f);
-        REQUIRE(j.mitered);
-        CHECK(near(j.plus + j.minus, at * 2.f));
-        CHECK(tgx::length(j.plus - at) == doctest::Approx(half * std::numbers::sqrt2_v<float>));
+        REQUIRE(j);
+        CHECK(near(j->plus + j->minus, at * 2.f));
+        CHECK(tgx::length(j->plus - at) == doctest::Approx(half * std::numbers::sqrt2_v<float>));
     }
     SUBCASE("straight on, the points are square across the line") {
         const auto j = joint(at, {1, 0}, {1, 0}, half, 100.f);
-        REQUIRE(j.mitered);
-        CHECK(tgx::length(j.plus - at) == doctest::Approx(half));
+        REQUIRE(j);
+        CHECK(tgx::length(j->plus - at) == doctest::Approx(half));
     }
     SUBCASE("turning straight back is not mitered") {
-        CHECK_FALSE(joint(at, {1, 0}, {-1, 0}, half, 100.f).mitered);
+        CHECK_FALSE(joint(at, {1, 0}, {-1, 0}, half, 100.f));
     }
     SUBCASE("a corner sharper than the miter limit is not mitered") {
         const tgx::Vec2 back = tgx::normalize(tgx::Vec2{-1.f, 0.05f});
-        CHECK_FALSE(joint(at, {1, 0}, back, half, 100.f).mitered);
+        CHECK_FALSE(joint(at, {1, 0}, back, half, 100.f));
     }
     SUBCASE("a line too short for its corner is not mitered") {
         const tgx::Vec2 sharp = tgx::normalize(tgx::Vec2{-1.f, 1.f});
-        CHECK(joint(at, {1, 0}, sharp, half, 100.f).mitered);
-        CHECK_FALSE(joint(at, {1, 0}, sharp, half, 1.f).mitered);
+        CHECK(joint(at, {1, 0}, sharp, half, 100.f));
+        CHECK_FALSE(joint(at, {1, 0}, sharp, half, 1.f));
     }
 }
 

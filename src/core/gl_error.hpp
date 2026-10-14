@@ -9,18 +9,16 @@
 
 #include <expected>
 
-// The GL error check around giving a resource its storage, the one place a
-// driver failure is reported rather than asserted.
+// GL error checks around allocating storage. The only place where a driver
+// failure is reported as an error instead of asserted.
 namespace tgx::detail {
-    // GL keeps one flag per kind of error, so a few calls empty them; the
-    // bound is for a lost context, on which some drivers report an error on
-    // every call.
+    // GL keeps one flag per kind of error, so a few calls clear them all. The
+    // limit is for a lost context, where some drivers error on every call.
     inline constexpr int max_drained_errors = 16;
 
-    // Drains errors left over from earlier calls, so a check right after an
-    // allocation is about it only. They are logged rather than lost: tgx's
-    // own calls are asserted, so one is most likely raw GL's, and without a
-    // debug context this is its only trace.
+    // Call before an allocation, so the check after it sees only its errors.
+    // Logs them: tgx's own calls are asserted, so they likely come from raw
+    // GL, and without a debug context this is their only trace.
     inline auto drain_gl_errors() noexcept -> void {
         for (int i = 0; i < max_drained_errors; ++i) {
             const GLenum err = glGetError();
@@ -31,15 +29,14 @@ namespace tgx::detail {
         }
     }
 
-    // What an error raised by an allocation means: the driver out of room, or
-    // failing otherwise. Caller mistakes are asserted before, so none is left.
+    // For an allocation error. Caller mistakes are asserted before, so it is
+    // never one of those.
     [[nodiscard]] constexpr auto to_error(GLenum err) noexcept -> Error {
         return err == GL_OUT_OF_MEMORY ? Error::out_of_memory : Error::platform;
     }
 
-    // The check after giving an object its storage, with drain_gl_errors()
-    // before it: the id, or the error with the object deleted, as a Handle of
-    // the same Delete would.
+    // Call after allocating an object's storage. On an error, deletes the
+    // object as a Handle with the same Delete would.
     template<auto Delete>
     [[nodiscard]] auto checked_allocation(GlId id) noexcept -> Result<GlId> {
         if (const GLenum err = glGetError(); err != GL_NO_ERROR) {

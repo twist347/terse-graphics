@@ -19,6 +19,7 @@
 
 #include <glad/gl.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -26,18 +27,16 @@
 #include <string_view>
 #include <utility>
 
-// Only the 3.3 backend exists: this refuses to build against an unwritten one,
-// it is not a switch.
+// Only the 3.3 backend exists; this is not a version switch.
 static_assert(
     tgx::gl::version_major == 3 && tgx::gl::version_minor == 3,
     "tgx implements only OpenGL 3.3"
 );
 
 namespace {
-    // A sampler reads its slot whether or not the draw put a texture there, and
-    // gets whatever an earlier draw left, or black. Neither is reported.
-    // Serves the asserts in Device::draw alone: with asserts off nothing calls
-    // it, which [[maybe_unused]] says is meant.
+    // Asserts each sampler has a texture in its slot. Otherwise it reads what
+    // an earlier draw left, or black, and GL reports neither. Unused with
+    // asserts off.
     [[maybe_unused]] auto check_textures(
         const tgx::gl::Shader &shader,
         const tgx::gl::DrawParams &params
@@ -52,9 +51,8 @@ namespace {
     }
 
     [[nodiscard]] constexpr auto to_log_level(GLenum type, GLenum severity) noexcept -> tgx::LogLevel {
-        // Performance hints are advice, not faults, whatever severity the
-        // driver gives them: NVIDIA rates its routine recompile of a shader on
-        // first draw as medium.
+        // Performance hints are advice, whatever their severity: NVIDIA rates
+        // its routine shader recompile on first draw as medium.
         if (type == GL_DEBUG_TYPE_PERFORMANCE) {
             return tgx::LogLevel::info;
         }
@@ -65,8 +63,8 @@ namespace {
         }
     }
 
-    // Plain "void" on purpose: GLAD_API_PTR is a calling-convention macro on
-    // some platforms, and it has to sit between the return type and the name.
+    // Plain "void": GLAD_API_PTR, a calling-convention macro, must go between
+    // the return type and the name.
     void GLAD_API_PTR on_gl_debug(
         GLenum,
         GLenum type,
@@ -76,12 +74,12 @@ namespace {
         const GLchar *message,
         const void *
     ) noexcept {
-        // The message is null-terminated; the reported length is not trusted,
-        // as drivers disagree on whether it counts the terminator.
+        // Drivers disagree on whether the length counts the terminator, so
+        // the null-terminated message is used as is.
         tgx::detail::log(to_log_level(type, severity), "gl {}: {}", id, message);
     }
 
-    // glGetString hands out unsigned chars; a lost context gives nullptr.
+    // glGetString returns unsigned chars, and nullptr on a lost context.
     [[nodiscard]] auto gl_string(GLenum name) noexcept -> std::string_view {
         const auto *str = reinterpret_cast<const char *>(glGetString(name));
         return str ? str : "?";
@@ -96,11 +94,10 @@ namespace {
         tgx::detail::log_info("  textures: up to {}x{}", max_size, max_size);
     }
 
-    // Logs its outcome as the last line of the context info block: with the
-    // callback off, silence from the driver means nothing.
+    // Logged last in the context info: with the callback off, driver
+    // silence means nothing.
     auto install_debug_callback() noexcept -> void {
-        // Core only since 4.3. Without KHR_debug (macOS has none) there are
-        // simply no driver messages.
+        // Core only since 4.3. macOS has no KHR_debug.
         if (GLAD_GL_KHR_debug == 0) {
             tgx::detail::log_info("  debug:    off (no KHR_debug)");
             return;
@@ -114,8 +111,7 @@ namespace {
         }
 
         glEnable(GL_DEBUG_OUTPUT);
-        // Report from inside the offending call, so a breakpoint in the
-        // callback shows the caller.
+        // So a breakpoint in the callback shows the failing call.
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(on_gl_debug, nullptr);
         // Notifications are driver chatter (buffer placement and the like).
@@ -133,14 +129,12 @@ namespace {
 
 namespace tgx {
     auto Device::create(Window &) -> Result<Device> {
-        // glad 2 returns the version it loaded, so loading and checking that we
-        // got the requested one is the same call.
+        // glad 2 returns the version it loaded.
         const int version = gladLoadGL(detail::gl_loader());
         if (version == 0) {
             return std::unexpected{Error::platform};
         }
-        // Before the version check, so a rejected context still shows what the
-        // driver actually gave.
+        // Before the version check, so a rejected context is still logged.
         log_context_info();
         if (version < GLAD_MAKE_VERSION(gl::version_major, gl::version_minor)) {
             return std::unexpected{Error::unsupported};
@@ -158,11 +152,10 @@ namespace tgx {
         }
         context.batch = std::make_unique<detail::Batch>(std::move(*batch));
 
-        // One blank frame shown at once: on Wayland with a fractional scale the
-        // window's buffer takes the size GLFW already reports only at a swap,
-        // so the first frame drawn would be cut and turned against the wrong
-        // height. Not present(): it is no frame of the app's, and the clock
-        // does not tick.
+        // One blank frame now: on Wayland with a fractional scale, the buffer
+        // gets the size GLFW reports only at a swap, so the first frame would
+        // be cut off and flipped with the wrong height. Not present(): it is
+        // not an app frame, and the clock does not tick.
         context.clear({.color = colors::black});
         detail::swap_buffers();
         return Device{};
@@ -183,7 +176,7 @@ namespace tgx {
 
     auto Device::clear(const ClearParams &params) noexcept -> void {
         const detail::Target target = detail::target_of(params.target);
-        // GL clears what is not there without a word.
+        // GL silently ignores a clear of a missing buffer.
         TGX_ASSERT_MSG(
             !params.depth || target.depth,
             "clearing the depth of a render target made without one"
@@ -202,8 +195,7 @@ namespace tgx {
 
     auto Device::read() -> Image {
         Image image = detail::context().read({});
-        // The window's alpha is whatever blending left in it; what shows is
-        // opaque.
+        // The window's alpha is whatever blending left, but it shows opaque.
         for (Color &pixel: image.pixels()) {
             pixel.a = 255;
         }
@@ -245,16 +237,13 @@ namespace tgx {
         const std::size_t available = indexed ? vertices.index_count() : vertices.vertex_count();
         const std::size_t count = params.count != gl::DrawParams::all
                                       ? params.count
-                                      : params.first < available
-                                            ? available - params.first
-                                            : 0;
+                                      : available - std::min(params.first, available);
 
         TGX_ASSERT(std::in_range<GLsizei>(count) && std::in_range<GLint>(params.first));
 
-        // GL does not check ranges: reading past a buffer is undefined, and the
-        // debug output usually stays silent. Index values themselves are not
-        // checked, that would mean reading the buffer back. Both fit a GLint
-        // (asserted above), so the sum cannot overflow.
+        // GL does not check ranges: reading past a buffer is undefined and
+        // usually silent. Index values are not checked; that would need a read
+        // back. Both values fit a GLint, so the sum cannot overflow.
         TGX_ASSERT_MSG(
             params.first + count <= available,
             "drawing {} [{}, {}) from a buffer of {}",
@@ -262,18 +251,17 @@ namespace tgx {
         );
 
         const detail::Target target = detail::target_of(params.target);
-        // Without a depth buffer every fragment passes the test, which GL
-        // does not report.
+        // Without a depth buffer every fragment passes, silently.
         TGX_ASSERT_MSG(
             params.state.depth == gl::Depth::none || target.depth,
             "a depth test drawing into a render target made without depth"
         );
-        // GL refuses a negative size and draws nothing, without a word unless
-        // on a debug context.
+        const gl::Viewport viewport = params.viewport.value_or(detail::surface_of(target).viewport());
+        // GL draws nothing, and reports it only on a debug context.
         TGX_ASSERT_MSG(
-            !params.viewport || (params.viewport->width >= 0 && params.viewport->height >= 0),
+            viewport.width >= 0 && viewport.height >= 0,
             "viewport of size {}x{}",
-            params.viewport ? params.viewport->width : 0, params.viewport ? params.viewport->height : 0
+            viewport.width, viewport.height
         );
         detail::DrawCall call{
             .target = target,
@@ -284,11 +272,11 @@ namespace tgx {
             .count = count,
             .primitive = params.primitive,
             .state = params.state,
-            .viewport = params.viewport.value_or(detail::surface_of(target).viewport()),
+            .viewport = viewport,
         };
         for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
             if (const Texture *texture = params.textures[slot]) {
-                // GL leaves it undefined, and drivers draw garbage.
+                // Undefined in GL; drivers draw garbage.
                 TGX_ASSERT_MSG(
                     texture->id() != target.texture,
                     "slot {} reads the texture of the render target the draw writes",
@@ -302,9 +290,8 @@ namespace tgx {
 
     auto Device::release() noexcept -> void {
         if (m_owned) {
-            // Its gl resources go while GL is still usable, and while the
-            // context is still whole for them to unbind from. What it still
-            // holds is dropped: the frame it was for is over.
+            // The batch goes while GL and the Context are still whole. Its
+            // shapes are dropped: their frame is over.
             detail::Context &context = detail::context();
             context.batch.reset();
             context = {};

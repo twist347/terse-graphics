@@ -11,27 +11,24 @@ struct GLFWwindow;
 
 namespace tgx {
     struct WindowParams {
-        // In screen coordinates, as Window::size() gives it back.
+        // In screen coordinates, as Window::size().
         Size size{1280, 720};
         const char *title{"tgx"};
-        // Whether presenting a frame waits for the display; set_vsync()
-        // changes it later.
+        // See Window::set_vsync().
         bool vsync{true};
-        // Debug contexts report driver messages but slow the driver down, so by
-        // default only builds with asserts get one. TGX_ENABLE_ASSERTS rather
-        // than NDEBUG: it is the same for the library and the app.
+        // Reports driver messages but slows the driver: on by default only
+        // with asserts. TGX_ENABLE_ASSERTS, unlike NDEBUG, is the same for the
+        // library and the app.
         bool debug_context{TGX_ENABLE_ASSERTS != 0};
     };
 
-    // The one window, with its GL context: creating it makes the context
-    // current. It also owns the windowing backend (glfwInit/glfwTerminate),
-    // which is one per process, so there is one Window, all calls belong to the
-    // main thread, and it outlives the Device. Like the Device, it only owns
-    // the window; its state is kept in one place inside tgx, so it can be moved
-    // freely.
+    // The one window and its GL context, made current on create. It also owns
+    // the windowing backend (glfwInit/glfwTerminate), one per process. So: one
+    // Window, all calls on the main thread, and it outlives the Device. Its
+    // state lives inside tgx, so it moves freely.
     class Window {
     public:
-        // Fails with Error::unsupported when the system has no OpenGL 3.3 core,
+        // Fails with Error::unsupported without OpenGL 3.3 core, and with
         // Error::platform when the windowing system fails otherwise.
         [[nodiscard]] static auto create(const WindowParams &params = {}) noexcept -> Result<Window>;
 
@@ -45,65 +42,57 @@ namespace tgx {
 
         ~Window();
 
-        // Handles what happened since the last call: resizes, close requests,
-        // keys and the mouse, which input() then shows.
+        // Resizes, close requests, keys and the mouse since the last call.
+        // Updates input().
         auto poll_events() noexcept -> void;
 
-        // Whether the last poll_events() saw the window or its framebuffer
-        // change size; the new sizes are size() and framebuffer_size().
-        // Nothing needs fitting after it: draws cover the framebuffer and the
-        // canvas follows the window on their own.
+        // Whether either size changed in the last poll_events(). Nothing needs
+        // adjusting: draws cover the framebuffer and the canvas follows.
         [[nodiscard]] auto resized() const noexcept -> bool;
 
         [[nodiscard]] auto input() const noexcept -> const Input &;
 
-        // Whether keyboard input goes to the window: false once the player
-        // switches to another, the usual sign to pause a game. Keys and
-        // buttons held when it loses focus are let go, so none stays down.
-        // As of the last poll_events().
+        // False once the player switches to another window: the usual sign
+        // to pause. Losing focus releases held keys and buttons. As of the
+        // last poll_events().
         [[nodiscard]] auto focused() const noexcept -> bool;
 
-        // Whether it is minimized to the taskbar or the dock. Always false on
-        // Wayland, which does not tell a window it was minimized: focused()
-        // is what to pause on there, and works everywhere.
+        // Always false on Wayland, which does not report it. Pause on
+        // focused() instead: it works everywhere.
         [[nodiscard]] auto minimized() const noexcept -> bool;
 
         [[nodiscard]] auto should_close() const noexcept -> bool;
 
         auto request_close() noexcept -> void;
 
-        // Must be nul-terminated UTF-8, as the windowing backend requires.
+        // Nul-terminated UTF-8.
         auto set_title(const char *title) noexcept -> void;
 
-        // Whether presenting a frame (Device::present) waits for the display:
-        // no tearing, and frames paced by it. Starts as WindowParams::vsync.
+        // Whether Device::present waits for the display: no tearing, frames
+        // paced to the display.
         auto set_vsync(bool enabled) noexcept -> void;
 
         [[nodiscard]] auto vsync() const noexcept -> bool;
 
-        // Covers a whole monitor, without a border, at the resolution the
-        // monitor already has (its video mode is left alone), or goes back to
-        // the size and place the window had. The monitor is the one the
-        // window is most on; on Wayland, which keeps window positions to
-        // itself, the primary one. The sizes change as on any resize
-        // (resized(), size()): the Canvas follows, render targets are yours
-        // to remake.
+        // Borderless over a whole monitor, no video mode change; or back to
+        // the old size and position. The monitor the window is mostly on (on
+        // Wayland, the primary one). A resize: the Canvas follows, but
+        // recreate your render targets.
         auto set_fullscreen(bool fullscreen) noexcept -> void;
 
         [[nodiscard]] auto fullscreen() const noexcept -> bool;
 
-        // In screen coordinates, the units the OS lays windows out in and the
-        // Canvas draws in. The same as framebuffer_size() unless the display
-        // scales, e.g. half of it on a Retina screen. Both sizes are as of the
-        // last events polled.
+        // In screen coordinates: the OS layout units the Canvas draws in.
+        // Equals framebuffer_size() unless the display scales, e.g. half of it
+        // on Retina. Both as of the last poll_events().
         [[nodiscard]] auto size() const noexcept -> Size;
 
-        // In pixels: what a draw into the window covers unless told otherwise.
+        // In pixels: what a draw into the window covers by default.
         [[nodiscard]] auto framebuffer_size() const noexcept -> Size;
 
-        // The way out to GLFW, for what tgx does not do. tgx has set the
-        // window's callbacks: a glfwSet*Callback of your own replaces one,
-        // and input(), resized(), focused() or minimized() stop following.
+        // For what tgx does not do. tgx sets the callbacks: replacing them
+        // with glfwSet*Callback stops input(), resized(), focused() and
+        // minimized() from updating.
         [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow *;
 
     private:
@@ -112,7 +101,7 @@ namespace tgx {
 
         auto release() noexcept -> void;
 
-        // False once moved from: the window is someone else's to close.
+        // False once moved from: another Window closes the window.
         bool m_owned{false};
     };
 }

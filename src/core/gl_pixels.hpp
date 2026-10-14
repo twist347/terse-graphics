@@ -4,21 +4,20 @@
 
 #include <glad/gl.h>
 
-// How pixels travel between tgx and GL: a Color's four bytes, red first. Rows
-// of 4-byte pixels are always 4-byte aligned, GL's default for packing and
-// unpacking alike, so neither needs setting.
+// Pixels between tgx and GL: a Color's four bytes, red first. Rows are always
+// 4-byte aligned, GL's default for packing and unpacking.
 namespace tgx::detail {
     static_assert(sizeof(Color) == 4, "a Color is one RGBA8 pixel");
 
-    // As textures keep them.
+    // In textures.
     inline constexpr GLenum pixel_storage = GL_RGBA8;
 
-    // As they are uploaded and read back.
+    // For uploads and read backs.
     inline constexpr GLenum pixel_format = GL_RGBA;
     inline constexpr GLenum pixel_type = GL_UNSIGNED_BYTE;
 
-    // The largest width or height a texture or render target may have on
-    // this GPU: past it, creating one fails as unsupported.
+    // Largest width or height of a texture or render target. A bigger one
+    // fails with Error::unsupported.
     [[nodiscard]] inline auto max_texture_size() noexcept -> int {
         GLint size = 0;
         glGetIntegerv(GL_MAX_TEXTURE_SIZE, &size);

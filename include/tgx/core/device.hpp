@@ -19,47 +19,38 @@ namespace tgx {
         struct DrawParams;
     }
 
-    // What a clear resets, and to what; what is left empty stays as it is.
-    // Like a draw, every clear states it all, so nothing carries over from
-    // one clear to the next.
+    // Empty fields are not cleared. Nothing carries over from one clear to
+    // the next.
     //
     //     device.clear({.color = colors::black, .depth = 1.f});
     struct ClearParams {
-        // What is cleared, all of it; nullptr is the window.
+        // Cleared whole. nullptr: the window.
         const RenderTarget *target{nullptr};
         std::optional<Color> color{};
-        // Usually 1, the far end of the depth range.
+        // Usually 1, the far end.
         std::optional<float> depth{};
     };
 
-    // The GL context, ready to draw: GPU resources (Texture, gl:: ones) are
-    // created while it exists and destroyed before it goes. There is one, of
-    // the one window; it only sets the context up and tears it down, which is
-    // why it can be moved freely and holds nothing else.
+    // The GL context, ready to draw. One Device, for the one window, which
+    // must outlive it. GPU resources (Texture, the gl:: types) must be
+    // destroyed before it. It holds no other state, so it moves freely.
     //
-    // It also draws what the Canvas has collected before anything else of its
-    // own: a draw, a clear, presenting the frame. So the picture follows the
-    // order of the calls. flush() draws it on demand, before raw GL calls.
-    // Those must leave GL as they found it: the Device skips setting what it
-    // knows to be set (the framebuffer, the program, the vertex array, the
-    // textures and the active slot, the viewport, the clear values, the
-    // render state) and assumes the rest at GL's defaults (no scissor or
-    // stencil test, every color channel written), but for point sizes, which
-    // it leaves to the shader (GL_PROGRAM_POINT_SIZE on).
+    // It draws the Canvas's shapes before its own draws, clears, reads and
+    // presents, so the picture follows call order. Call flush() before raw
+    // GL calls.
     //
-    // Belongs to the simple level, as without it no frame is shown; only
-    // draw() is of the OpenGL level, and takes its types (tgx::gl).
+    // Raw GL calls must leave GL as they found it. The Device does not set
+    // again what it knows is set (framebuffer, program, vertex array,
+    // textures and active slot, viewport, clear values, render state). It
+    // assumes the rest is at GL's defaults (no scissor or stencil test, all
+    // color channels written), except that GL_PROGRAM_POINT_SIZE is on.
     //
-    // It presents the frames of the window it was created for, which must
-    // outlive it.
+    // Part of the simple level; only draw() takes tgx::gl types.
     class Device {
     public:
-        // Loads GL functions for the window's context and, on a debug context,
-        // routes driver messages to the log. Frames go to this window. Fails
-        // with Error::unsupported when the context is older than 3.3,
-        // Error::platform when the functions do not load or the Canvas's
-        // resources cannot be made, Error::out_of_memory when the GPU has no
-        // room for them.
+        // Loads GL; on a debug context, logs driver messages. Fails with
+        // Error::unsupported below GL 3.3, Error::platform if loading or the
+        // Canvas's setup fails, Error::out_of_memory if the GPU is full.
         [[nodiscard]] static auto create(Window &window) -> Result<Device>;
 
         Device(const Device &) = delete;
@@ -74,40 +65,30 @@ namespace tgx {
 
         auto clear(const ClearParams &params) noexcept -> void;
 
-        // Draws what the Canvas has collected.
+        // Draws the Canvas's shapes.
         auto flush() noexcept -> void;
 
-        // What has been drawn into the window this frame, back on the CPU,
-        // rows top to bottom: a screenshot, opaque as the window shows it.
-        // Read before present(), which hands the frame to the display and
-        // leaves the next one to be drawn anew. Draws what is waiting first
-        // and waits for the GPU to finish: not for every frame.
-        //
-        // A minimized window has nothing to read: the Image is empty.
+        // A screenshot of this frame, opaque. Call it before present(). Waits
+        // for the GPU, so not every frame. Empty for a minimized window.
         //
         //     if (input.pressed(tgx::Key::f12) && !app->window().minimized()) {
         //         const auto saved = app->device().read().save("screenshot.png");
         //     }
         [[nodiscard]] auto read() -> Image;
 
-        // Draws what the Canvas has collected and shows the frame in the
-        // window, waiting for the display if the window has vsync on
-        // (Window::set_vsync), then times the frame for clock().
-        // App::swap_buffers does this.
+        // Shows the frame, waiting for the display if vsync is on, and
+        // records its time for clock(). App::swap_buffers calls this.
         auto present() noexcept -> void;
 
-        // The time of the frames present() shows.
+        // Timing of the frames shown by present().
         [[nodiscard]] auto clock() const noexcept -> const Clock &;
 
-        // Makes the next Clock::delta() count from now, after a long pause
-        // inside the loop such as loading a level, so it does not jump: the
-        // time spent is left out of delta() and fps(). elapsed() keeps counting
-        // real time.
+        // Makes the next Clock::delta() count from now, e.g. after loading a
+        // level. The pause is left out of delta() and fps(), not elapsed().
         auto restart_clock() noexcept -> void;
 
-        // Draws with the index buffer when the vertex array has one, straight
-        // from the vertices otherwise. Two overloads rather than a default
-        // argument, which would need gl::DrawParams complete here.
+        // Uses the index buffer if the vertex array has one. Two overloads,
+        // since a default argument would need gl::DrawParams defined here.
         auto draw(const gl::Shader &shader, const gl::VertexArray &vertices) noexcept -> void;
 
         auto draw(
@@ -122,7 +103,7 @@ namespace tgx {
 
         auto release() noexcept -> void;
 
-        // False once moved from: the context is someone else's to tear down.
+        // False after a move.
         bool m_owned{false};
     };
 }
