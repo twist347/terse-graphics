@@ -170,7 +170,11 @@ namespace tgx {
     // y-down screen coordinates, negative counter-clockwise, zero when they are
     // parallel.
     [[nodiscard]] constexpr auto cross(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.y - a.y * b.x; }
-    [[nodiscard]] inline auto length(Vec2 v) noexcept -> float { return std::sqrt(dot(v, v)); }
+    // Compared with a squared distance, it tells nearer or farther without a
+    // square root.
+    [[nodiscard]] constexpr auto length_squared(Vec2 v) noexcept -> float { return dot(v, v); }
+
+    [[nodiscard]] inline auto length(Vec2 v) noexcept -> float { return std::sqrt(length_squared(v)); }
     // A zero vector has no direction; normalizing one gives NaNs.
     [[nodiscard]] inline auto normalize(Vec2 v) noexcept -> Vec2 { return v / length(v); }
 
@@ -240,7 +244,9 @@ namespace tgx {
         return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
     }
 
-    [[nodiscard]] inline auto length(Vec3 v) noexcept -> float { return std::sqrt(dot(v, v)); }
+    [[nodiscard]] constexpr auto length_squared(Vec3 v) noexcept -> float { return dot(v, v); }
+
+    [[nodiscard]] inline auto length(Vec3 v) noexcept -> float { return std::sqrt(length_squared(v)); }
     // A zero vector has no direction; normalizing one gives NaNs.
     [[nodiscard]] inline auto normalize(Vec3 v) noexcept -> Vec3 { return v / length(v); }
 

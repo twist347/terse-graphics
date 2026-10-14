@@ -18,7 +18,9 @@
 #include <vector>
 
 namespace {
-    static_assert(sizeof(tgx::Color) == 4, "stb's RGBA pixels are copied straight into Colors");
+    // stb's RGBA pixels, copied straight into Colors and back.
+    constexpr int channels = 4;
+    static_assert(sizeof(tgx::Color) == channels);
 
     [[nodiscard]] auto pixel_count(tgx::Size size) noexcept -> std::size_t {
         TGX_ASSERT_MSG(size.width >= 0 && size.height >= 0, "image of negative size {}x{}", size.width, size.height);
@@ -70,7 +72,7 @@ namespace tgx {
             stbi_load_from_memory(
                 reinterpret_cast<const stbi_uc *>(encoded.data()),
                 static_cast<int>(encoded.size()),
-                &width, &height, &channels_in_file, 4
+                &width, &height, &channels_in_file, channels
             )
         };
         if (!pixels) {
@@ -112,7 +114,7 @@ namespace tgx {
         };
         const int stride = m_size.width * static_cast<int>(sizeof(Color));
         // stb fails only when its own allocation does.
-        if (stbi_write_png_to_func(append, &encoded, m_size.width, m_size.height, 4, m_pixels.data(), stride) == 0
+        if (stbi_write_png_to_func(append, &encoded, m_size.width, m_size.height, channels, m_pixels.data(), stride) == 0
             || encoded.out_of_memory) {
             return std::unexpected{Error::out_of_memory};
         }

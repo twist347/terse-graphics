@@ -18,11 +18,7 @@ namespace {
         glBindRenderbuffer(GL_RENDERBUFFER, id);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, size.width, size.height);
 
-        if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
-            tgx::detail::delete_renderbuffer(id);
-            return std::unexpected{tgx::detail::to_error(err)};
-        }
-        return id;
+        return tgx::detail::checked_allocation<tgx::detail::delete_renderbuffer>(id);
     }
 }
 

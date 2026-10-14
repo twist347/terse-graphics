@@ -126,6 +126,18 @@ namespace tgx::detail {
 }
 
 namespace {
+    // Zero or more: one NaN reaches the shared mix and silences everything.
+    // For asserts only: unused with them off.
+    [[maybe_unused, nodiscard]] auto valid_volume(float volume) noexcept -> bool {
+        return std::isfinite(volume) && volume >= 0.f;
+    }
+
+    // The sound a Music drives, or nullptr when there is none: moved from, or
+    // silent with the Audio.
+    [[nodiscard]] auto live_sound(const std::unique_ptr<tgx::detail::MusicStream> &stream) noexcept -> ma_sound * {
+        return stream && stream->live ? &stream->sound : nullptr;
+    }
+
     // A decoder over the bytes of a sound file in memory, giving 32-bit
     // floats, and otherwise the sound as it was recorded: its own rate and
     // channels, which the engine converts as it plays. Let go however its
@@ -335,26 +347,27 @@ namespace tgx {
     Music::~Music() = default;
 
     auto Music::play() noexcept -> void {
-        if (m_stream && m_stream->live) {
-            ma_sound_start(&m_stream->sound);
+        if (ma_sound *sound = live_sound(m_stream)) {
+            ma_sound_start(sound);
         }
     }
 
     auto Music::pause() noexcept -> void {
-        if (m_stream && m_stream->live) {
-            ma_sound_stop(&m_stream->sound);
+        if (ma_sound *sound = live_sound(m_stream)) {
+            ma_sound_stop(sound);
         }
     }
 
     auto Music::stop() noexcept -> void {
-        if (m_stream && m_stream->live) {
-            ma_sound_stop(&m_stream->sound);
-            ma_sound_seek_to_pcm_frame(&m_stream->sound, 0);
+        if (ma_sound *sound = live_sound(m_stream)) {
+            ma_sound_stop(sound);
+            ma_sound_seek_to_pcm_frame(sound, 0);
         }
     }
 
     auto Music::playing() const noexcept -> bool {
-        return m_stream && m_stream->live && ma_sound_is_playing(&m_stream->sound);
+        const ma_sound *sound = live_sound(m_stream);
+        return sound && ma_sound_is_playing(sound);
     }
 
     auto Music::set_looping(bool looping) noexcept -> void {
@@ -362,8 +375,8 @@ namespace tgx {
             return;
         }
         m_stream->looping = looping;
-        if (m_stream->live) {
-            ma_sound_set_looping(&m_stream->sound, looping ? MA_TRUE : MA_FALSE);
+        if (ma_sound *sound = live_sound(m_stream)) {
+            ma_sound_set_looping(sound, looping ? MA_TRUE : MA_FALSE);
         }
     }
 
@@ -372,15 +385,14 @@ namespace tgx {
     }
 
     auto Music::set_volume(float volume) noexcept -> void {
-        // One NaN reaches the shared mix and silences everything.
-        TGX_ASSERT_MSG(std::isfinite(volume) && volume >= 0.f, "volume {}: not 0 or more", volume);
+        TGX_ASSERT_MSG(valid_volume(volume), "volume {}: not 0 or more", volume);
 
         if (!m_stream) {
             return;
         }
         m_stream->volume = volume;
-        if (m_stream->live) {
-            ma_sound_set_volume(&m_stream->sound, m_stream->volume);
+        if (ma_sound *sound = live_sound(m_stream)) {
+            ma_sound_set_volume(sound, volume);
         }
     }
 
@@ -391,12 +403,12 @@ namespace tgx {
     auto Music::seek(double seconds) noexcept -> void {
         TGX_ASSERT_MSG(std::isfinite(seconds) && seconds >= 0.0, "seek({}): not a second of it", seconds);
 
-        if (!m_stream || !m_stream->live) {
+        ma_sound *sound = live_sound(m_stream);
+        if (!sound) {
             return;
         }
-        ma_sound &sound = m_stream->sound;
         // Frames at the engine's rate, as miniaudio counts a sound's.
-        const ma_uint32 rate = ma_engine_get_sample_rate(ma_sound_get_engine(&sound));
+        const ma_uint32 rate = ma_engine_get_sample_rate(ma_sound_get_engine(sound));
         auto frame = static_cast<ma_uint64>(seconds * rate);
 
         // miniaudio takes a frame past the end around the length, and one two
@@ -404,18 +416,19 @@ namespace tgx {
         // piece played once, a looping one goes round. A stream that cannot
         // tell its length (Vorbis) has the duration measured at load.
         ma_uint64 length = 0;
-        if (ma_sound_get_length_in_pcm_frames(&sound, &length) != MA_SUCCESS || length == 0) {
+        if (ma_sound_get_length_in_pcm_frames(sound, &length) != MA_SUCCESS || length == 0) {
             length = static_cast<ma_uint64>(m_stream->duration * rate);
         }
         if (length > 0) {
             frame = m_stream->looping ? frame % length : std::min(frame, length);
         }
-        ma_sound_seek_to_pcm_frame(&sound, frame);
+        ma_sound_seek_to_pcm_frame(sound, frame);
     }
 
     auto Music::position() const noexcept -> double {
         float cursor = 0.f;
-        if (m_stream && m_stream->live && ma_sound_get_cursor_in_seconds(&m_stream->sound, &cursor) == MA_SUCCESS) {
+        const ma_sound *sound = live_sound(m_stream);
+        if (sound && ma_sound_get_cursor_in_seconds(sound, &cursor) == MA_SUCCESS) {
             return cursor;
         }
         return 0.0;
@@ -483,8 +496,7 @@ namespace tgx {
             "pitch {}: not a speed to play at",
             params.pitch
         );
-        // One NaN reaches the shared mix and silences everything.
-        TGX_ASSERT_MSG(std::isfinite(params.volume) && params.volume >= 0.f, "volume {}: not 0 or more", params.volume);
+        TGX_ASSERT_MSG(valid_volume(params.volume), "volume {}: not 0 or more", params.volume);
         TGX_ASSERT_MSG(params.pan >= -1.f && params.pan <= 1.f, "pan {}: not from -1 to 1", params.pan);
 
         if (!s_audio || sound.m_id == 0 || sound.m_samples.empty()) {
@@ -530,8 +542,7 @@ namespace tgx {
     }
 
     auto Audio::set_volume(float volume) noexcept -> void {
-        // One NaN reaches the shared mix and silences everything.
-        TGX_ASSERT_MSG(std::isfinite(volume) && volume >= 0.f, "volume {}: not 0 or more", volume);
+        TGX_ASSERT_MSG(valid_volume(volume), "volume {}: not 0 or more", volume);
 
         s_volume = volume;
         if (s_audio) {

@@ -68,7 +68,7 @@ namespace tgx::detail {
     // in and out are the directions of the lines, of length 1.
     [[nodiscard]] inline auto joint(Vec2 at, Vec2 in, Vec2 out, float half, float room) noexcept -> Joint {
         const Vec2 sum = perpendicular(in) + perpendicular(out);
-        if (dot(sum, sum) < straight_back) {
+        if (length_squared(sum) < straight_back) {
             return {at, at, false};
         }
         const Vec2 miter = normalize(sum);

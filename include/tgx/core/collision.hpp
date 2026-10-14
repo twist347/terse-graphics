@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <span>
 
@@ -26,7 +27,14 @@ namespace tgx {
         // Asserted where they are taken, so the message names the caller.
         [[nodiscard]] constexpr auto valid(Rect rect) noexcept -> bool { return rect.width >= 0.f && rect.height >= 0.f; }
 
-        [[nodiscard]] constexpr auto valid(Circle circle) noexcept -> bool { return circle.radius >= 0.f; }
+        // Zero or more and finite, for the Canvas's circles too. Compared
+        // with the largest float rather than std::isfinite, to stay constexpr
+        // on every compiler: NaN and infinity fail both ways.
+        [[nodiscard]] constexpr auto valid_radius(float radius) noexcept -> bool {
+            return radius >= 0.f && radius <= std::numeric_limits<float>::max();
+        }
+
+        [[nodiscard]] constexpr auto valid(Circle circle) noexcept -> bool { return valid_radius(circle.radius); }
     }
 
     // Its left and top edges are inside, its right and bottom edges outside,
@@ -43,7 +51,7 @@ namespace tgx {
         TGX_ASSERT_MSG(detail::valid(circle), "circle of radius {}", circle.radius);
 
         const Vec2 d = point - circle.center;
-        return dot(d, d) <= circle.radius * circle.radius;
+        return length_squared(d) <= circle.radius * circle.radius;
     }
 
     // The triangle a b c, either way round; the edges count as inside. One
@@ -104,7 +112,7 @@ namespace tgx {
 
         const Vec2 d = b.center - a.center;
         const float reach = a.radius + b.radius;
-        return dot(d, d) < reach * reach;
+        return length_squared(d) < reach * reach;
     }
 
     [[nodiscard]] constexpr auto overlaps(Rect rect, Circle circle) noexcept -> bool {
@@ -121,7 +129,7 @@ namespace tgx {
             std::clamp(circle.center.y, rect.y, rect.bottom()),
         };
         const Vec2 d = circle.center - nearest;
-        return dot(d, d) < circle.radius * circle.radius;
+        return length_squared(d) < circle.radius * circle.radius;
     }
 
     [[nodiscard]] constexpr auto overlaps(Circle circle, Rect rect) noexcept -> bool {
@@ -133,11 +141,11 @@ namespace tgx {
     // wall from.
     [[nodiscard]] constexpr auto closest_point(Vec2 a, Vec2 b, Vec2 point) noexcept -> Vec2 {
         const Vec2 ab = b - a;
-        const float length_squared = dot(ab, ab);
-        if (length_squared == 0.f) {
+        const float squared = length_squared(ab);
+        if (squared == 0.f) {
             return a;
         }
-        const float t = std::clamp(dot(point - a, ab) / length_squared, 0.f, 1.f);
+        const float t = std::clamp(dot(point - a, ab) / squared, 0.f, 1.f);
         return a + ab * t;
     }
 
@@ -147,7 +155,7 @@ namespace tgx {
         TGX_ASSERT_MSG(detail::valid(circle), "circle of radius {}", circle.radius);
 
         const Vec2 d = circle.center - closest_point(a, b, circle.center);
-        return dot(d, d) < circle.radius * circle.radius;
+        return length_squared(d) < circle.radius * circle.radius;
     }
 
     // The part two rects share; an empty Rect when they do not overlap. Its

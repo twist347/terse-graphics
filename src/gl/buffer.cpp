@@ -46,11 +46,7 @@ namespace tgx::gl {
         glBufferData(edit_target, static_cast<GLsizeiptr>(byte_size), data, to_gl(access));
 
         // Any error leaves the buffer without storage, so none is survivable.
-        if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
-            detail::delete_buffer(id);
-            return std::unexpected{tgx::detail::to_error(err)};
-        }
-        return id;
+        return tgx::detail::checked_allocation<detail::delete_buffer>(id);
     }
 
     auto detail::update_buffer(GlId id, std::size_t byte_offset, std::span<const std::byte> data) noexcept -> void {

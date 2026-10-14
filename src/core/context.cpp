@@ -10,6 +10,7 @@
 #include "tgx/gl/vertex_array.hpp"
 
 #include "core/batch.hpp"
+#include "core/gl_pixels.hpp"
 #include "core/window_internal.hpp"
 
 #include <glad/gl.h>
@@ -124,40 +125,41 @@ namespace {
         }
     }
 
+    // A setting whose none is a capability switched off: going to or from
+    // none switches it, any other value is set through apply. Nothing is
+    // touched when it stays the same, and a value is never set for none.
+    template<typename Setting, typename Apply>
+    auto apply_switched(Setting current, Setting next, GLenum capability, Apply apply) noexcept -> void {
+        if (next == current) {
+            return;
+        }
+        if ((next == Setting::none) != (current == Setting::none)) {
+            set_enabled(capability, next != Setting::none);
+        }
+        if (next != Setting::none) {
+            apply(next);
+        }
+    }
+
     // Brings GL from the state current describes to next, touching only what
     // differs.
     auto apply_state(tgx::gl::RenderState &current, const tgx::gl::RenderState &next) noexcept -> void {
-        if (next.blend != current.blend) {
-            if ((next.blend == tgx::Blend::none) != (current.blend == tgx::Blend::none)) {
-                set_enabled(GL_BLEND, next.blend != tgx::Blend::none);
-            }
-            if (next.blend != tgx::Blend::none) {
-                const GlBlend factors = to_gl(next.blend);
-                glBlendFuncSeparate(factors.src_rgb, factors.dst_rgb, factors.src_alpha, factors.dst_alpha);
-            }
-        }
+        apply_switched(current.blend, next.blend, GL_BLEND, [](tgx::Blend blend) noexcept {
+            const GlBlend factors = to_gl(blend);
+            glBlendFuncSeparate(factors.src_rgb, factors.dst_rgb, factors.src_alpha, factors.dst_alpha);
+        });
 
-        if (next.depth != current.depth) {
-            if ((next.depth == tgx::gl::Depth::none) != (current.depth == tgx::gl::Depth::none)) {
-                set_enabled(GL_DEPTH_TEST, next.depth != tgx::gl::Depth::none);
-            }
-            if (next.depth != tgx::gl::Depth::none) {
-                glDepthFunc(to_gl(next.depth));
-            }
-        }
+        apply_switched(current.depth, next.depth, GL_DEPTH_TEST, [](tgx::gl::Depth depth) noexcept {
+            glDepthFunc(to_gl(depth));
+        });
 
         if (next.depth_write != current.depth_write) {
             glDepthMask(next.depth_write ? GL_TRUE : GL_FALSE);
         }
 
-        if (next.cull != current.cull) {
-            if ((next.cull == tgx::gl::Cull::none) != (current.cull == tgx::gl::Cull::none)) {
-                set_enabled(GL_CULL_FACE, next.cull != tgx::gl::Cull::none);
-            }
-            if (next.cull != tgx::gl::Cull::none) {
-                glCullFace(to_gl(next.cull));
-            }
-        }
+        apply_switched(current.cull, next.cull, GL_CULL_FACE, [](tgx::gl::Cull cull) noexcept {
+            glCullFace(to_gl(cull));
+        });
 
         if (next.fill != current.fill) {
             glPolygonMode(GL_FRONT_AND_BACK, to_gl(next.fill));
@@ -305,9 +307,7 @@ namespace tgx {
             return image;
         }
         bind_framebuffer(target.framebuffer);
-        // Rows of 4-byte pixels are always 4-byte aligned, GL's default pack
-        // alignment.
-        glReadPixels(0, 0, size.width, size.height, GL_RGBA, GL_UNSIGNED_BYTE, image.pixels().data());
+        glReadPixels(0, 0, size.width, size.height, pixel_format, pixel_type, image.pixels().data());
 
         const auto pixels = image.pixels();
         const auto width = static_cast<std::size_t>(size.width);

@@ -1,6 +1,7 @@
 #include "tgx/core/canvas.hpp"
 
 #include "tgx/core/assert.hpp"
+#include "tgx/core/collision.hpp"
 #include "tgx/core/handle.hpp"
 #include "tgx/core/texture.hpp"
 
@@ -248,6 +249,19 @@ namespace {
         }
     }
 
+    // The corners of an upright box clockwise from the top-left, the order
+    // push_quad takes: a rect's, its texture coordinates', a glyph's.
+    [[nodiscard]] constexpr auto corners(
+        tgx::Vec2 top_left,
+        tgx::Vec2 bottom_right
+    ) noexcept -> std::array<tgx::Vec2, 4> {
+        return {top_left, {bottom_right.x, top_left.y}, bottom_right, {top_left.x, bottom_right.y}};
+    }
+
+    [[nodiscard]] constexpr auto corners(tgx::Rect rect) noexcept -> std::array<tgx::Vec2, 4> {
+        return corners({rect.x, rect.y}, {rect.right(), rect.bottom()});
+    }
+
     // Four corners clockwise, as two triangles: a b c and c d a. Shapes,
     // sprites and glyphs all come down to it.
     auto push_quad(
@@ -347,26 +361,21 @@ namespace {
         tgx::Vec2 position,
         float rotation
     ) noexcept -> std::array<tgx::Vec2, 4> {
-        std::array corners{
-            tgx::Vec2{-origin.x, -origin.y},
-            tgx::Vec2{size.x - origin.x, -origin.y},
-            tgx::Vec2{size.x - origin.x, size.y - origin.y},
-            tgx::Vec2{-origin.x, size.y - origin.y},
-        };
+        auto box = corners(-origin, size - origin);
         if (rotation == 0.f) {
-            for (tgx::Vec2 &corner: corners) {
+            for (tgx::Vec2 &corner: box) {
                 corner += position;
             }
-            return corners;
+            return box;
         }
         // rotate() written out: the cosine and sine once for the four
         // corners, not once each.
         const float c = std::cos(rotation);
         const float s = std::sin(rotation);
-        for (tgx::Vec2 &corner: corners) {
+        for (tgx::Vec2 &corner: box) {
             corner = tgx::Vec2{corner.x * c - corner.y * s, corner.x * s + corner.y * c} + position;
         }
-        return corners;
+        return box;
     }
 
     // Point i of a rounded rectangle's rim: points of each corner's quarter
@@ -383,12 +392,7 @@ namespace {
         const std::size_t corner = i / points;
         const std::size_t step = i % points;
         const float in = std::max(radius, inset);
-        const std::array centers{
-            tgx::Vec2{rect.x + in, rect.y + in},
-            tgx::Vec2{rect.right() - in, rect.y + in},
-            tgx::Vec2{rect.right() - in, rect.bottom() - in},
-            tgx::Vec2{rect.x + in, rect.bottom() - in},
-        };
+        const auto centers = corners({rect.x + in, rect.y + in}, {rect.right() - in, rect.bottom() - in});
         // The top-left corner's quarter runs from the left (half a turn)
         // round to the top, and each next corner a quarter on.
         constexpr float quarter = whole_turn / 4.f;
@@ -511,16 +515,12 @@ namespace tgx {
     }
 
     auto Canvas::rect(Rect rect, Color color) noexcept -> void {
-        quad(
-            {rect.x, rect.y}, {rect.right(), rect.y},
-            {rect.right(), rect.bottom()}, {rect.x, rect.bottom()},
-            color
-        );
+        quad(corners(rect), {color, color, color, color});
     }
 
     auto Canvas::rect(Rect rect, Vec2 origin, float rotation, Color color) noexcept -> void {
-        const auto corners = placed_corners({rect.width, rect.height}, origin, {rect.x, rect.y}, rotation);
-        quad(corners, {color, color, color, color});
+        const auto box = placed_corners({rect.width, rect.height}, origin, {rect.x, rect.y}, rotation);
+        quad(box, {color, color, color, color});
     }
 
     auto Canvas::rect_lines(Rect rect, Color color, float thickness) noexcept -> void {
@@ -541,7 +541,7 @@ namespace tgx {
     }
 
     auto Canvas::rect_rounded(Rect rect, float radius, Color color) noexcept -> void {
-        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "corners of radius {}", radius);
+        TGX_ASSERT_MSG(detail::valid_radius(radius), "corners of radius {}", radius);
 
         const float r = std::min({radius, rect.width / 2.f, rect.height / 2.f});
         if (r <= 0.f) {
@@ -557,7 +557,7 @@ namespace tgx {
     }
 
     auto Canvas::rect_rounded_lines(Rect rect, float radius, Color color, float thickness) noexcept -> void {
-        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "corners of radius {}", radius);
+        TGX_ASSERT_MSG(detail::valid_radius(radius), "corners of radius {}", radius);
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
         const float r = std::min({radius, rect.width / 2.f, rect.height / 2.f});
@@ -595,15 +595,10 @@ namespace tgx {
         Color top_left, Color top_right,
         Color bottom_right, Color bottom_left
     ) noexcept -> void {
-        const std::array corners{
-            Vec2{rect.x, rect.y},
-            Vec2{rect.right(), rect.y},
-            Vec2{rect.right(), rect.bottom()},
-            Vec2{rect.x, rect.bottom()},
-        };
+        const auto box = corners(rect);
         const std::array colors{top_left, top_right, bottom_right, bottom_left};
         if (detail::blends_flat(colors)) {
-            quad(corners, colors);
+            quad(box, colors);
             return;
         }
 
@@ -612,7 +607,7 @@ namespace tgx {
         auto [batch, first] = start(state_for(0), 5, 12);
         batch.push_vertex({rect.center(), white_uv, detail::average(colors)});
         for (std::size_t i = 0; i < 4; ++i) {
-            batch.push_vertex({corners[i], white_uv, colors[i]});
+            batch.push_vertex({box[i], white_uv, colors[i]});
         }
         push_indices(batch, first, {0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1});
     }
@@ -685,7 +680,7 @@ namespace tgx {
 
     auto Canvas::circle_gradient(Vec2 center, float radius, Color inner, Color outer) noexcept -> void {
         // NaN too: the segments for it would be any number.
-        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "circle of radius {}", radius);
+        TGX_ASSERT_MSG(detail::valid_radius(radius), "circle of radius {}", radius);
 
         if (radius == 0.f) {
             return;
@@ -699,7 +694,7 @@ namespace tgx {
     }
 
     auto Canvas::circle_lines(Vec2 center, float radius, Color color, float thickness) noexcept -> void {
-        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "circle of radius {}", radius);
+        TGX_ASSERT_MSG(detail::valid_radius(radius), "circle of radius {}", radius);
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
         // Thicker than the radius, the ring is the circle: one with no hole.
@@ -707,7 +702,7 @@ namespace tgx {
     }
 
     auto Canvas::circle_sector(Vec2 center, float radius, float start, float end, Color color) noexcept -> void {
-        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "circle of radius {}", radius);
+        TGX_ASSERT_MSG(detail::valid_radius(radius), "circle of radius {}", radius);
         TGX_ASSERT_MSG(std::isfinite(start) && std::isfinite(end), "sector from {} to {}", start, end);
 
         const Arc arc = arc_between(start, end);
@@ -730,7 +725,7 @@ namespace tgx {
         Color color
     ) noexcept -> void {
         TGX_ASSERT_MSG(
-            inner_radius >= 0.f && inner_radius <= outer_radius && std::isfinite(outer_radius),
+            detail::valid_radius(inner_radius) && detail::valid_radius(outer_radius) && inner_radius <= outer_radius,
             "ring from radius {} to {}",
             inner_radius, outer_radius
         );
@@ -755,7 +750,7 @@ namespace tgx {
     }
 
     auto Canvas::poly(Vec2 center, int sides, float radius, float rotation, Color color) noexcept -> void {
-        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "polygon of radius {}", radius);
+        TGX_ASSERT_MSG(detail::valid_radius(radius), "polygon of radius {}", radius);
 
         const std::size_t n = poly_sides(sides);
         if (radius == 0.f) {
@@ -774,7 +769,7 @@ namespace tgx {
         Color color,
         float thickness
     ) noexcept -> void {
-        TGX_ASSERT_MSG(radius >= 0.f && std::isfinite(radius), "polygon of radius {}", radius);
+        TGX_ASSERT_MSG(detail::valid_radius(radius), "polygon of radius {}", radius);
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
         const std::size_t n = poly_sides(sides);
@@ -829,10 +824,12 @@ namespace tgx {
             v0 = 1.f - v0;
             v1 = 1.f - v1;
         }
-        const std::array uvs{Vec2{u0, v0}, Vec2{u1, v0}, Vec2{u1, v1}, Vec2{u0, v1}};
-
-        const auto corners = placed_corners({width, height}, sprite.origin, sprite.position, sprite.rotation);
-        push_quad(state_for(texture.id()), corners, uvs, {sprite.tint, sprite.tint, sprite.tint, sprite.tint});
+        push_quad(
+            state_for(texture.id()),
+            placed_corners({width, height}, sprite.origin, sprite.position, sprite.rotation),
+            corners({u0, v0}, {u1, v1}),
+            {sprite.tint, sprite.tint, sprite.tint, sprite.tint}
+        );
     }
 
     auto Canvas::text(Vec2 position, std::string_view text, Color color, float size) noexcept -> void {
@@ -853,8 +850,8 @@ namespace tgx {
                 const float u1 = static_cast<float>(glyph.x + glyph.width) / font::atlas_width;
                 push_quad(
                     state,
-                    {pen, pen + Vec2{width, 0.f}, pen + Vec2{width, size}, pen + Vec2{0.f, size}},
-                    {Vec2{u0, 0.f}, Vec2{u1, 0.f}, Vec2{u1, 1.f}, Vec2{u0, 1.f}},
+                    corners(pen, pen + Vec2{width, size}),
+                    corners({u0, 0.f}, {u1, 1.f}),
                     {color, color, color, color}
                 );
             }

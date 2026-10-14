@@ -1,10 +1,13 @@
 #pragma once
 
 #include "tgx/core/error.hpp"
+#include "tgx/core/handle.hpp"
 
 #include "core/log_internal.hpp"
 
 #include <glad/gl.h>
+
+#include <expected>
 
 // The GL error check around giving a resource its storage, the one place a
 // driver failure is reported rather than asserted.
@@ -32,5 +35,17 @@ namespace tgx::detail {
     // failing otherwise. Caller mistakes are asserted before, so none is left.
     [[nodiscard]] constexpr auto to_error(GLenum err) noexcept -> Error {
         return err == GL_OUT_OF_MEMORY ? Error::out_of_memory : Error::platform;
+    }
+
+    // The check after giving an object its storage, with drain_gl_errors()
+    // before it: the id, or the error with the object deleted, as a Handle of
+    // the same Delete would.
+    template<auto Delete>
+    [[nodiscard]] auto checked_allocation(GlId id) noexcept -> Result<GlId> {
+        if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
+            Delete(id);
+            return std::unexpected{to_error(err)};
+        }
+        return id;
     }
 }

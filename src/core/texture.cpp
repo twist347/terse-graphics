@@ -5,6 +5,7 @@
 
 #include "core/context.hpp"
 #include "core/gl_error.hpp"
+#include "core/gl_pixels.hpp"
 
 #include <glad/gl.h>
 
@@ -49,8 +50,7 @@ namespace {
 
         // Too large is up to the driver, not the caller: the limit differs from
         // one GPU to the next.
-        GLint max_size = 0;
-        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_size);
+        const int max_size = tgx::detail::max_texture_size();
         if (size.width > max_size || size.height > max_size) {
             return std::unexpected{tgx::Error::unsupported};
         }
@@ -61,12 +61,10 @@ namespace {
         glGenTextures(1, &id);
         tgx::detail::context().bind_texture(edit_slot, id);
 
-        // Rows of 4-byte pixels are always 4-byte aligned, GL's default unpack
-        // alignment, so it needs no setting.
         glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGBA8,
+            GL_TEXTURE_2D, 0, tgx::detail::pixel_storage,
             size.width, size.height, 0,
-            GL_RGBA, GL_UNSIGNED_BYTE, pixels
+            tgx::detail::pixel_format, tgx::detail::pixel_type, pixels
         );
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter(params));
@@ -81,11 +79,7 @@ namespace {
         }
 
         // One check for all of the above: the levels need memory too.
-        if (const GLenum err = glGetError(); err != GL_NO_ERROR) {
-            tgx::detail::delete_texture(id);
-            return std::unexpected{tgx::detail::to_error(err)};
-        }
-        return id;
+        return tgx::detail::checked_allocation<tgx::detail::delete_texture>(id);
     }
 }
 
@@ -146,7 +140,7 @@ namespace tgx {
         glTexSubImage2D(
             GL_TEXTURE_2D, 0,
             x, y, size.width, size.height,
-            GL_RGBA, GL_UNSIGNED_BYTE, image.pixels().data()
+            detail::pixel_format, detail::pixel_type, image.pixels().data()
         );
 
         if (m_params.mipmaps) {
