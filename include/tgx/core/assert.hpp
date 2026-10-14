@@ -49,5 +49,5 @@ namespace tgx::detail {
 #else
 #define TGX_ASSERT(cond) ((void) sizeof(bool((cond))))
 #define TGX_ASSERT_MSG(cond, ...) \
-    ((void) sizeof(bool((cond))), (void) sizeof(::std::format(__VA_ARGS__)))
+    ((void) sizeof(bool((cond))), (void) sizeof(::std::formatted_size(__VA_ARGS__)))
 #endif

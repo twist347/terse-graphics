@@ -157,8 +157,24 @@ namespace tgx {
 
         auto rect(Rect rect, Color color) noexcept -> void;
 
+        // Turned by rotation (radians, clockwise on screen) around origin, a
+        // point of it from its top-left corner that lands at rect.x, rect.y,
+        // as with Sprite: {0, 0} turns it around that corner, half its size
+        // around the middle.
+        //
+        //     canvas.rect({pos.x, pos.y, 40, 20}, {20, 10}, angle, colors::red);   // centered on pos
+        auto rect(Rect rect, Vec2 origin, float rotation, Color color) noexcept -> void;
+
         // A frame thickness wide, inside the rectangle's edges.
         auto rect_lines(Rect rect, Color color, float thickness = 1.f) noexcept -> void;
+
+        // Its corners rounded to quarter circles of the radius, in the same
+        // units as the rectangle; no more than half its shorter side, where a
+        // square becomes a circle.
+        auto rect_rounded(Rect rect, float radius, Color color) noexcept -> void;
+
+        // A frame thickness wide, inside the rounded rectangle's edges.
+        auto rect_rounded_lines(Rect rect, float radius, Color color, float thickness = 1.f) noexcept -> void;
 
         // The color going from top to bottom: a sky, a fade to black.
         auto rect_gradient(Rect rect, Color top, Color bottom) noexcept -> void;
@@ -167,10 +183,8 @@ namespace tgx {
         // top-left; left to right is (left, right, right, left).
         auto rect_gradient(
             Rect rect,
-            Color top_left,
-            Color top_right,
-            Color bottom_right,
-            Color bottom_left
+            Color top_left, Color top_right,
+            Color bottom_right, Color bottom_left
         ) noexcept -> void;
 
         auto triangle(Vec2 a, Vec2 b, Vec2 c, Color color) noexcept -> void;
@@ -182,16 +196,24 @@ namespace tgx {
             Color color_a, Color color_b, Color color_c
         ) noexcept -> void;
 
+        // A frame thickness wide, inside the triangle's edges: its corners
+        // stay where they are however sharp.
+        auto triangle_lines(Vec2 a, Vec2 b, Vec2 c, Color color, float thickness = 1.f) noexcept -> void;
+
         // A thickness wide band from a to b, square ends flush with them.
         auto line(Vec2 a, Vec2 b, Color color, float thickness = 1.f) noexcept -> void;
 
         // Lines from one point to the next, thickness wide, their corners
         // joined without a gap; where they turn back sharply, or a line is too
         // short for its corner, the corner is cut off rather than drawn as a
-        // long spike. The two ends are square, as line()'s: ending at the
-        // first point again closes the shape, but leaves that one corner
-        // unjoined.
+        // long spike. The two ends are square, as line()'s; line_loop()
+        // closes the shape, joining that corner too.
         auto line_strip(std::span<const Vec2> points, Color color, float thickness = 1.f) noexcept -> void;
+
+        // A line_strip that goes back from the last point to the first, every
+        // corner joined: the outline of any shape, thickness wide and
+        // centered on its edges. Leave the first point out at the end.
+        auto line_loop(std::span<const Vec2> points, Color color, float thickness = 1.f) noexcept -> void;
 
         // As many segments as keep the edge within a quarter pixel of a true
         // circle, so small ones stay cheap and big ones round.
@@ -203,6 +225,38 @@ namespace tgx {
 
         // A ring thickness wide, inside the circle's edge.
         auto circle_lines(Vec2 center, float radius, Color color, float thickness = 1.f) noexcept -> void;
+
+        // A slice of the circle, from the start angle to the end one: radians,
+        // clockwise on screen from the right, as from_angle(). Either may come
+        // first; a full turn or more is the whole circle.
+        //
+        //     canvas.circle_sector(eye, 200, facing - 0.5f, facing + 0.5f, colors::yellow.fade(0.3f));
+        auto circle_sector(Vec2 center, float radius, float start, float end, Color color) noexcept -> void;
+
+        // The band between two circles, from the start angle to the end one,
+        // as circle_sector(): an arc, a progress ring, a full ring.
+        auto ring(
+            Vec2 center,
+            float inner_radius, float outer_radius,
+            float start, float end,
+            Color color
+        ) noexcept -> void;
+
+        // A regular polygon of 3 to 1024 sides, its corners on a circle of
+        // the radius, the first at the rotation: radians, clockwise on screen
+        // from the right. 6 sides at 0 is a hexagon with a corner pointing
+        // right.
+        auto poly(Vec2 center, int sides, float radius, float rotation, Color color) noexcept -> void;
+
+        // A frame thickness wide, inside the polygon's edges.
+        auto poly_lines(
+            Vec2 center,
+            int sides,
+            float radius,
+            float rotation,
+            Color color,
+            float thickness = 1.f
+        ) noexcept -> void;
 
         // The texture is drawn from when the shapes are drawn; if it is
         // updated or destroyed before, they are drawn then. It must not be
@@ -245,6 +299,10 @@ namespace tgx {
         // corners 0 to 2: blended exactly only when the colors blend flat
         // (rect_gradient sees to that), otherwise the diagonal shows.
         auto quad(const std::array<Vec2, 4> &corners, const std::array<Color, 4> &colors) noexcept -> void;
+
+        // line_strip() and line_loop(): closed joins the last point to the
+        // first.
+        auto strip(std::span<const Vec2> points, Color color, float thickness, bool closed) noexcept -> void;
 
         // What the canvas draws into.
         [[nodiscard]] auto surface() const noexcept -> detail::Surface;

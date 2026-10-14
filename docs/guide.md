@@ -168,6 +168,26 @@ while (!app->should_close()) {
 }
 ```
 
+More shapes, in the same style:
+
+```cpp
+canvas.rect({x, y, 40, 20}, {20, 10}, angle, tgx::colors::red);       // turned around its middle
+canvas.rect_rounded({40, 40, 200, 100}, 12.f, tgx::colors::blue);     // corner radius
+canvas.rect_rounded_lines({40, 40, 200, 100}, 12.f, tgx::colors::white, 2.f);
+canvas.triangle_lines(a, b, c, tgx::colors::green, 2.f);
+canvas.line_loop(points, tgx::colors::white, 3.f);                     // back to the first point
+canvas.poly({600, 100}, 6, 50.f, 0.f, tgx::colors::purple);           // sides, radius, rotation
+canvas.poly_lines({600, 100}, 6, 50.f, 0.f, tgx::colors::white, 2.f);
+canvas.circle_sector({800, 100}, 50.f, start, end, tgx::colors::yellow);
+canvas.ring({1000, 100}, 40.f, 50.f, start, end, tgx::colors::green);  // an arc, a progress ring
+```
+
+Angles are radians, clockwise on screen from the right, as `from_angle`.
+Outlines (`*_lines`) keep inside the shape's edges, so a frame never grows the
+shape; `line`, `line_strip` and `line_loop` are centered on their points.
+Curves get as many segments as keep them within a quarter pixel of round, at
+the size they show.
+
 A canvas can instead have a size of its own, a fixed logical resolution
 stretched over the window:
 

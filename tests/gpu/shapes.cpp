@@ -9,6 +9,7 @@
 
 #include <array>
 #include <cmath>
+#include <numbers>
 
 TEST_CASE("a circle's edge") {
     const tgx::RenderTarget target = tgx_test::target({64, 64});
@@ -164,4 +165,172 @@ TEST_CASE("circle_gradient, from the center out") {
     image = target.read();
     CHECK(tgx_test::near(image[128, 128], tgx::colors::yellow, 8));
     CHECK(image[183, 128] == tgx::colors::black);
+}
+
+TEST_CASE("rect turned around its origin") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    // 80x20 centered at (64, 64), turned a quarter: 20 wide, 80 tall.
+    canvas.clear(tgx::colors::black);
+    canvas.rect({64, 64, 80, 20}, {40, 10}, std::numbers::pi_v<float> / 2.f, tgx::colors::white);
+
+    const tgx::Image image = target.read();
+    CHECK(image[64, 30] == tgx::colors::white);
+    CHECK(image[64, 98] == tgx::colors::white);
+    CHECK(image[30, 64] == tgx::colors::black);
+    CHECK(image[80, 64] == tgx::colors::black);
+}
+
+TEST_CASE("rect_rounded: the corners cut, the edges whole") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    canvas.clear(tgx::colors::black);
+    canvas.rect_rounded({10, 10, 100, 60}, 20, tgx::colors::white);
+
+    const tgx::Image image = target.read();
+    CHECK(image[12, 12] == tgx::colors::black);
+    CHECK(image[107, 67] == tgx::colors::black);
+    CHECK(image[11, 40] == tgx::colors::white);
+    CHECK(image[60, 11] == tgx::colors::white);
+    CHECK(image[60, 40] == tgx::colors::white);
+    // On the corner's circle, well inside it.
+    CHECK(image[20, 20] == tgx::colors::white);
+}
+
+TEST_CASE("rect_rounded_lines: a frame inside the edges, the middle left") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    canvas.clear(tgx::colors::black);
+    canvas.rect_rounded_lines({10, 10, 100, 60}, 20, tgx::colors::white, 4);
+
+    const tgx::Image image = target.read();
+    CHECK(image[11, 40] == tgx::colors::white);
+    CHECK(image[60, 12] == tgx::colors::white);
+    CHECK(image[60, 15] == tgx::colors::black);
+    CHECK(image[60, 40] == tgx::colors::black);
+    CHECK(image[12, 12] == tgx::colors::black);
+    CHECK(image[9, 40] == tgx::colors::black);
+}
+
+TEST_CASE("triangle_lines: inside the edges, the corners sharp") {
+    const tgx::RenderTarget target = tgx_test::target({256, 256});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    canvas.clear(tgx::colors::black);
+    canvas.triangle_lines({10, 10}, {210, 10}, {10, 210}, tgx::colors::white, 6);
+
+    const tgx::Image image = target.read();
+    CHECK(image[100, 13] == tgx::colors::white);
+    CHECK(image[13, 100] == tgx::colors::white);
+    CHECK(image[100, 7] == tgx::colors::black);
+    CHECK(image[60, 60] == tgx::colors::black);
+    // The sharp corner stays within the triangle: no spike out past it.
+    CHECK(image[213, 8] == tgx::colors::black);
+    CHECK(image[205, 12] == tgx::colors::white);
+}
+
+TEST_CASE("line_loop: the closing corner is joined too") {
+    const tgx::RenderTarget target = tgx_test::target({256, 256});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    const std::array square{tgx::Vec2{50, 50}, tgx::Vec2{200, 50}, tgx::Vec2{200, 200}, tgx::Vec2{50, 200}};
+
+    canvas.clear(tgx::colors::black);
+    canvas.line_loop(square, tgx::colors::white, 10);
+
+    const tgx::Image image = target.read();
+    // Every corner mitered, the first one included: its outer square filled.
+    CHECK(image[47, 47] == tgx::colors::white);
+    CHECK(image[202, 47] == tgx::colors::white);
+    CHECK(image[202, 202] == tgx::colors::white);
+    CHECK(image[47, 202] == tgx::colors::white);
+    CHECK(image[125, 125] == tgx::colors::black);
+}
+
+TEST_CASE("line_loop: a repeated point, the first again at the end, one point") {
+    const tgx::RenderTarget target = tgx_test::target({256, 256});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    const std::array repeated{
+        tgx::Vec2{50, 50}, tgx::Vec2{200, 50}, tgx::Vec2{200, 50}, tgx::Vec2{200, 200}, tgx::Vec2{50, 50},
+    };
+    const std::array single{tgx::Vec2{20, 230}};
+
+    canvas.clear(tgx::colors::black);
+    canvas.set_blend(tgx::Blend::additive);
+    canvas.line_loop(repeated, tgx::Color{100, 100, 100, 255}, 6);
+    canvas.line_loop(single, tgx::colors::white, 6);
+
+    const tgx::Image image = target.read();
+    CHECK(image[125, 50] == tgx::Color{100, 100, 100, 255});
+    CHECK(image[200, 125] == tgx::Color{100, 100, 100, 255});
+    CHECK(image[125, 125] == tgx::Color{100, 100, 100, 255});
+    // Corners joined, not drawn twice.
+    CHECK(image[201, 51] == tgx::Color{100, 100, 100, 255});
+    CHECK(image[20, 230] == tgx::colors::black);
+}
+
+TEST_CASE("circle_sector: from start to end, clockwise on screen") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    constexpr float pi = std::numbers::pi_v<float>;
+
+    // The quarter from the right down to the bottom, given end first.
+    canvas.clear(tgx::colors::black);
+    canvas.circle_sector({64, 64}, 50, pi / 2.f, 0.f, tgx::colors::white);
+
+    tgx::Image image = target.read();
+    CHECK(image[90, 90] == tgx::colors::white);
+    CHECK(image[38, 90] == tgx::colors::black);
+    CHECK(image[90, 38] == tgx::colors::black);
+    CHECK(image[38, 38] == tgx::colors::black);
+
+    // More than a full turn is the circle.
+    canvas.clear(tgx::colors::black);
+    canvas.circle_sector({64, 64}, 50, 0.f, 10.f, tgx::colors::white);
+    image = target.read();
+    CHECK(image[38, 38] == tgx::colors::white);
+    CHECK(image[90, 38] == tgx::colors::white);
+}
+
+TEST_CASE("ring: the band between the radii, over the arc") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    constexpr float pi = std::numbers::pi_v<float>;
+
+    // The top half: from the left round to the right.
+    canvas.clear(tgx::colors::black);
+    canvas.ring({64, 64}, 30, 50, pi, 2.f * pi, tgx::colors::white);
+
+    const tgx::Image image = target.read();
+    CHECK(image[64, 24] == tgx::colors::white);
+    CHECK(image[64, 64 - 25] == tgx::colors::black);
+    CHECK(image[64, 64 - 55] == tgx::colors::black);
+    CHECK(image[64, 104] == tgx::colors::black);
+}
+
+TEST_CASE("poly: a square with a corner up, and its frame") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    constexpr float pi = std::numbers::pi_v<float>;
+
+    // Corners at right, bottom, left, top: a diamond.
+    canvas.clear(tgx::colors::black);
+    canvas.poly({64, 64}, 4, 50, 0.f, tgx::colors::white);
+    tgx::Image image = target.read();
+    CHECK(image[64, 16] == tgx::colors::white);
+    CHECK(image[110, 64] == tgx::colors::white);
+    CHECK(image[25, 25] == tgx::colors::black);
+
+    // Turned an eighth, an upright square of side 50 * sqrt(2), its frame
+    // 5 wide inside the edges.
+    canvas.clear(tgx::colors::black);
+    canvas.poly_lines({64, 64}, 4, 50, pi / 4.f, tgx::colors::white, 5);
+    image = target.read();
+    const int edge = 64 - 35;
+    CHECK(image[64, edge + 2] == tgx::colors::white);
+    CHECK(image[64, edge - 2] == tgx::colors::black);
+    CHECK(image[64, edge + 8] == tgx::colors::black);
+    CHECK(image[edge + 2, edge + 2] == tgx::colors::white);
 }

@@ -1,10 +1,14 @@
 // The canvas shapes, one call each. Coordinates are the window's: (0, 0) at
-// the top-left corner, x to the right, y down.
+// the top-left corner, x to the right, y down. Angles are radians, clockwise
+// on screen from the right.
 
 #include "tgx/tgx.hpp"
 
 #include <array>
+#include <cmath>
+#include <cstddef>
 #include <cstdio>
+#include <numbers>
 #include <print>
 
 int main() {
@@ -19,44 +23,67 @@ int main() {
     }
 
     auto &canvas = app->canvas();
+    constexpr float pi = std::numbers::pi_v<float>;
 
     while (!app->should_close()) {
         app->poll_events();
 
+        const auto time = static_cast<float>(app->clock().elapsed());
+
         canvas.clear(tgx::colors::dark_gray);
 
         // Filled: a rectangle is {x, y, width, height}.
-        canvas.rect({100, 100, 240, 160}, tgx::colors::red);
+        canvas.rect({28, 60, 200, 130}, tgx::colors::red);
         // A glow first, fading to see-through, then the circle over it.
-        canvas.circle_gradient({540, 180}, 120, tgx::colors::yellow.fade(0.4f), tgx::colors::yellow.fade(0));
-        canvas.circle({540, 180}, 80, tgx::colors::yellow);
-        canvas.triangle({760, 260}, {860, 100}, {960, 260}, tgx::colors::green);
+        canvas.circle_gradient({384, 125}, 90, tgx::colors::yellow.fade(0.4f), tgx::colors::yellow.fade(0));
+        canvas.circle({384, 125}, 60, tgx::colors::yellow);
+        canvas.triangle({540, 190}, {640, 60}, {740, 190}, tgx::colors::green);
+        canvas.rect_rounded({796, 60, 200, 130}, 24, tgx::colors::blue);
+        // A regular polygon: center, sides, radius, the first corner's angle.
+        canvas.poly({1152, 125}, 6, 70, 0, tgx::colors::purple);
 
-        // Lines and outlines take a thickness.
-        canvas.line({100, 340}, {960, 340}, tgx::colors::white, 4);
-        canvas.rect_lines({100, 420, 240, 160}, tgx::colors::cyan, 3);
-        canvas.circle_lines({540, 500}, 80, tgx::colors::magenta, 3);
+        // Outlines take a thickness and keep inside the shape's edges.
+        canvas.rect_lines({28, 230, 200, 130}, tgx::colors::cyan, 3);
+        canvas.circle_lines({384, 295}, 65, tgx::colors::magenta, 3);
+        canvas.triangle_lines({540, 360}, {640, 230}, {740, 360}, tgx::colors::green, 3);
+        canvas.rect_rounded_lines({796, 230, 200, 130}, 24, tgx::colors::light_gray, 3);
+        canvas.poly_lines({1152, 295}, 5, 70, -pi / 2, tgx::colors::pink, 3);
+
+        // Turned around a point of its own: here its middle.
+        canvas.rect({128, 465, 160, 40}, {80, 20}, time, tgx::colors::orange);
+        // Slices and arcs go from one angle to another.
+        canvas.circle_sector({384, 465}, 65, pi / 4, 7 * pi / 4, tgx::colors::yellow);
+        canvas.ring({640, 465}, 45, 65, 0, 2 * pi, tgx::colors::gray);
+        canvas.ring({640, 465}, 45, 65, -pi / 2, -pi / 2 + std::fmod(time, 2 * pi), tgx::colors::green);
+
+        // Joined lines: corners without gaps. line_loop closes the shape.
+        const std::array zigzag{
+            tgx::Vec2{796, 530}, tgx::Vec2{846, 400}, tgx::Vec2{896, 530},
+            tgx::Vec2{946, 400}, tgx::Vec2{996, 530},
+        };
+        canvas.line_strip(zigzag, tgx::colors::orange, 6);
+        std::array<tgx::Vec2, 10> star;
+        for (std::size_t i = 0; i < star.size(); ++i) {
+            const float radius = i % 2 == 0 ? 70.f : 30.f;
+            star[i] = tgx::Vec2{1152, 465} + tgx::from_angle(-pi / 2 + pi * static_cast<float>(i) / 5) * radius;
+        }
+        canvas.line_loop(star, tgx::colors::yellow, 4);
+
+        canvas.line({28, 635}, {228, 635}, tgx::colors::white, 4);
 
         // Gradients: a color for each corner, blended between them.
         canvas.rect_gradient(
-            {1020, 100, 200, 160},
+            {284, 570, 200, 130},
             tgx::colors::red, tgx::colors::yellow, tgx::colors::blue, tgx::colors::green
         );
         canvas.triangle_gradient(
-            {1020, 580}, {1120, 420}, {1220, 580},
+            {540, 700}, {640, 570}, {740, 700},
             tgx::colors::red, tgx::colors::green, tgx::colors::blue
         );
 
-        // Joined lines: corners without gaps.
-        const std::array zigzag{
-            tgx::Vec2{1020, 380}, tgx::Vec2{1070, 300}, tgx::Vec2{1120, 380},
-            tgx::Vec2{1170, 300}, tgx::Vec2{1220, 380},
-        };
-        canvas.line_strip(zigzag, tgx::colors::orange, 6);
-
         // Later shapes cover earlier ones; alpha lets them show through.
-        canvas.rect({760, 420, 140, 140}, tgx::colors::blue);
-        canvas.rect({820, 460, 140, 140}, tgx::colors::red.with_alpha(128));
+        canvas.rect({816, 570, 110, 110}, tgx::colors::blue);
+        canvas.rect({866, 590, 110, 110}, tgx::colors::red.with_alpha(128));
 
         canvas.fps({10, 10});
 

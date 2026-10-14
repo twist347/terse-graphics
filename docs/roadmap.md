@@ -19,8 +19,6 @@ Features:
 
 - Cursor modes (hidden, captured for mouse look, shape) and a frame rate
   limit for when vsync is off.
-- Shapes: a rotated and a rounded rectangle, `triangle_lines`, a closed
-  `line_strip`, regular polygons, circle sectors and rings.
 - Clipping to a rectangle without changing coordinates (raylib's scissor
   mode).
 - Nine-slice sprites, for UI frames that stretch.
@@ -35,7 +33,8 @@ Features:
 - Images on the CPU: crop, resize, flip, draw into, generate (gradients,
   checks, noise).
 - Audio: pitch and pan for `Music`, sound generated on the fly.
-- Shapes: splines and Bezier curves, ellipses.
+- Shapes: splines and Bezier curves, ellipses, outlines of circle sectors
+  and rings.
 - Collisions: rays with the distance to the hit, moving rectangles (swept),
   rotated rectangles and convex polygons (SAT).
 - Math: `reflect`, the angle between vectors, `Mat4` inverse and transpose.
