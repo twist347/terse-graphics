@@ -72,6 +72,9 @@ In `tgx`:
   usual operations and `ortho`, `perspective`, `look_at`, `translate`, `rotate`,
   `scale`. Same conventions as glm, and glm values convert with `std::bit_cast`.
   `fit` and `fit_whole` place a fixed-size picture in a window of any shape.
+  `ease::` curves (`linear`, `sine`, `quad`, `cubic`, `expo`, `back`,
+  `elastic`, `bounce`, each `in_`/`out_`/`in_out_`) bend a timer's progress
+  for `lerp`: `lerp(from, to, ease::out_cubic(timer.progress()))`.
 - **Random**: `tgx::Random`, a seeded value with floats, ints, chances, points
   in a rect, directions and picks; the same seed gives the same numbers on
   every platform.
