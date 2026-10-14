@@ -27,6 +27,7 @@
 #include "tgx/core/random.hpp"
 #include "tgx/core/render_target.hpp"
 #include "tgx/core/texture.hpp"
+#include "tgx/core/timer.hpp"
 #include "tgx/core/version.hpp"
 #include "tgx/core/window.hpp"
 

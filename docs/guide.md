@@ -75,6 +75,10 @@ In `tgx`:
 - **Random**: `tgx::Random`, a seeded value with floats, ints, chances, points
   in a rect, directions and picks; the same seed gives the same numbers on
   every platform.
+- **Timers**: `tgx::Timer`, a value ticked by `clock().delta()`: `once`
+  (a delay), `once_ready` (a cooldown that lets the first use through),
+  `every` (waves, animation frames; keeps its rate at any frame rate), with
+  `progress()` for a bar. Pausing is not ticking it.
 - **Checks**: asserts for the mistakes GL keeps quiet about (see below), and GL
   driver messages routed to the log on debug contexts.
 

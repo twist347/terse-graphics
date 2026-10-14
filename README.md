@@ -75,7 +75,7 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `02_shapes`     | The `Canvas` shapes, one call each: filled, outlined, see-through. |
 | `03_texture`    | An `Image` made pixel by pixel, as a `Texture`, drawn as a sprite. |
 | `04_sprite`     | The `Sprite` fields: part of an atlas, mirrored, tinted, turned.   |
-| `05_moving`     | Movement by `clock().delta()`, the same at any frame rate.         |
+| `05_moving`     | Movement and a `Timer` by `clock().delta()`, the same at any frame rate. |
 | `06_camera`     | A camera following a player, and a HUD that stays put.            |
 | `07_viewport`   | A minimap: the world again, in a corner, at its own scale.         |
 | `08_blend`      | Alpha and additive blending side by side.                          |
