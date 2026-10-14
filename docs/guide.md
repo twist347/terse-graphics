@@ -309,8 +309,10 @@ not 1.25); otherwise some columns come out a pixel wider than others.
 
 ```cpp
 canvas.text({20, 20}, "Score: 120", tgx::colors::white);
-canvas.text({20, 60}, "GAME OVER", tgx::colors::red, 48);
-const tgx::Vec2 extent = tgx::Canvas::measure_text("GAME OVER", 48);   // to center it
+canvas.text({640, 360}, "GAME OVER", tgx::colors::red, 48, {0.5f, 0.5f});   // centered there
+canvas.text({1260, 20}, "x3", tgx::colors::white, 16, {1, 0});               // right-aligned
+const tgx::Vec2 extent = tgx::Canvas::measure_text("GAME OVER", 48);         // its size
+const tgx::Rect button = tgx::Rect::from_center({640, 500}, {200, 60});
 ```
 
 The font shares its texture with the shapes, so text and shapes drawn in a row

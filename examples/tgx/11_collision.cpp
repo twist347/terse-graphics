@@ -23,7 +23,7 @@ int main() {
     const auto &input = app->input();
     auto &canvas = app->canvas();
 
-    std::array rects{
+    constexpr std::array rects{
         tgx::Rect{100, 100, 300, 200},
         tgx::Rect{500, 150, 120, 300},
         tgx::Rect{750, 400, 250, 120},
@@ -65,10 +65,7 @@ int main() {
 
         // intersection: the part two rects share, here the big rect and the
         // square around the cursor.
-        const tgx::Rect square{
-            cursor.center.x - cursor.radius, cursor.center.y - cursor.radius,
-            cursor.radius * 2, cursor.radius * 2,
-        };
+        const tgx::Rect square = tgx::Rect::from_center(cursor.center, {cursor.radius * 2, cursor.radius * 2});
         canvas.rect(tgx::intersection(rects[0], square), tgx::colors::cyan.with_alpha(160));
 
         canvas.circle_lines(cursor.center, cursor.radius, tgx::colors::white, 2);

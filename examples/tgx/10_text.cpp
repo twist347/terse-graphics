@@ -48,19 +48,15 @@ int main() {
         // '\n' starts a new line under the first.
         canvas.text({40, 200}, "Several lines,\none under another.", tgx::colors::light_gray);
 
-        // Centered on the window by its measured size.
+        // anchor: which point of the text goes to the position. Centered on
+        // the window, each line by its own width; right-aligned to an edge.
         const tgx::Size size = canvas.size();
-        const char *title = "Centered";
-        const tgx::Vec2 extent = tgx::Canvas::measure_text(title, 32);
-        canvas.text(
-            {(static_cast<float>(size.width) - extent.x) / 2, 340},
-            title,
-            tgx::colors::white,
-            32
-        );
+        const auto width = static_cast<float>(size.width);
+        canvas.text({width / 2, 340}, "Centered\nline by line", tgx::colors::white, 32, {0.5f, 0.5f});
+        canvas.text({width - 40, 200}, "Right-aligned\n42", tgx::colors::light_gray, 16, {1, 0});
 
         // A field: a box, what was typed, a cursor after it.
-        const tgx::Rect field{40, 440, 600, 40};
+        constexpr tgx::Rect field{40, 440, 600, 40};
         const tgx::Vec2 typed_extent = tgx::Canvas::measure_text(typed, 32);
         canvas.rect(field, tgx::colors::black);
         canvas.rect_lines(field, tgx::colors::gray, 2);

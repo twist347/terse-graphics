@@ -67,6 +67,11 @@ namespace tgx {
 
         [[nodiscard]] constexpr auto center() const noexcept -> Vec2 { return {x + width / 2.f, y + height / 2.f}; }
 
+        // A button around its label, a sprite around its position.
+        [[nodiscard]] static constexpr auto from_center(Vec2 center, Vec2 size) noexcept -> Rect {
+            return {center.x - size.x / 2.f, center.y - size.y / 2.f, size.x, size.y};
+        }
+
         // A side is 0 or less.
         [[nodiscard]] constexpr auto empty() const noexcept -> bool { return width <= 0.f || height <= 0.f; }
 

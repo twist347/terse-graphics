@@ -57,7 +57,7 @@ int main() {
         canvas.ring({640, 465}, 45, 65, -pi / 2, -pi / 2 + std::fmod(time, 2 * pi), tgx::colors::green);
 
         // Joined lines: corners without gaps. line_loop closes the shape.
-        const std::array zigzag{
+        constexpr std::array zigzag{
             tgx::Vec2{796, 530}, tgx::Vec2{846, 400}, tgx::Vec2{896, 530},
             tgx::Vec2{946, 400}, tgx::Vec2{996, 530},
         };

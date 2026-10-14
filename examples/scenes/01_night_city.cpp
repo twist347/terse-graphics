@@ -187,8 +187,8 @@ namespace {
     // A pole, a lamp, its cone of light down to the wet road and the
     // light's reflection in it.
     auto draw_lamp(tgx::Canvas &canvas, tgx::Canvas &light, float x) -> void {
-        const tgx::Color warm = tgx::Color::rgb(0xffd27a);
-        const tgx::Color iron = tgx::Color::rgb(0x1a1a24);
+        constexpr tgx::Color warm = tgx::Color::rgb(0xffd27a);
+        constexpr tgx::Color iron = tgx::Color::rgb(0x1a1a24);
         canvas.rect({x, road_y - 28.f, 1.f, 28.f}, iron);
         canvas.rect({x - 3.f, road_y - 29.f, 7.f, 2.f}, iron);
         canvas.rect({x - 2.f, road_y - 27.f, 5.f, 1.f}, warm);
@@ -199,9 +199,9 @@ namespace {
     }
 
     auto draw_car(tgx::Canvas &canvas, tgx::Canvas &light, float x) -> void {
-        const float y = road_y + 6.f;
-        const tgx::Color glass = tgx::Color::rgb(0x2b3a55);
-        const tgx::Color beam = tgx::Color::rgb(0xfff4c2);
+        constexpr float y = road_y + 6.f;
+        constexpr tgx::Color glass = tgx::Color::rgb(0x2b3a55);
+        constexpr tgx::Color beam = tgx::Color::rgb(0xfff4c2);
         canvas.rect({x, y - 6.f, 26.f, 6.f}, tgx::Color::rgb(0xb8323f));
         canvas.rect({x + 6.f, y - 10.f, 13.f, 4.f}, tgx::Color::rgb(0x8f2632));
         canvas.rect({x + 8.f, y - 9.f, 4.f, 3.f}, glass);
@@ -346,7 +346,7 @@ int main() {
             const float twinkle = 0.5f + 0.5f * std::sin(time * 2.f + static_cast<float>(i) * 1.7f);
             world.rect({stars[i].x, stars[i].y, 1.f, 1.f}, tgx::colors::white.fade(0.3f + 0.5f * twinkle));
         }
-        const tgx::Color moonlight = tgx::Color::rgb(0xf3ecd2);
+        constexpr tgx::Color moonlight = tgx::Color::rgb(0xf3ecd2);
         world.circle({262.f, 34.f}, 11.f, moonlight);
         world.circle({257.f, 31.f}, 10.f, sky_at(31.f, flash * 0.6f));
         light.circle_gradient({262.f, 34.f}, 26.f, moonlight.fade(0.12f), moonlight.fade(0.f));
@@ -381,7 +381,7 @@ int main() {
         }
 
         // The lantern: a warm glow, brighter towards the middle.
-        const tgx::Color lantern = tgx::Color::rgb(0xffb35c);
+        constexpr tgx::Color lantern = tgx::Color::rgb(0xffb35c);
         light.circle_gradient(mouse, 28.f, lantern.fade(0.28f), lantern.fade(0.f));
         if (flash > 0.f) {
             light.rect({0.f, 0.f, width, height}, strike_glow.fade(0.25f * flash));

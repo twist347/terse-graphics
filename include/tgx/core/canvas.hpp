@@ -237,7 +237,20 @@ namespace tgx {
         // font is a monospaced pixel font with printable ASCII: '\n' breaks the
         // line, '\t' goes to the next 4-column stop, '\r' is skipped, other
         // characters show as '?'.
-        auto text(Vec2 position, std::string_view text, Color color, float size = default_text_size) noexcept -> void;
+        //
+        // anchor is the point of the text placed at position, as a fraction
+        // of its size: {0.5f, 0.5f} centers it, {1, 0} puts its top-right
+        // corner there. Each line is aligned by its own width. The shift is
+        // rounded to whole units, so the pixels stay square.
+        //
+        //     canvas.text(screen.center(), "GAME OVER", colors::red, 48, {0.5f, 0.5f});
+        auto text(
+            Vec2 position,
+            std::string_view text,
+            Color color,
+            float size = default_text_size,
+            Vec2 anchor = {}
+        ) noexcept -> void;
 
         // Widest line by total height. "" is one line tall; a trailing '\n'
         // adds one.

@@ -789,7 +789,24 @@ namespace tgx {
         );
     }
 
-    auto Canvas::text(Vec2 position, std::string_view text, Color color, float size) noexcept -> void {
+    auto Canvas::text(Vec2 position, std::string_view text, Color color, float size, Vec2 anchor) noexcept -> void {
+        if (anchor != Vec2{}) {
+            // Line by line, each shifted by its own width.
+            float y = position.y - std::round(measure_text(text, size).y * anchor.y);
+            std::size_t begin = 0;
+            while (true) {
+                const std::size_t end = text.find('\n', begin);
+                const std::string_view line = text.substr(begin, end == std::string_view::npos ? end : end - begin);
+                const float x = position.x - std::round(measure_text(line, size).x * anchor.x);
+                this->text({x, y}, line, color, size);
+                if (end == std::string_view::npos) {
+                    return;
+                }
+                y += size;
+                begin = end + 1;
+            }
+        }
+
         const float scale = size / static_cast<float>(font::line_height);
         const BatchState state = state_for(0);
 

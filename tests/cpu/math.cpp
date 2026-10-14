@@ -78,6 +78,8 @@ TEST_CASE("Size and Rect") {
     CHECK(r.right() == 40.f);
     CHECK(r.bottom() == 60.f);
     CHECK(r.center() == tgx::Vec2{25, 40});
+    static_assert(tgx::Rect::from_center({25, 40}, {30, 40}) == tgx::Rect{10, 20, 30, 40});
+    CHECK(tgx::Rect::from_center(r.center(), {30, 40}) == r);
 }
 
 TEST_CASE("Mat4") {

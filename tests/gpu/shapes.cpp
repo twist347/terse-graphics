@@ -7,9 +7,11 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <numbers>
+#include <string_view>
 
 TEST_CASE("a circle's edge") {
     const tgx::RenderTarget target = tgx_test::target({64, 64});
@@ -333,4 +335,43 @@ TEST_CASE("poly: a square with a corner up, and its frame") {
     CHECK(image[64, edge - 2] == tgx::colors::black);
     CHECK(image[64, edge + 8] == tgx::colors::black);
     CHECK(image[edge + 2, edge + 2] == tgx::colors::white);
+}
+
+TEST_CASE("text anchored: the same pixels as placed by hand, line by line") {
+    const tgx::RenderTarget target = tgx_test::target({256, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    const auto drawn = [&](auto draw) {
+        canvas.clear(tgx::colors::black);
+        draw();
+        return target.read();
+    };
+    const auto width = [](std::string_view line) { return tgx::Canvas::measure_text(line, 16).x; };
+
+    // Centered: each line by its own width, the block by its height (two
+    // lines, 32), the shifts rounded to whole units.
+    const tgx::Vec2 center{128, 64};
+    const tgx::Image anchored = drawn([&] {
+        canvas.text(center, "Hello\nhi", tgx::colors::white, 16, {0.5f, 0.5f});
+    });
+    const tgx::Image by_hand = drawn([&] {
+        canvas.text({center.x - std::round(width("Hello") / 2.f), center.y - 16}, "Hello", tgx::colors::white);
+        canvas.text({center.x - std::round(width("hi") / 2.f), center.y}, "hi", tgx::colors::white);
+    });
+    CHECK(anchored.pixels().size() == by_hand.pixels().size());
+    CHECK(std::ranges::equal(anchored.pixels(), by_hand.pixels()));
+
+    // Right-aligned at the top-right corner.
+    const tgx::Image right = drawn([&] {
+        canvas.text({250, 4}, "1\n200", tgx::colors::white, 16, {1, 0});
+    });
+    const tgx::Image right_by_hand = drawn([&] {
+        canvas.text({250 - width("1"), 4}, "1", tgx::colors::white);
+        canvas.text({250 - width("200"), 20}, "200", tgx::colors::white);
+    });
+    CHECK(std::ranges::equal(right.pixels(), right_by_hand.pixels()));
+
+    // The default anchor draws as before.
+    const tgx::Image plain = drawn([&] { canvas.text({10, 10}, "a\nbc", tgx::colors::white); });
+    const tgx::Image zero = drawn([&] { canvas.text({10, 10}, "a\nbc", tgx::colors::white, 16, {}); });
+    CHECK(std::ranges::equal(plain.pixels(), zero.pixels()));
 }
