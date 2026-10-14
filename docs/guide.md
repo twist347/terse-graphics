@@ -72,9 +72,7 @@ In `tgx`:
   usual operations and `ortho`, `perspective`, `look_at`, `translate`, `rotate`,
   `scale`. Same conventions as glm, and glm values convert with `std::bit_cast`.
   `fit` and `fit_whole` place a fixed-size picture in a window of any shape.
-  `ease::` curves (`linear`, `sine`, `quad`, `cubic`, `expo`, `back`,
-  `elastic`, `bounce`, each `in_`/`out_`/`in_out_`) bend a timer's progress
-  for `lerp`: `lerp(from, to, ease::out_cubic(timer.progress()))`.
+  `frame_of` gives a sprite sheet's frame by index, as `Sprite::src`.
 - **Random**: `tgx::Random`, a seeded value with floats, ints, chances, points
   in a rect, directions and picks; the same seed gives the same numbers on
   every platform.
@@ -82,6 +80,9 @@ In `tgx`:
   (a delay), `once_ready` (a cooldown that lets the first use through),
   `every` (waves, animation frames; keeps its rate at any frame rate), with
   `progress()` for a bar. Pausing is not ticking it.
+- **Easing**: `tgx::ease` curves (`linear`, `sine`, `quad`, `cubic`, `expo`,
+  `back`, `elastic`, `bounce`, each `in_`/`out_`/`in_out_`) bend a timer's
+  progress for `lerp`: `lerp(from, to, ease::out_cubic(timer.progress()))`.
 - **Checks**: asserts for the mistakes GL keeps quiet about (see below), and GL
   driver messages routed to the log on debug contexts.
 

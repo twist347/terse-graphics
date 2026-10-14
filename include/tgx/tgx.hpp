@@ -19,6 +19,7 @@
 #include "tgx/core/collision.hpp"
 #include "tgx/core/color.hpp"
 #include "tgx/core/device.hpp"
+#include "tgx/core/ease.hpp"
 #include "tgx/core/error.hpp"
 #include "tgx/core/image.hpp"
 #include "tgx/core/input.hpp"

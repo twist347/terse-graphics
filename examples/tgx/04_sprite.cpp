@@ -42,9 +42,10 @@ int main() {
         return 1;
     }
 
-    // The frames, in texels from the atlas's top-left corner.
-    constexpr tgx::Rect arrow{0, 0, 8, 8};
-    constexpr tgx::Rect cross{8, 0, 8, 8};
+    // The frames, in texels from the atlas's top-left corner: frame_of counts
+    // the 8x8 cells of the sheet, so arrow is {0, 0, 8, 8} and cross {8, 0, 8, 8}.
+    constexpr tgx::Rect arrow = tgx::frame_of({16, 8}, {8, 8}, 0);
+    constexpr tgx::Rect cross = tgx::frame_of({16, 8}, {8, 8}, 1);
     // Everything below is drawn this big.
     constexpr tgx::Vec2 size{128, 128};
 
