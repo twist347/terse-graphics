@@ -99,6 +99,10 @@ target_link_libraries(tgx PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
 if (UNIX AND NOT APPLE)
     target_link_libraries(tgx PRIVATE m)
 endif ()
+if (WIN32)
+    # timeBeginPeriod, for the fps limit.
+    target_link_libraries(tgx PRIVATE winmm)
+endif ()
 if (TGX_OWN_GLFW)
     target_link_libraries(tgx PRIVATE $<BUILD_INTERFACE:glfw>)
     # What GLFW links privately, as an object library it passes on to no one.

@@ -14,6 +14,7 @@ namespace tgx {
         Size size{.width = 1280, .height = 720};
         const char *title{"tgx"};
         bool vsync{true};
+        int fps_limit{0};
         // Reports driver messages but slows the driver: on by default only
         // with asserts. TGX_ENABLE_ASSERTS, unlike NDEBUG, is the same for the
         // library and the app.
@@ -71,6 +72,13 @@ namespace tgx {
         auto set_vsync(bool enabled) noexcept -> void;
 
         [[nodiscard]] auto vsync() const noexcept -> bool;
+
+        // Frames a second at most, 0 for none: Device::present waits out the
+        // rest of the frame. For when vsync is off, or to spare the battery.
+        // Under the display's rate with vsync on, frames come unevenly.
+        auto set_fps_limit(int fps) noexcept -> void;
+
+        [[nodiscard]] auto fps_limit() const noexcept -> int;
 
         // Borderless over a whole monitor, no video mode change; or back to
         // the old size and position. The monitor the window is mostly on (on

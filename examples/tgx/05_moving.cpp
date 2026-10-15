@@ -1,6 +1,8 @@
 // Movement that does not depend on the frame rate: speed in units per second,
 // times the seconds the last frame took, clock().delta(). Timers count the
 // same seconds, and easing bends a timer's progress into softer motion.
+//
+// V: vsync on/off. L: a limit of 30 fps on/off. The motion keeps its speed.
 
 #include "tgx/tgx.hpp"
 
@@ -8,7 +10,9 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <format>
 #include <print>
+#include <string>
 
 int main() {
     // Info also prints what it runs on: tgx and the window, the GL context,
@@ -40,6 +44,14 @@ int main() {
     while (!app->should_close()) {
         app->poll_events();
 
+        tgx::Window &window = app->window();
+        if (window.input().pressed(tgx::Key::v)) {
+            window.set_vsync(!window.vsync());
+        }
+        if (window.input().pressed(tgx::Key::l)) {
+            window.set_fps_limit(window.fps_limit() == 0 ? 30 : 0);
+        }
+
         const float dt = app->clock().delta();
         x += speed * dt;
         // Off the right edge: back in from the left.
@@ -62,6 +74,13 @@ int main() {
         canvas.rect({std::lerp(100.f, 1100.f, tgx::ease::linear(t)), 490, 40, 40}, tgx::colors::gray);
         canvas.text({100, 550}, "ease::in_out_cubic", tgx::colors::cyan);
         canvas.rect({std::lerp(100.f, 1100.f, tgx::ease::in_out_cubic(t)), 570, 40, 40}, tgx::colors::cyan);
+
+        const std::string pacing = std::format(
+            "V: vsync {}   L: fps limit {}",
+            window.vsync() ? "on" : "off",
+            window.fps_limit() == 0 ? "off" : std::to_string(window.fps_limit())
+        );
+        canvas.text({100, 200}, pacing, tgx::colors::light_gray);
 
         canvas.fps({10, 10});
 

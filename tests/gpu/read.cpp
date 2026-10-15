@@ -7,6 +7,8 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
+
 namespace {
     // A point in the window's screen coordinates, in its framebuffer's
     // pixels: more of them on a display with a scale.
@@ -81,4 +83,33 @@ TEST_CASE("Window::vsync reads back as set") {
     window.set_vsync(true);
     CHECK(window.vsync());
     window.set_vsync(false);
+}
+
+TEST_CASE("Window::set_fps_limit paces present, and 0 lifts it") {
+    tgx::App &app = tgx_test::app();
+    tgx::Window &window = app.window();
+    CHECK(window.fps_limit() == 0);
+
+    // 50 a second: 20 ms a frame, on average, never much under.
+    window.set_fps_limit(50);
+    CHECK(window.fps_limit() == 50);
+    constexpr int frames = 10;
+    float shortest = 1.f;
+    float total = 0.f;
+    app.device().present();
+    for (int i = 0; i < frames; ++i) {
+        app.device().present();
+        const float delta = app.clock().delta();
+        shortest = std::min(shortest, delta);
+        total += delta;
+    }
+    CHECK(total / frames > 0.019f);
+    CHECK(total / frames < 0.030f);
+    CHECK(shortest > 0.015f);
+
+    window.set_fps_limit(0);
+    CHECK(window.fps_limit() == 0);
+    app.device().present();
+    app.device().present();
+    CHECK(app.clock().delta() < 0.015f);
 }
