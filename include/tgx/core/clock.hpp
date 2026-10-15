@@ -11,6 +11,9 @@ namespace tgx {
         Clock(const Clock &) = delete;
         auto operator=(const Clock &) -> Clock & = delete;
 
+        Clock(Clock &&) = delete;
+        auto operator=(Clock &&) -> Clock & = delete;
+
         // Seconds. 0 for the first frame.
         [[nodiscard]] auto delta() const noexcept -> float;
 

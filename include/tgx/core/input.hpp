@@ -59,6 +59,9 @@ namespace tgx {
         Input(const Input &) = delete;
         auto operator=(const Input &) -> Input & = delete;
 
+        Input(Input &&) = delete;
+        auto operator=(Input &&) -> Input & = delete;
+
         [[nodiscard]] auto down(Key key) const noexcept -> bool;
 
         // Went down or up since the previous poll. A tap within one frame is
