@@ -1,6 +1,5 @@
 #pragma once
 
-#include "tgx/core/assert.hpp"
 #include "tgx/core/error.hpp"
 #include "tgx/core/input.hpp"
 #include "tgx/core/math.hpp"
@@ -12,9 +11,8 @@ struct GLFWwindow;
 namespace tgx {
     struct WindowParams {
         // In screen coordinates, as Window::size().
-        Size size{1280, 720};
+        Size size{.width = 1280, .height = 720};
         const char *title{"tgx"};
-        // See Window::set_vsync().
         bool vsync{true};
         // Reports driver messages but slows the driver: on by default only
         // with asserts. TGX_ENABLE_ASSERTS, unlike NDEBUG, is the same for the

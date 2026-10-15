@@ -31,3 +31,8 @@ tgx_add_example(gl 07_canvas_shader)
 tgx_add_example(gl 08_post_process)
 
 tgx_add_example(scenes 01_night_city)
+tgx_add_example(scenes 02_space)
+tgx_add_example(scenes 03_fireworks)
+tgx_add_example(scenes 04_synthwave)
+tgx_add_example(scenes 05_flock)
+tgx_add_example(scenes 06_meadow)

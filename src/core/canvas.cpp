@@ -218,6 +218,35 @@ namespace {
         }
     };
 
+    // One axis of an EllipseRim point moved inset along the normal, kept on
+    // its own side and within radius - inset: where the edge bends tighter
+    // than inset, the moved points would cross over.
+    [[nodiscard]] auto inward(float at, float normal, float radius, float inset) noexcept -> float {
+        const float limit = radius - inset;
+        const float moved = at - normal * inset;
+        return at < 0.f ? std::clamp(moved, -limit, 0.f) : std::clamp(moved, 0.f, limit);
+    }
+
+    // As Rim, for a whole ellipse turned by an angle of cosine and sine turn.
+    // inset moves the points inward, for an outline; under min(radii).
+    struct EllipseRim {
+        tgx::Vec2 center;
+        tgx::Vec2 radii;
+        tgx::Vec2 turn;
+        std::size_t n;
+        float inset = 0.f;
+
+        [[nodiscard]] auto operator()(std::size_t i) const noexcept -> tgx::Vec2 {
+            const tgx::Vec2 unit = arc_point(full_circle, i, n);
+            tgx::Vec2 at{unit.x * radii.x, unit.y * radii.y};
+            if (inset > 0.f) {
+                const tgx::Vec2 normal = tgx::normalize(tgx::Vec2{unit.x / radii.x, unit.y / radii.y});
+                at = {inward(at.x, normal.x, radii.x, inset), inward(at.y, normal.y, radii.y, inset)};
+            }
+            return center + tgx::Vec2{at.x * turn.x - at.y * turn.y, at.x * turn.y + at.y * turn.x};
+        }
+    };
+
     // The Device's batch, with room for this many more vertices and indices
     // with the state, and the index of the first new vertex.
     [[nodiscard]] auto start(
@@ -709,6 +738,48 @@ namespace tgx {
             color,
             full
         );
+    }
+
+    auto Canvas::ellipse(Vec2 center, Vec2 radii, Color color, float rotation) noexcept -> void {
+        TGX_ASSERT_MSG(
+            detail::valid_radius(radii.x) && detail::valid_radius(radii.y),
+            "ellipse of radii {} {}", radii.x, radii.y
+        );
+        TGX_ASSERT_MSG(std::isfinite(rotation), "rotation {}", rotation);
+
+        if (radii.x == 0.f || radii.y == 0.f) {
+            return;
+        }
+
+        // The chords bend away from the edge no more than on a circle of the
+        // larger radius.
+        const BatchState state = state_for(0);
+        const std::size_t n = segments(std::max(radii.x, radii.y), state);
+        const EllipseRim rim{center, radii, from_angle(rotation), n};
+        push_fan(state, center, n, rim, color, color, true);
+    }
+
+    auto Canvas::ellipse_lines(Vec2 center, Vec2 radii, Color color, float thickness, float rotation) noexcept -> void {
+        TGX_ASSERT_MSG(
+            detail::valid_radius(radii.x) && detail::valid_radius(radii.y),
+            "ellipse of radii {} {}", radii.x, radii.y
+        );
+        TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
+        TGX_ASSERT_MSG(std::isfinite(rotation), "rotation {}", rotation);
+
+        if (radii.x == 0.f || radii.y == 0.f || thickness <= 0.f) {
+            return;
+        }
+        // Thick enough, the outline fills the ellipse.
+        if (thickness >= std::min(radii.x, radii.y)) {
+            ellipse(center, radii, color, rotation);
+            return;
+        }
+
+        const BatchState state = state_for(0);
+        const std::size_t n = segments(std::max(radii.x, radii.y), state);
+        const Vec2 turn = from_angle(rotation);
+        push_band(state, n, EllipseRim{center, radii, turn, n}, EllipseRim{center, radii, turn, n, thickness}, color, true);
     }
 
     auto Canvas::poly(Vec2 center, int sides, float radius, float rotation, Color color) noexcept -> void {

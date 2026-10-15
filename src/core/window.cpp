@@ -86,8 +86,7 @@ namespace {
             return best;
         }
 
-        int x = 0;
-        int y = 0;
+        int x = 0, y = 0;
         glfwGetWindowPos(s_window.handle, &x, &y);
         const tgx::Size size = s_window.size;
 
@@ -95,8 +94,7 @@ namespace {
         GLFWmonitor **monitors = glfwGetMonitors(&count);
         long best_area = 0;
         for (GLFWmonitor *monitor: std::span{monitors, static_cast<std::size_t>(count)}) {
-            int mx = 0;
-            int my = 0;
+            int mx = 0, my = 0;
             glfwGetMonitorPos(monitor, &mx, &my);
             const GLFWvidmode *mode = glfwGetVideoMode(monitor);
             if (!mode) {
@@ -180,9 +178,7 @@ namespace {
         if (!tgx::detail::log_enabled(tgx::LogLevel::info)) {
             return;
         }
-        int major = 0;
-        int minor = 0;
-        int revision = 0;
+        int major = 0, minor = 0, revision = 0;
         glfwGetVersion(&major, &minor, &revision);
         tgx::detail::log_info("tgx {}, GLFW {}.{}.{} on {}", TGX_VERSION_STRING, major, minor, revision, platform_name());
         tgx::detail::log_info(
@@ -282,8 +278,8 @@ namespace tgx {
         detail::begin_input_frame();
         glfwPollEvents();
 
-        s_window.resized = s_window.size != s_window.polled_size
-                           || s_window.framebuffer_size != s_window.polled_framebuffer_size;
+        s_window.resized =
+            s_window.size != s_window.polled_size || s_window.framebuffer_size != s_window.polled_framebuffer_size;
         s_window.polled_size = s_window.size;
         s_window.polled_framebuffer_size = s_window.framebuffer_size;
     }

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <numbers>
 #include <string_view>
 
@@ -310,6 +311,61 @@ TEST_CASE("ring: the band between the radii, over the arc") {
     CHECK(image[64, 64 - 25] == tgx::colors::black);
     CHECK(image[64, 64 - 55] == tgx::colors::black);
     CHECK(image[64, 104] == tgx::colors::black);
+}
+
+TEST_CASE("ellipse: the radii along its axes, turned, and its outline") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    constexpr float pi = std::numbers::pi_v<float>;
+
+    canvas.clear(tgx::colors::black);
+    canvas.ellipse({64, 64}, {50, 20}, tgx::colors::white);
+    tgx::Image image = target.read();
+    CHECK(image[64 + 48, 64] == tgx::colors::white);
+    CHECK(image[64 + 52, 64] == tgx::colors::black);
+    CHECK(image[64, 64 + 18] == tgx::colors::white);
+    CHECK(image[64, 64 + 22] == tgx::colors::black);
+
+    // A quarter turn stands it up.
+    canvas.clear(tgx::colors::black);
+    canvas.ellipse({64, 64}, {50, 20}, tgx::colors::white, pi / 2.f);
+    image = target.read();
+    CHECK(image[64, 64 + 48] == tgx::colors::white);
+    CHECK(image[64 + 22, 64] == tgx::colors::black);
+
+    // 5 wide inside the edge, on both axes.
+    canvas.clear(tgx::colors::black);
+    canvas.ellipse_lines({64, 64}, {50, 20}, tgx::colors::white, 5);
+    image = target.read();
+    CHECK(image[64 + 47, 64] == tgx::colors::white);
+    CHECK(image[64 + 43, 64] == tgx::colors::black);
+    CHECK(image[64, 64 - 18] == tgx::colors::white);
+    CHECK(image[64, 64 - 14] == tgx::colors::black);
+    CHECK(image[64, 64] == tgx::colors::black);
+}
+
+TEST_CASE("ellipse_lines thicker than its ends bend: no pixel drawn twice") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    // The ends bend with a radius of 15 * 15 / 60 = 3.75, under the thickness.
+    canvas.clear(tgx::colors::black);
+    canvas.ellipse_lines({64, 64}, {60, 15}, tgx::colors::white.fade(0.5f), 10);
+
+    const tgx::Image image = target.read();
+    const std::uint8_t once = image[64 + 55, 64].r;
+    CHECK(once > 100);
+    CHECK(once < 150);
+    int twice = 0;
+    for (int y = 0; y < 128; ++y) {
+        for (int x = 0; x < 128; ++x) {
+            if (image[x, y].r > once + 1) {
+                ++twice;
+            }
+        }
+    }
+    CHECK(twice == 0);
+    CHECK(image[64, 64] == tgx::colors::black);
 }
 
 TEST_CASE("poly: a square with a corner up, and its frame") {

@@ -85,6 +85,12 @@ int main() {
         canvas.rect({816, 570, 110, 110}, tgx::colors::blue);
         canvas.rect({866, 590, 110, 110}, tgx::colors::red.with_alpha(128));
 
+        // Ellipses: radii along their own axes, then a turn. A planet with a
+        // band and a tilted ring.
+        canvas.circle({1152, 635}, 45, tgx::colors::brown);
+        canvas.ellipse({1152, 635}, {45, 12}, tgx::colors::orange, -0.3f);
+        canvas.ellipse_lines({1152, 635}, {110, 30}, tgx::colors::light_gray, 6, -0.3f);
+
         canvas.fps({10, 10});
 
         app->swap_buffers();

@@ -102,6 +102,11 @@ time; everything in them is made in code, no files needed.
 | `examples/scenes/` | Shows                                                          |
 |--------------------|----------------------------------------------------------------|
 | `01_night_city`    | Rain over a city in pixel art: parallax, light, lightning, a scanline shader. |
+| `02_space`         | Deep space: drifting stars, a ringed planet lit in 3D, a ship steered by the mouse. |
+| `03_fireworks`     | Fireworks over a lake at night: bursts of several shapes, mirrored in the ripples. |
+| `04_synthwave`     | An endless 80s drive: a striped sun, a neon grid, bloom and a CRT shader. |
+| `05_flock`         | A school of fish flocking around the cursor, thousands found through a grid. |
+| `06_meadow`        | A meadow through a whole day in flat shapes: sky, sun and moon, swaying grass. |
 
 ## Building
 

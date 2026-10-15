@@ -33,8 +33,7 @@ Features:
 - Images on the CPU: crop, resize, flip, draw into, generate (gradients,
   checks, noise).
 - Audio: pitch and pan for `Music`, sound generated on the fly.
-- Shapes: splines and Bezier curves, ellipses, outlines of circle sectors
-  and rings.
+- Shapes: splines and Bezier curves, outlines of circle sectors and rings.
 - Collisions: rays with the distance to the hit, moving rectangles (swept),
   rotated rectangles and convex polygons (SAT).
 - Math: `reflect`, the angle between vectors, `Mat4` inverse and transpose.

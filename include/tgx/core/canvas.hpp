@@ -210,6 +210,21 @@ namespace tgx {
             Color color
         ) noexcept -> void;
 
+        // radii along its own x and y; rotation turns it around the center,
+        // as in circle_sector().
+        //
+        //     canvas.ellipse_lines(planet, {120, 30}, colors::light_gray, 3, -0.3f);  // a tilted ring
+        auto ellipse(Vec2 center, Vec2 radii, Color color, float rotation = 0.f) noexcept -> void;
+
+        // Outline, drawn inside the edge, equally thick all round.
+        auto ellipse_lines(
+            Vec2 center,
+            Vec2 radii,
+            Color color,
+            float thickness = 1.f,
+            float rotation = 0.f
+        ) noexcept -> void;
+
         // 3 to 1024 sides, corners on a circle of the radius. rotation is the
         // first corner's angle, as in circle_sector().
         auto poly(Vec2 center, int sides, float radius, float rotation, Color color) noexcept -> void;

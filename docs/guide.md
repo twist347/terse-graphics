@@ -47,8 +47,8 @@ In `tgx`:
   direction from WASD or the arrows (`direction()`, length 1, or 0 with
   nothing held), the mouse in window coordinates (and through
   `Canvas::to_world` in the world), the wheel, typed text in UTF-8.
-- **Canvas**: 2D drawing in screen coordinates: rectangles, triangles and
-  circles (also with gradients), lines and joined strips of them, outlines,
+- **Canvas**: 2D drawing in screen coordinates: rectangles, triangles,
+  circles (also with gradients) and turned ellipses, lines and joined strips of them, outlines,
   sprites (parts of textures, mirrored, turned, tinted) and text in a
   built-in pixel font, under a 2D camera, with a choice of blending.
   Collected and drawn in batches, always in the order of the calls.
