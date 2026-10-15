@@ -21,6 +21,84 @@ TEST_CASE("circles get as many segments as keep them round") {
     CHECK(radius * (1.f - std::cos(std::numbers::pi_v<float> / n)) <= tgx::detail::circle_tolerance);
 }
 
+TEST_CASE("arcs") {
+    using tgx::detail::arc_between;
+    using tgx::detail::whole_turn;
+
+    SUBCASE("ends in either order, at most a full turn") {
+        CHECK(arc_between(2.f, 1.f).start == 1.f);
+        CHECK(arc_between(2.f, 1.f).sweep == 1.f);
+        CHECK(arc_between(0.f, 3.f * whole_turn).sweep == whole_turn);
+        CHECK(tgx::detail::full_turn(arc_between(0.f, 3.f * whole_turn)));
+    }
+    SUBCASE("a part of the circle's segments, at least one") {
+        CHECK(tgx::detail::arc_segments({0.f, whole_turn / 4.f}, 64) == 16);
+        CHECK(tgx::detail::arc_segments({0.f, 0.f}, 64) == 1);
+    }
+    SUBCASE("a rim runs clockwise from the start") {
+        const tgx::detail::Rim rim{{10, 10}, 2.f, tgx::detail::full_circle, 4};
+        CHECK(near(rim(0), {12, 10}));
+        CHECK(near(rim(1), {10, 12}));
+        CHECK(near(rim(4), rim(0)));
+    }
+}
+
+TEST_CASE("ellipse rims") {
+    using tgx::detail::EllipseRim;
+    const tgx::Vec2 center{100, 50};
+
+    SUBCASE("points lie on the radii, turned") {
+        const EllipseRim rim{center, {40, 10}, {1, 0}, 4};
+        CHECK(near(rim(0), {140, 50}));
+        CHECK(near(rim(1), {100, 60}));
+        const EllipseRim turned{center, {40, 10}, tgx::from_angle(std::numbers::pi_v<float> / 2.f), 4};
+        CHECK(near(turned(0), {100, 90}));
+    }
+    SUBCASE("inset moves the axis points straight in") {
+        const EllipseRim rim{center, {40, 10}, {1, 0}, 4, 3.f};
+        CHECK(near(rim(0), {137, 50}));
+        CHECK(near(rim(1), {100, 57}));
+    }
+    SUBCASE("inset past the end curvature keeps each point on its own side") {
+        const std::size_t n = 256;
+        const EllipseRim edge{center, {40, 4}, {1, 0}, n};
+        const EllipseRim inset{center, {40, 4}, {1, 0}, n, 3.f};
+        for (std::size_t i = 0; i < n; ++i) {
+            const tgx::Vec2 e = edge(i) - center;
+            const tgx::Vec2 p = inset(i) - center;
+            CHECK(e.x * p.x >= 0.f);
+            CHECK(e.y * p.y >= 0.f);
+            CHECK(std::abs(p.x) <= 37.f + 1e-4f);
+            CHECK(std::abs(p.y) <= 1.f + 1e-4f);
+        }
+    }
+}
+
+TEST_CASE("corners") {
+    SUBCASE("clockwise from the top-left") {
+        const auto box = tgx::detail::corners(tgx::Rect{1, 2, 3, 4});
+        CHECK(box[0] == tgx::Vec2{1, 2});
+        CHECK(box[1] == tgx::Vec2{4, 2});
+        CHECK(box[2] == tgx::Vec2{4, 6});
+        CHECK(box[3] == tgx::Vec2{1, 6});
+    }
+    SUBCASE("placed: origin at position, turned around it") {
+        const auto box = tgx::detail::placed_corners({4, 2}, {2, 1}, {10, 10}, std::numbers::pi_v<float> / 2.f);
+        CHECK(near(box[0], {11, 8}));
+        CHECK(near(box[2], {9, 12}));
+    }
+    SUBCASE("a rounded rim starts at the left end of the top-left corner") {
+        const tgx::Rect rect{0, 0, 100, 50};
+        const std::size_t points = tgx::detail::corner_points(32);
+        CHECK(points == 9);
+        CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 0.f, points, 0), {0, 10}));
+        CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 0.f, points, points - 1), {10, 0}));
+        CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 4.f, points, 0), {4, 10}));
+        // Inset past the radius: a square corner.
+        CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 12.f, points, 0), {12, 12}));
+    }
+}
+
 TEST_CASE("a canvas spans its own size, else its viewport, else the surface") {
     using tgx::detail::span_of;
     CHECK(span_of({320, 180}, {0, 0, 100, 100}, {1280, 720}) == tgx::Size{320, 180});

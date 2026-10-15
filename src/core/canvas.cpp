@@ -169,84 +169,6 @@ namespace {
         };
     }
 
-    // Radians.
-    constexpr float whole_turn = 2.f * std::numbers::pi_v<float>;
-
-    // Start angle and clockwise sweep, at most a full turn.
-    struct Arc {
-        float start;
-        float sweep;
-    };
-
-    [[nodiscard]] auto arc_between(float start, float end) noexcept -> Arc {
-        if (end < start) {
-            std::swap(start, end);
-        }
-        return {start, std::min(end - start, whole_turn)};
-    }
-
-    // Segments for the arc, given n for the whole circle. At least one.
-    [[nodiscard]] auto arc_segments(const Arc &arc, std::size_t n) noexcept -> std::size_t {
-        const float part = arc.sweep / whole_turn;
-        return std::max(static_cast<std::size_t>(std::ceil(part * static_cast<float>(n))), std::size_t{1});
-    }
-
-    // A full circle's last point is its first; a closed fan or band reuses
-    // it exactly, leaving no seam.
-    [[nodiscard]] auto full_turn(const Arc &arc) noexcept -> bool {
-        return arc.sweep >= whole_turn;
-    }
-
-    // As circle() draws it.
-    constexpr Arc full_circle{0.f, whole_turn};
-
-    // Point i of a unit-circle arc split into n segments.
-    [[nodiscard]] auto arc_point(const Arc &arc, std::size_t i, std::size_t n) noexcept -> tgx::Vec2 {
-        return tgx::from_angle(arc.start + arc.sweep * static_cast<float>(i) / static_cast<float>(n));
-    }
-
-    // The points of an arc split into n segments, radius around center, as
-    // push_fan and push_band take them.
-    struct Rim {
-        tgx::Vec2 center;
-        float radius;
-        Arc arc;
-        std::size_t n;
-
-        [[nodiscard]] auto operator()(std::size_t i) const noexcept -> tgx::Vec2 {
-            return center + arc_point(arc, i, n) * radius;
-        }
-    };
-
-    // One axis of an EllipseRim point moved inset along the normal, kept on
-    // its own side and within radius - inset: where the edge bends tighter
-    // than inset, the moved points would cross over.
-    [[nodiscard]] auto inward(float at, float normal, float radius, float inset) noexcept -> float {
-        const float limit = radius - inset;
-        const float moved = at - normal * inset;
-        return at < 0.f ? std::clamp(moved, -limit, 0.f) : std::clamp(moved, 0.f, limit);
-    }
-
-    // As Rim, for a whole ellipse turned by an angle of cosine and sine turn.
-    // inset moves the points inward, for an outline; under min(radii).
-    struct EllipseRim {
-        tgx::Vec2 center;
-        tgx::Vec2 radii;
-        tgx::Vec2 turn;
-        std::size_t n;
-        float inset = 0.f;
-
-        [[nodiscard]] auto operator()(std::size_t i) const noexcept -> tgx::Vec2 {
-            const tgx::Vec2 unit = arc_point(full_circle, i, n);
-            tgx::Vec2 at{unit.x * radii.x, unit.y * radii.y};
-            if (inset > 0.f) {
-                const tgx::Vec2 normal = tgx::normalize(tgx::Vec2{unit.x / radii.x, unit.y / radii.y});
-                at = {inward(at.x, normal.x, radii.x, inset), inward(at.y, normal.y, radii.y, inset)};
-            }
-            return center + tgx::Vec2{at.x * turn.x - at.y * turn.y, at.x * turn.y + at.y * turn.x};
-        }
-    };
-
     // The Device's batch, with room for this many more vertices and indices
     // with the state, and the index of the first new vertex.
     [[nodiscard]] auto start(
@@ -264,18 +186,6 @@ namespace {
         for (const std::size_t offset: offsets) {
             batch.push_index(static_cast<std::uint16_t>(first + offset));
         }
-    }
-
-    // Clockwise from the top-left, as push_quad takes them.
-    [[nodiscard]] constexpr auto corners(
-        tgx::Vec2 top_left,
-        tgx::Vec2 bottom_right
-    ) noexcept -> std::array<tgx::Vec2, 4> {
-        return {top_left, {bottom_right.x, top_left.y}, bottom_right, {top_left.x, bottom_right.y}};
-    }
-
-    [[nodiscard]] constexpr auto corners(tgx::Rect rect) noexcept -> std::array<tgx::Vec2, 4> {
-        return corners({rect.x, rect.y}, {rect.right(), rect.bottom()});
     }
 
     // Corners clockwise, drawn as triangles a b c and c d a.
@@ -362,56 +272,6 @@ namespace {
         const float keep = 1.f - thickness / inradius;
         const auto inner = [&](std::size_t i) noexcept { return center + (corner(i) - center) * keep; };
         push_band(state, count, corner, inner, color, true);
-    }
-
-    // Clockwise from the top-left. origin, from the top-left corner, is
-    // placed at position, and the box rotates around it.
-    [[nodiscard]] auto placed_corners(
-        tgx::Vec2 size,
-        tgx::Vec2 origin,
-        tgx::Vec2 position,
-        float rotation
-    ) noexcept -> std::array<tgx::Vec2, 4> {
-        auto box = corners(-origin, size - origin);
-        if (rotation == 0.f) {
-            for (tgx::Vec2 &corner: box) {
-                corner += position;
-            }
-            return box;
-        }
-        // rotate() written out, to compute cos and sin once for all corners.
-        const float c = std::cos(rotation);
-        const float s = std::sin(rotation);
-        for (tgx::Vec2 &corner: box) {
-            corner = tgx::Vec2{corner.x * c - corner.y * s, corner.x * s + corner.y * c} + position;
-        }
-        return box;
-    }
-
-    // Point i on the edge of a rounded rectangle, clockwise from the left end
-    // of the top-left corner. inset moves the edge inward, for an outline:
-    // corners keep their centers, and are square once inset reaches radius.
-    [[nodiscard]] auto rounded_rim(
-        tgx::Rect rect,
-        float radius,
-        float inset,
-        std::size_t points,
-        std::size_t i
-    ) noexcept -> tgx::Vec2 {
-        const std::size_t corner = i / points;
-        const std::size_t step = i % points;
-        const float in = std::max(radius, inset);
-        const auto centers = corners({rect.x + in, rect.y + in}, {rect.right() - in, rect.bottom() - in});
-        // The top-left quarter starts at half a turn (left); each next corner
-        // a quarter turn later.
-        constexpr float quarter = whole_turn / 4.f;
-        const Arc arc{quarter * static_cast<float>(corner + 2), quarter};
-        return centers[corner] + arc_point(arc, step, points - 1) * std::max(radius - inset, 0.f);
-    }
-
-    // Per rounded corner, given n segments for the whole circle.
-    [[nodiscard]] auto corner_points(std::size_t n) noexcept -> std::size_t {
-        return arc_segments({0.f, whole_turn / 4.f}, n) + 1;
     }
 
     // Asserted: at least 3, and no more than fit in one draw.
@@ -513,11 +373,11 @@ namespace tgx {
     }
 
     auto Canvas::rect(Rect rect, Color color) noexcept -> void {
-        quad(corners(rect), {color, color, color, color});
+        quad(detail::corners(rect), {color, color, color, color});
     }
 
     auto Canvas::rect(Rect rect, Vec2 origin, float rotation, Color color) noexcept -> void {
-        const auto box = placed_corners({rect.width, rect.height}, origin, {rect.x, rect.y}, rotation);
+        const auto box = detail::placed_corners({rect.width, rect.height}, origin, {rect.x, rect.y}, rotation);
         quad(box, {color, color, color, color});
     }
 
@@ -547,8 +407,8 @@ namespace tgx {
         }
 
         const BatchState state = state_for(0);
-        const std::size_t points = corner_points(segments(r, state));
-        const auto rim = [&](std::size_t i) noexcept { return rounded_rim(rect, r, 0.f, points, i); };
+        const std::size_t points = detail::corner_points(segments(r, state));
+        const auto rim = [&](std::size_t i) noexcept { return detail::rounded_rim(rect, r, 0.f, points, i); };
         push_fan(state, rect.center(), points * 4, rim, color, color, true);
     }
 
@@ -571,12 +431,12 @@ namespace tgx {
         }
 
         const BatchState state = state_for(0);
-        const std::size_t points = corner_points(segments(r, state));
+        const std::size_t points = detail::corner_points(segments(r, state));
         push_band(
             state,
             points * 4,
-            [&](std::size_t i) noexcept { return rounded_rim(rect, r, 0.f, points, i); },
-            [&](std::size_t i) noexcept { return rounded_rim(rect, r, thickness, points, i); },
+            [&](std::size_t i) noexcept { return detail::rounded_rim(rect, r, 0.f, points, i); },
+            [&](std::size_t i) noexcept { return detail::rounded_rim(rect, r, thickness, points, i); },
             color,
             true
         );
@@ -591,7 +451,7 @@ namespace tgx {
         Color top_left, Color top_right,
         Color bottom_right, Color bottom_left
     ) noexcept -> void {
-        const auto box = corners(rect);
+        const auto box = detail::corners(rect);
         const std::array colors{top_left, top_right, bottom_right, bottom_left};
         if (detail::blends_flat(colors)) {
             quad(box, colors);
@@ -683,7 +543,7 @@ namespace tgx {
 
         const BatchState state = state_for(0);
         const std::size_t n = segments(radius, state);
-        push_fan(state, center, n, Rim{center, radius, full_circle, n}, inner, outer, true);
+        push_fan(state, center, n, detail::Rim{center, radius, detail::full_circle, n}, inner, outer, true);
     }
 
     auto Canvas::circle_lines(Vec2 center, float radius, Color color, float thickness) noexcept -> void {
@@ -691,22 +551,23 @@ namespace tgx {
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
         // Thick enough, the ring has no hole.
-        ring(center, std::max(radius - thickness, 0.f), radius, full_circle.start, full_circle.sweep, color);
+        const detail::Arc arc = detail::full_circle;
+        ring(center, std::max(radius - thickness, 0.f), radius, arc.start, arc.sweep, color);
     }
 
     auto Canvas::circle_sector(Vec2 center, float radius, float start, float end, Color color) noexcept -> void {
         TGX_ASSERT_MSG(detail::valid_radius(radius), "circle of radius {}", radius);
         TGX_ASSERT_MSG(std::isfinite(start) && std::isfinite(end), "sector from {} to {}", start, end);
 
-        const Arc arc = arc_between(start, end);
+        const detail::Arc arc = detail::arc_between(start, end);
         if (radius == 0.f || arc.sweep == 0.f) {
             return;
         }
 
         const BatchState state = state_for(0);
-        const std::size_t n = arc_segments(arc, segments(radius, state));
-        const bool full = full_turn(arc);
-        push_fan(state, center, n, Rim{center, radius, arc, n}, color, color, full);
+        const std::size_t n = detail::arc_segments(arc, segments(radius, state));
+        const bool full = detail::full_turn(arc);
+        push_fan(state, center, n, detail::Rim{center, radius, arc, n}, color, color, full);
     }
 
     auto Canvas::ring(
@@ -722,19 +583,19 @@ namespace tgx {
         );
         TGX_ASSERT_MSG(std::isfinite(start) && std::isfinite(end), "ring from {} to {}", start, end);
 
-        const Arc arc = arc_between(start, end);
+        const detail::Arc arc = detail::arc_between(start, end);
         if (inner_radius == outer_radius || arc.sweep == 0.f) {
             return;
         }
 
         const BatchState state = state_for(0);
-        const std::size_t n = arc_segments(arc, segments(outer_radius, state));
-        const bool full = full_turn(arc);
+        const std::size_t n = detail::arc_segments(arc, segments(outer_radius, state));
+        const bool full = detail::full_turn(arc);
         push_band(
             state,
             n,
-            Rim{center, outer_radius, arc, n},
-            Rim{center, inner_radius, arc, n},
+            detail::Rim{center, outer_radius, arc, n},
+            detail::Rim{center, inner_radius, arc, n},
             color,
             full
         );
@@ -755,7 +616,7 @@ namespace tgx {
         // larger radius.
         const BatchState state = state_for(0);
         const std::size_t n = segments(std::max(radii.x, radii.y), state);
-        const EllipseRim rim{center, radii, from_angle(rotation), n};
+        const detail::EllipseRim rim{center, radii, from_angle(rotation), n};
         push_fan(state, center, n, rim, color, color, true);
     }
 
@@ -779,7 +640,9 @@ namespace tgx {
         const BatchState state = state_for(0);
         const std::size_t n = segments(std::max(radii.x, radii.y), state);
         const Vec2 turn = from_angle(rotation);
-        push_band(state, n, EllipseRim{center, radii, turn, n}, EllipseRim{center, radii, turn, n, thickness}, color, true);
+        const detail::EllipseRim outer{center, radii, turn, n};
+        const detail::EllipseRim inner{center, radii, turn, n, thickness};
+        push_band(state, n, outer, inner, color, true);
     }
 
     auto Canvas::poly(Vec2 center, int sides, float radius, float rotation, Color color) noexcept -> void {
@@ -789,8 +652,8 @@ namespace tgx {
         if (radius == 0.f) {
             return;
         }
-        const Arc arc{rotation, whole_turn};
-        push_fan(state_for(0), center, n, Rim{center, radius, arc, n}, color, color, true);
+        const detail::Arc arc{rotation, detail::whole_turn};
+        push_fan(state_for(0), center, n, detail::Rim{center, radius, arc, n}, color, color, true);
     }
 
     auto Canvas::poly_lines(
@@ -815,8 +678,8 @@ namespace tgx {
             return;
         }
 
-        const Arc arc{rotation, whole_turn};
-        const Rim corner{center, radius, arc, n};
+        const detail::Arc arc{rotation, detail::whole_turn};
+        const detail::Rim corner{center, radius, arc, n};
         push_outline(state_for(0), n, corner, center, inradius, thickness, color);
     }
 
@@ -854,8 +717,8 @@ namespace tgx {
         }
         push_quad(
             state_for(texture.id()),
-            placed_corners({width, height}, sprite.origin, sprite.position, sprite.rotation),
-            corners({u0, v0}, {u1, v1}),
+            detail::placed_corners({width, height}, sprite.origin, sprite.position, sprite.rotation),
+            detail::corners({u0, v0}, {u1, v1}),
             {sprite.tint, sprite.tint, sprite.tint, sprite.tint}
         );
     }
@@ -895,8 +758,8 @@ namespace tgx {
                 const float u1 = static_cast<float>(glyph.x + glyph.width) / font::atlas_width;
                 push_quad(
                     state,
-                    corners(pen, pen + Vec2{width, size}),
-                    corners({u0, 0.f}, {u1, 1.f}),
+                    detail::corners(pen, pen + Vec2{width, size}),
+                    detail::corners({u0, 0.f}, {u1, 1.f}),
                     {color, color, color, color}
                 );
             }
