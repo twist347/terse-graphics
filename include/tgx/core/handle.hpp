@@ -15,13 +15,13 @@ namespace tgx::detail {
     public:
         Handle() noexcept = default;
 
-        explicit Handle(GlId id) noexcept : m_id{id} {
+        explicit Handle(GlId id) noexcept : id_{id} {
         }
 
         Handle(const Handle &) = delete;
         auto operator=(const Handle &) -> Handle & = delete;
 
-        Handle(Handle &&other) noexcept : m_id{std::exchange(other.m_id, 0)} {
+        Handle(Handle &&other) noexcept : id_{std::exchange(other.id_, 0)} {
         }
 
         auto operator=(Handle &&other) noexcept -> Handle & {
@@ -30,7 +30,7 @@ namespace tgx::detail {
             }
 
             reset();
-            m_id = std::exchange(other.m_id, 0);
+            id_ = std::exchange(other.id_, 0);
 
             return *this;
         }
@@ -39,18 +39,18 @@ namespace tgx::detail {
             reset();
         }
 
-        [[nodiscard]] auto get() const noexcept -> GlId { return m_id; }
+        [[nodiscard]] auto get() const noexcept -> GlId { return id_; }
 
-        [[nodiscard]] explicit operator bool() const noexcept { return m_id != 0; }
+        [[nodiscard]] explicit operator bool() const noexcept { return id_ != 0; }
 
     private:
         auto reset() noexcept -> void {
-            if (m_id != 0) {
-                Delete(m_id);
-                m_id = 0;
+            if (id_ != 0) {
+                Delete(id_);
+                id_ = 0;
             }
         }
 
-        GlId m_id{0};
+        GlId id_{0};
     };
 }

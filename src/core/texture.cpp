@@ -120,13 +120,13 @@ namespace tgx {
     }
 
     auto Texture::update(int x, int y, const Image &image) noexcept -> void {
-        TGX_ASSERT_MSG(m_params.access == TextureAccess::dynamic, "updating an immutable texture");
+        TGX_ASSERT_MSG(params_.access == TextureAccess::dynamic, "updating an immutable texture");
 
         const Size size = image.size();
         TGX_ASSERT_MSG(
-            x >= 0 && y >= 0 && size.width <= m_size.width - x && size.height <= m_size.height - y,
+            x >= 0 && y >= 0 && size.width <= size_.width - x && size.height <= size_.height - y,
             "a {}x{} image at ({}, {}) overruns a {}x{} texture",
-            size.width, size.height, x, y, m_size.width, m_size.height
+            size.width, size.height, x, y, size_.width, size_.height
         );
 
         if (image.empty()) {
@@ -134,15 +134,15 @@ namespace tgx {
         }
 
         // Waiting sprites use the old pixels.
-        detail::flush_texture_use(m_handle.get());
-        detail::context().bind_texture(edit_slot, m_handle.get());
+        detail::flush_texture_use(handle_.get());
+        detail::context().bind_texture(edit_slot, handle_.get());
         glTexSubImage2D(
             GL_TEXTURE_2D, 0,
             x, y, size.width, size.height,
             detail::pixel_format, detail::pixel_type, image.pixels().data()
         );
 
-        if (m_params.mipmaps) {
+        if (params_.mipmaps) {
             glGenerateMipmap(GL_TEXTURE_2D);
         }
     }

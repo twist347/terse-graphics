@@ -45,21 +45,20 @@ namespace tgx {
 
         auto swap_buffers() noexcept -> void;
 
-        // Const for a const App.
-        [[nodiscard]] auto window(this auto &self) noexcept -> auto & { return self.m_window; }
-        [[nodiscard]] auto input() const noexcept -> const Input & { return m_window.input(); }
-        [[nodiscard]] auto device(this auto &self) noexcept -> auto & { return self.m_device; }
-        [[nodiscard]] auto canvas(this auto &self) noexcept -> auto & { return self.m_canvas; }
-        [[nodiscard]] auto clock() const noexcept -> const Clock & { return m_device.clock(); }
-        [[nodiscard]] auto audio(this auto &self) noexcept -> auto & { return self.m_audio; }
+        [[nodiscard]] auto window(this auto &self) noexcept -> auto & { return self.window_; }
+        [[nodiscard]] auto input() const noexcept -> const Input & { return window_.input(); }
+        [[nodiscard]] auto device(this auto &self) noexcept -> auto & { return self.device_; }
+        [[nodiscard]] auto canvas(this auto &self) noexcept -> auto & { return self.canvas_; }
+        [[nodiscard]] auto clock() const noexcept -> const Clock & { return device_.clock(); }
+        [[nodiscard]] auto audio(this auto &self) noexcept -> auto & { return self.audio_; }
 
     private:
         App(Window window, Device device, Canvas canvas, Audio audio) noexcept;
 
-        // Destroyed in reverse order: audio, canvas, device, window.
-        Window m_window;
-        Device m_device;
-        Canvas m_canvas;
-        Audio m_audio;
+        // The order of destruction matters.
+        Window window_;
+        Device device_;
+        Canvas canvas_;
+        Audio audio_;
     };
 }

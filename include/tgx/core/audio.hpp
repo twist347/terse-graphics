@@ -65,9 +65,9 @@ namespace tgx {
 
         ~Sound();
 
-        [[nodiscard]] auto channels() const noexcept -> int { return m_channels; }
+        [[nodiscard]] auto channels() const noexcept -> int { return channels_; }
 
-        [[nodiscard]] auto sample_rate() const noexcept -> int { return m_sample_rate; }
+        [[nodiscard]] auto sample_rate() const noexcept -> int { return sample_rate_; }
 
         // In seconds.
         [[nodiscard]] auto duration() const noexcept -> double;
@@ -80,12 +80,12 @@ namespace tgx {
         // Stops its plays.
         auto release() noexcept -> void;
 
-        std::vector<float> m_samples;
-        int m_channels{0};
-        int m_sample_rate{0};
+        std::vector<float> samples_;
+        int channels_{0};
+        int sample_rate_{0};
         // Tags the voices playing this sound; 0 once moved from. A moved
         // vector keeps its buffer, so those voices play on.
-        std::uint32_t m_id{0};
+        std::uint32_t id_{0};
     };
 
     // Music or ambience, streamed from its file. Needs no per-frame calls.
@@ -147,7 +147,7 @@ namespace tgx {
     private:
         explicit Music(std::unique_ptr<detail::MusicStream> stream) noexcept;
 
-        std::unique_ptr<detail::MusicStream> m_stream;
+        std::unique_ptr<detail::MusicStream> stream_;
     };
 
     // The sound output, one per process. App creates it: app->audio(). Its
@@ -163,7 +163,7 @@ namespace tgx {
         Audio(const Audio &) = delete;
         auto operator=(const Audio &) -> Audio & = delete;
 
-        Audio(Audio &&other) noexcept : m_owned{std::exchange(other.m_owned, false)} {
+        Audio(Audio &&other) noexcept : owned_{std::exchange(other.owned_, false)} {
         }
 
         auto operator=(Audio &&other) noexcept -> Audio &;
@@ -186,12 +186,12 @@ namespace tgx {
         [[nodiscard]] auto volume() const noexcept -> float;
 
     private:
-        Audio() noexcept : m_owned{true} {
+        Audio() noexcept : owned_{true} {
         }
 
         auto release() noexcept -> void;
 
         // False once moved from: another Audio closes the output.
-        bool m_owned{false};
+        bool owned_{false};
     };
 }

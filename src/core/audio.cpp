@@ -248,10 +248,10 @@ namespace tgx {
     }
 
     Sound::Sound(Sound &&other) noexcept
-        : m_samples{std::move(other.m_samples)},
-          m_channels{other.m_channels},
-          m_sample_rate{other.m_sample_rate},
-          m_id{std::exchange(other.m_id, 0)} {
+        : samples_{std::move(other.samples_)},
+          channels_{other.channels_},
+          sample_rate_{other.sample_rate_},
+          id_{std::exchange(other.id_, 0)} {
     }
 
     auto Sound::operator=(Sound &&other) noexcept -> Sound & {
@@ -259,10 +259,10 @@ namespace tgx {
             return *this;
         }
         release();
-        m_samples = std::move(other.m_samples);
-        m_channels = other.m_channels;
-        m_sample_rate = other.m_sample_rate;
-        m_id = std::exchange(other.m_id, 0);
+        samples_ = std::move(other.samples_);
+        channels_ = other.channels_;
+        sample_rate_ = other.sample_rate_;
+        id_ = std::exchange(other.id_, 0);
         return *this;
     }
 
@@ -271,24 +271,24 @@ namespace tgx {
     }
 
     auto Sound::duration() const noexcept -> double {
-        if (m_channels == 0 || m_sample_rate == 0) {
+        if (channels_ == 0 || sample_rate_ == 0) {
             return 0.0;
         }
-        const auto frames = m_samples.size() / static_cast<std::size_t>(m_channels);
-        return static_cast<double>(frames) / static_cast<double>(m_sample_rate);
+        const auto frames = samples_.size() / static_cast<std::size_t>(channels_);
+        return static_cast<double>(frames) / static_cast<double>(sample_rate_);
     }
 
     Sound::Sound(std::vector<float> samples, int channels, int sample_rate) noexcept
-        : m_samples{std::move(samples)},
-          m_channels{channels},
-          m_sample_rate{sample_rate},
-          m_id{s_next_sound_id.fetch_add(1, std::memory_order_relaxed)} {
+        : samples_{std::move(samples)},
+          channels_{channels},
+          sample_rate_{sample_rate},
+          id_{s_next_sound_id.fetch_add(1, std::memory_order_relaxed)} {
     }
 
     auto Sound::release() noexcept -> void {
         // Voices read the samples, so they stop before the samples are freed.
-        stop_voices(m_id);
-        m_id = 0;
+        stop_voices(id_);
+        id_ = 0;
     }
 
     // Music
@@ -330,63 +330,63 @@ namespace tgx {
     Music::~Music() = default;
 
     auto Music::play() noexcept -> void {
-        if (ma_sound *sound = live_sound(m_stream)) {
+        if (ma_sound *sound = live_sound(stream_)) {
             ma_sound_start(sound);
         }
     }
 
     auto Music::pause() noexcept -> void {
-        if (ma_sound *sound = live_sound(m_stream)) {
+        if (ma_sound *sound = live_sound(stream_)) {
             ma_sound_stop(sound);
         }
     }
 
     auto Music::stop() noexcept -> void {
-        if (ma_sound *sound = live_sound(m_stream)) {
+        if (ma_sound *sound = live_sound(stream_)) {
             ma_sound_stop(sound);
             ma_sound_seek_to_pcm_frame(sound, 0);
         }
     }
 
     auto Music::playing() const noexcept -> bool {
-        const ma_sound *sound = live_sound(m_stream);
+        const ma_sound *sound = live_sound(stream_);
         return sound && ma_sound_is_playing(sound);
     }
 
     auto Music::set_looping(bool looping) noexcept -> void {
-        if (!m_stream) {
+        if (!stream_) {
             return;
         }
-        m_stream->looping = looping;
-        if (ma_sound *sound = live_sound(m_stream)) {
+        stream_->looping = looping;
+        if (ma_sound *sound = live_sound(stream_)) {
             ma_sound_set_looping(sound, looping ? MA_TRUE : MA_FALSE);
         }
     }
 
     auto Music::looping() const noexcept -> bool {
-        return m_stream && m_stream->looping;
+        return stream_ && stream_->looping;
     }
 
     auto Music::set_volume(float volume) noexcept -> void {
         TGX_ASSERT_MSG(valid_volume(volume), "volume {}: not 0 or more", volume);
 
-        if (!m_stream) {
+        if (!stream_) {
             return;
         }
-        m_stream->volume = volume;
-        if (ma_sound *sound = live_sound(m_stream)) {
+        stream_->volume = volume;
+        if (ma_sound *sound = live_sound(stream_)) {
             ma_sound_set_volume(sound, volume);
         }
     }
 
     auto Music::volume() const noexcept -> float {
-        return m_stream ? m_stream->volume : 1.f;
+        return stream_ ? stream_->volume : 1.f;
     }
 
     auto Music::seek(double seconds) noexcept -> void {
         TGX_ASSERT_MSG(std::isfinite(seconds) && seconds >= 0.0, "seek({}): not a second of it", seconds);
 
-        ma_sound *sound = live_sound(m_stream);
+        ma_sound *sound = live_sound(stream_);
         if (!sound) {
             return;
         }
@@ -399,17 +399,17 @@ namespace tgx {
         // here. Vorbis reports no length: use the duration measured at load.
         ma_uint64 length = 0;
         if (ma_sound_get_length_in_pcm_frames(sound, &length) != MA_SUCCESS || length == 0) {
-            length = static_cast<ma_uint64>(m_stream->duration * rate);
+            length = static_cast<ma_uint64>(stream_->duration * rate);
         }
         if (length > 0) {
-            frame = m_stream->looping ? frame % length : std::min(frame, length);
+            frame = stream_->looping ? frame % length : std::min(frame, length);
         }
         ma_sound_seek_to_pcm_frame(sound, frame);
     }
 
     auto Music::position() const noexcept -> double {
         float cursor = 0.f;
-        const ma_sound *sound = live_sound(m_stream);
+        const ma_sound *sound = live_sound(stream_);
         if (sound && ma_sound_get_cursor_in_seconds(sound, &cursor) == MA_SUCCESS) {
             return cursor;
         }
@@ -417,10 +417,10 @@ namespace tgx {
     }
 
     auto Music::duration() const noexcept -> double {
-        return m_stream ? m_stream->duration : 0.0;
+        return stream_ ? stream_->duration : 0.0;
     }
 
-    Music::Music(std::unique_ptr<detail::MusicStream> stream) noexcept : m_stream{std::move(stream)} {
+    Music::Music(std::unique_ptr<detail::MusicStream> stream) noexcept : stream_{std::move(stream)} {
     }
 
     // Audio
@@ -459,7 +459,7 @@ namespace tgx {
             return *this;
         }
         release();
-        m_owned = std::exchange(other.m_owned, false);
+        owned_ = std::exchange(other.owned_, false);
         return *this;
     }
 
@@ -481,23 +481,23 @@ namespace tgx {
         TGX_ASSERT_MSG(valid_volume(params.volume), "volume {}: not 0 or more", params.volume);
         TGX_ASSERT_MSG(params.pan >= -1.f && params.pan <= 1.f, "pan {}: not from -1 to 1", params.pan);
 
-        if (!s_audio || sound.m_id == 0 || sound.m_samples.empty()) {
+        if (!s_audio || sound.id_ == 0 || sound.samples_.empty()) {
             return;
         }
 
         Voice &voice = take_voice(*s_audio);
-        const auto frames = sound.m_samples.size() / static_cast<std::size_t>(sound.m_channels);
+        const auto frames = sound.samples_.size() / static_cast<std::size_t>(sound.channels_);
         if (ma_audio_buffer_ref_init(
                 ma_format_f32,
-                static_cast<ma_uint32>(sound.m_channels),
-                sound.m_samples.data(),
+                static_cast<ma_uint32>(sound.channels_),
+                sound.samples_.data(),
                 frames,
                 &voice.data
             ) != MA_SUCCESS) {
             return;
         }
         // The ref init takes no rate. The engine resamples from it.
-        voice.data.sampleRate = static_cast<ma_uint32>(sound.m_sample_rate);
+        voice.data.sampleRate = static_cast<ma_uint32>(sound.sample_rate_);
 
         if (ma_sound_init_from_data_source(
                 &s_audio->engine,
@@ -513,14 +513,14 @@ namespace tgx {
         ma_sound_set_volume(&voice.sound, params.volume);
         ma_sound_set_pan(&voice.sound, params.pan);
         ma_sound_set_pitch(&voice.sound, params.pitch);
-        voice.owner = sound.m_id;
+        voice.owner = sound.id_;
         voice.started = ++s_audio->plays;
         ma_sound_start(&voice.sound);
         keep_to_max(*s_audio);
     }
 
     auto Audio::stop(const Sound &sound) noexcept -> void {
-        stop_voices(sound.m_id);
+        stop_voices(sound.id_);
     }
 
     auto Audio::set_volume(float volume) noexcept -> void {
@@ -537,7 +537,7 @@ namespace tgx {
     }
 
     auto Audio::release() noexcept -> void {
-        if (!m_owned) {
+        if (!owned_) {
             return;
         }
         if (s_audio) {
@@ -550,6 +550,6 @@ namespace tgx {
             s_audio.reset();
         }
         s_volume = 1.f;
-        m_owned = false;
+        owned_ = false;
     }
 }

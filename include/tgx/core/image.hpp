@@ -38,32 +38,32 @@ namespace tgx {
         // Error::unsupported at 2 GiB of pixels or more.
         [[nodiscard]] auto save(const std::filesystem::path &path) const -> Result<void>;
 
-        [[nodiscard]] auto size() const noexcept -> Size { return m_size; }
+        [[nodiscard]] auto size() const noexcept -> Size { return size_; }
 
-        [[nodiscard]] auto empty() const noexcept -> bool { return m_size.empty(); }
+        [[nodiscard]] auto empty() const noexcept -> bool { return size_.empty(); }
 
         // Row by row. Read-only for a const Image.
-        [[nodiscard]] auto pixels(this auto &self) noexcept -> auto { return std::span{self.m_pixels}; }
+        [[nodiscard]] auto pixels(this auto &self) noexcept -> auto { return std::span{self.pixels_}; }
 
         // (0, 0) is the top-left pixel.
-        [[nodiscard]] auto operator[](int x, int y) noexcept -> Color & { return m_pixels[index(x, y)]; }
-        [[nodiscard]] auto operator[](int x, int y) const noexcept -> Color { return m_pixels[index(x, y)]; }
+        [[nodiscard]] auto operator[](int x, int y) noexcept -> Color & { return pixels_[index(x, y)]; }
+        [[nodiscard]] auto operator[](int x, int y) const noexcept -> Color { return pixels_[index(x, y)]; }
 
     private:
-        Image(Size size, std::vector<Color> pixels) noexcept : m_size{size}, m_pixels{std::move(pixels)} {
+        Image(Size size, std::vector<Color> pixels) noexcept : size_{size}, pixels_{std::move(pixels)} {
         }
 
         [[nodiscard]] auto index(int x, int y) const noexcept -> std::size_t {
             TGX_ASSERT_MSG(
-                x >= 0 && x < m_size.width && y >= 0 && y < m_size.height,
+                x >= 0 && x < size_.width && y >= 0 && y < size_.height,
                 "pixel ({}, {}) is outside a {}x{} image",
-                x, y, m_size.width, m_size.height
+                x, y, size_.width, size_.height
             );
-            return static_cast<std::size_t>(y) * static_cast<std::size_t>(m_size.width)
+            return static_cast<std::size_t>(y) * static_cast<std::size_t>(size_.width)
                    + static_cast<std::size_t>(x);
         }
 
-        Size m_size{};
-        std::vector<Color> m_pixels;
+        Size size_{};
+        std::vector<Color> pixels_;
     };
 }

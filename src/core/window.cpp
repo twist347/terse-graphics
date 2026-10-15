@@ -335,7 +335,7 @@ namespace tgx {
             return *this;
         }
         release();
-        m_owned = std::exchange(other.m_owned, false);
+        owned_ = std::exchange(other.owned_, false);
         return *this;
     }
 
@@ -436,13 +436,13 @@ namespace tgx {
     }
 
     auto Window::release() noexcept -> void {
-        if (m_owned) {
+        if (owned_) {
             detail::detach_input();
             apply_fps_limit(0);
             glfwDestroyWindow(s_window.handle);
             glfwTerminate();
             s_window = {};
-            m_owned = false;
+            owned_ = false;
         }
     }
 

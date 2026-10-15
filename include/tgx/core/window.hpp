@@ -34,7 +34,7 @@ namespace tgx {
         Window(const Window &) = delete;
         auto operator=(const Window &) -> Window & = delete;
 
-        Window(Window &&other) noexcept : m_owned{std::exchange(other.m_owned, false)} {
+        Window(Window &&other) noexcept : owned_{std::exchange(other.owned_, false)} {
         }
 
         auto operator=(Window &&other) noexcept -> Window &;
@@ -102,12 +102,12 @@ namespace tgx {
         [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow *;
 
     private:
-        Window() noexcept : m_owned{true} {
+        Window() noexcept : owned_{true} {
         }
 
         auto release() noexcept -> void;
 
         // False once moved from: another Window closes the window.
-        bool m_owned{false};
+        bool owned_{false};
     };
 }

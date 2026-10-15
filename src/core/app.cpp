@@ -18,21 +18,21 @@ namespace tgx {
     }
 
     auto App::should_close() const noexcept -> bool {
-        return m_window.should_close();
+        return window_.should_close();
     }
 
     auto App::poll_events() noexcept -> void {
-        m_window.poll_events();
+        window_.poll_events();
     }
 
     auto App::swap_buffers() noexcept -> void {
-        m_device.present();
+        device_.present();
     }
 
     App::App(Window window, Device device, Canvas canvas, Audio audio) noexcept
-        : m_window{std::move(window)},
-          m_device{std::move(device)},
-          m_canvas{canvas},
-          m_audio{std::move(audio)} {
+        : window_{std::move(window)},
+          device_{std::move(device)},
+          canvas_{canvas},
+          audio_{std::move(audio)} {
     }
 }

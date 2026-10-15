@@ -71,9 +71,9 @@ namespace tgx::detail {
             std::size_t index_count
         ) noexcept -> std::uint16_t;
 
-        auto push_vertex(const BatchVertex &vertex) noexcept -> void { m_vertices.push_back(vertex); }
+        auto push_vertex(const BatchVertex &vertex) noexcept -> void { vertices_.push_back(vertex); }
 
-        auto push_index(std::uint16_t index) noexcept -> void { m_indices.push_back(index); }
+        auto push_index(std::uint16_t index) noexcept -> void { indices_.push_back(index); }
 
         // If any are waiting.
         auto flush(Context &context) noexcept -> void;
@@ -97,19 +97,19 @@ namespace tgx::detail {
             Texture builtin
         );
 
-        gl::Shader m_shader;
+        gl::Shader shader_;
         // The built-in shader's.
-        std::int32_t m_u_projection;
-        gl::Buffer<BatchVertex> m_vertex_buffer;
-        gl::Buffer<std::uint16_t> m_index_buffer;
-        gl::VertexArray m_vertex_array;
+        std::int32_t u_projection_;
+        gl::Buffer<BatchVertex> vertex_buffer_;
+        gl::Buffer<std::uint16_t> index_buffer_;
+        gl::VertexArray vertex_array_;
         // The default font and a white block that shapes sample, so text
         // and shapes in a row share one shader and one draw.
-        Texture m_builtin;
+        Texture builtin_;
 
-        std::vector<BatchVertex> m_vertices;
-        std::vector<std::uint16_t> m_indices;
-        BatchState m_state{};
+        std::vector<BatchVertex> vertices_;
+        std::vector<std::uint16_t> indices_;
+        BatchState state_{};
     };
 
     // Per draw. Indices are 16-bit, so under 65536 vertices. A circle uses

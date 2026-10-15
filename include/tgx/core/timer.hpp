@@ -51,47 +51,47 @@ namespace tgx {
             if (done()) {
                 return false;
             }
-            m_elapsed += dt;
-            if (m_elapsed < m_period) {
+            elapsed_ += dt;
+            if (elapsed_ < period_) {
                 return false;
             }
-            if (m_repeat) {
-                m_elapsed = std::fmod(m_elapsed, m_period);
+            if (repeat_) {
+                elapsed_ = std::fmod(elapsed_, period_);
             } else {
-                m_elapsed = m_period;
-                m_done = true;
+                elapsed_ = period_;
+                done_ = true;
             }
             return true;
         }
 
         // A once timer has fired, and stays so until reset(). Never true for
         // every().
-        [[nodiscard]] auto done() const noexcept -> bool { return m_done; }
+        [[nodiscard]] auto done() const noexcept -> bool { return done_; }
 
         // 0 at the start of the period, 1 when it fires: for a bar or an
         // animation.
-        [[nodiscard]] auto progress() const noexcept -> float { return std::min(m_elapsed / m_period, 1.f); }
+        [[nodiscard]] auto progress() const noexcept -> float { return std::min(elapsed_ / period_, 1.f); }
 
         // Seconds until it fires; 0 once done.
-        [[nodiscard]] auto left() const noexcept -> float { return m_period - m_elapsed; }
+        [[nodiscard]] auto left() const noexcept -> float { return period_ - elapsed_; }
 
-        [[nodiscard]] auto period() const noexcept -> float { return m_period; }
+        [[nodiscard]] auto period() const noexcept -> float { return period_; }
 
         // Starts over from 0, not done.
         auto reset() noexcept -> void {
-            m_elapsed = 0.f;
-            m_done = false;
+            elapsed_ = 0.f;
+            done_ = false;
         }
 
     private:
         Timer(float seconds, bool repeat, bool done) noexcept
-            : m_period{seconds}, m_elapsed{done ? seconds : 0.f}, m_repeat{repeat}, m_done{done} {
+            : period_{seconds}, elapsed_{done ? seconds : 0.f}, repeat_{repeat}, done_{done} {
             TGX_ASSERT_MSG(seconds > 0.f && std::isfinite(seconds), "timer of {} seconds", seconds);
         }
 
-        float m_period;
-        float m_elapsed;
-        bool m_repeat;
-        bool m_done;
+        float period_;
+        float elapsed_;
+        bool repeat_;
+        bool done_;
     };
 }

@@ -369,11 +369,11 @@ namespace tgx::gl {
     }
 
     auto detail::vertex_inputs(const Shader &shader) noexcept -> std::span<const VertexInput> {
-        return shader.m_inputs;
+        return shader.inputs_;
     }
 
     auto detail::samplers(const Shader &shader) noexcept -> std::span<const ShaderSampler> {
-        return shader.m_samplers;
+        return shader.samplers_;
     }
 
     auto Shader::from_source(
@@ -421,14 +421,14 @@ namespace tgx::gl {
 
     template<UniformValue T>
     auto Shader::uniform(std::string_view name) const noexcept -> Uniform<T> {
-        return Uniform<T>{id(), find_location(m_uniforms, name, UniformTraits<T>::types)};
+        return Uniform<T>{id(), find_location(uniforms_, name, UniformTraits<T>::types)};
     }
 
     template<UniformValue T>
     auto Shader::set(Uniform<T> uniform, const std::type_identity_t<T> &value) noexcept -> void {
-        TGX_ASSERT_MSG(uniform.m_program == id(), "setting a uniform not looked up from this shader");
+        TGX_ASSERT_MSG(uniform.program_ == id(), "setting a uniform not looked up from this shader");
 
-        if (uniform.m_location < 0) {
+        if (uniform.location_ < 0) {
             return;
         }
 
@@ -440,14 +440,14 @@ namespace tgx::gl {
                 "texture slot {} is out of range, there are {}",
                 value.index, max_texture_slots
             );
-            const auto sampler = std::ranges::find(m_samplers, uniform.m_location, &detail::ShaderSampler::location);
-            if (sampler != m_samplers.end()) {
+            const auto sampler = std::ranges::find(samplers_, uniform.location_, &detail::ShaderSampler::location);
+            if (sampler != samplers_.end()) {
                 sampler->slot = value.index;
             }
         }
 
         tgx::detail::context().use_program(id());
-        UniformTraits<T>::upload(uniform.m_location, value);
+        UniformTraits<T>::upload(uniform.location_, value);
     }
 
     // Every UniformValue type, so the header needs no definitions.

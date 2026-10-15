@@ -166,7 +166,7 @@ namespace tgx {
             return *this;
         }
         release();
-        m_owned = std::exchange(other.m_owned, false);
+        owned_ = std::exchange(other.owned_, false);
         return *this;
     }
 
@@ -289,13 +289,13 @@ namespace tgx {
     }
 
     auto Device::release() noexcept -> void {
-        if (m_owned) {
+        if (owned_) {
             // The batch goes while GL and the Context are still whole. Its
             // shapes are dropped: their frame is over.
             detail::Context &context = detail::context();
             context.batch.reset();
             context = {};
-            m_owned = false;
+            owned_ = false;
         }
     }
 }

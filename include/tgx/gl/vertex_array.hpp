@@ -136,9 +136,9 @@ namespace tgx::gl {
         template<VertexElement V>
         auto set_vertex_buffer(const Buffer<V> &buffer, std::size_t first = 0) noexcept -> void {
             TGX_ASSERT_MSG(
-                sizeof(V) == m_stride,
+                sizeof(V) == stride_,
                 "a buffer of {}-byte elements feeds {}-byte vertices",
-                sizeof(V), m_stride
+                sizeof(V), stride_
             );
             TGX_ASSERT(first <= buffer.size());
 
@@ -151,27 +151,27 @@ namespace tgx::gl {
             attach_index_buffer(buffer.id(), index_type_of<I>(), buffer.size());
         }
 
-        [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
+        [[nodiscard]] auto id() const noexcept -> GlId { return handle_.get(); }
 
-        [[nodiscard]] auto stride() const noexcept -> std::size_t { return m_stride; }
+        [[nodiscard]] auto stride() const noexcept -> std::size_t { return stride_; }
 
         // Counted from the first one used. 0 until a buffer is attached.
-        [[nodiscard]] auto vertex_count() const noexcept -> std::size_t { return m_vertex_count; }
+        [[nodiscard]] auto vertex_count() const noexcept -> std::size_t { return vertex_count_; }
 
         // 0 until a buffer is attached.
-        [[nodiscard]] auto index_count() const noexcept -> std::size_t { return m_index_count; }
+        [[nodiscard]] auto index_count() const noexcept -> std::size_t { return index_count_; }
 
-        [[nodiscard]] auto has_index_buffer() const noexcept -> bool { return m_has_index_buffer; }
+        [[nodiscard]] auto has_index_buffer() const noexcept -> bool { return has_index_buffer_; }
 
         [[nodiscard]] auto index_type() const noexcept -> IndexType {
-            TGX_ASSERT_MSG(m_has_index_buffer, "no index buffer is attached");
+            TGX_ASSERT_MSG(has_index_buffer_, "no index buffer is attached");
 
-            return m_index_type;
+            return index_type_;
         }
 
         // The layout given at creation.
         [[nodiscard]] auto attributes() const noexcept -> std::span<const VertexAttribute> {
-            return std::span{m_attributes}.first(m_attribute_count);
+            return std::span{attributes_}.first(attribute_count_);
         }
 
     private:
@@ -181,16 +181,16 @@ namespace tgx::gl {
 
         auto attach_index_buffer(GlId buffer, IndexType type, std::size_t index_count) noexcept -> void;
 
-        tgx::detail::Handle<detail::delete_vertex_array> m_handle;
-        std::size_t m_stride{0};
+        tgx::detail::Handle<detail::delete_vertex_array> handle_;
+        std::size_t stride_{0};
         // GL 3.3 ties an attribute's format to its buffer, so the layout is
         // kept to give to GL again when the buffer changes.
-        std::array<VertexAttribute, max_attributes> m_attributes{};
-        std::size_t m_attribute_count{0};
+        std::array<VertexAttribute, max_attributes> attributes_{};
+        std::size_t attribute_count_{0};
         // Stored on attach. Buffer sizes are fixed.
-        std::size_t m_vertex_count{0};
-        std::size_t m_index_count{0};
-        IndexType m_index_type{IndexType::uint16};
-        bool m_has_index_buffer{false};
+        std::size_t vertex_count_{0};
+        std::size_t index_count_{0};
+        IndexType index_type_{IndexType::uint16};
+        bool has_index_buffer_{false};
     };
 }

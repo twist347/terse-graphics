@@ -56,7 +56,7 @@ namespace tgx {
         Device(const Device &) = delete;
         auto operator=(const Device &) -> Device & = delete;
 
-        Device(Device &&other) noexcept : m_owned{std::exchange(other.m_owned, false)} {
+        Device(Device &&other) noexcept : owned_{std::exchange(other.owned_, false)} {
         }
 
         auto operator=(Device &&other) noexcept -> Device &;
@@ -98,12 +98,12 @@ namespace tgx {
         ) noexcept -> void;
 
     private:
-        Device() noexcept : m_owned{true} {
+        Device() noexcept : owned_{true} {
         }
 
         auto release() noexcept -> void;
 
         // False after a move.
-        bool m_owned{false};
+        bool owned_{false};
     };
 }

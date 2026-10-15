@@ -103,10 +103,10 @@ namespace tgx::gl {
     }
 
     VertexArray::VertexArray(GlId id, std::size_t stride, std::span<const VertexAttribute> attributes) noexcept
-        : m_handle{id},
-          m_stride{stride},
-          m_attribute_count{attributes.size()} {
-        std::ranges::copy(attributes, m_attributes.begin());
+        : handle_{id},
+          stride_{stride},
+          attribute_count_{attributes.size()} {
+        std::ranges::copy(attributes, attributes_.begin());
     }
 
     auto VertexArray::attach_vertex_buffer(
@@ -114,14 +114,14 @@ namespace tgx::gl {
         std::size_t byte_offset,
         std::size_t vertex_count
     ) noexcept -> void {
-        m_vertex_count = vertex_count;
+        vertex_count_ = vertex_count;
 
         // ARRAY_BUFFER is not VAO state; each pointer call stores it with the
         // offset and stride.
-        tgx::detail::context().bind_vertex_array(m_handle.get());
+        tgx::detail::context().bind_vertex_array(handle_.get());
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
         // Fits: checked against max_stride at creation.
-        const auto stride = static_cast<GLsizei>(m_stride);
+        const auto stride = static_cast<GLsizei>(stride_);
         for (const VertexAttribute &attribute: attributes()) {
             const GlFormat format = to_gl(attribute.format);
 
@@ -145,12 +145,12 @@ namespace tgx::gl {
     auto VertexArray::attach_index_buffer(GlId buffer, IndexType type, std::size_t index_count) noexcept -> void {
         // Unlike ARRAY_BUFFER, this binding is VAO state: binding it attaches
         // it.
-        tgx::detail::context().bind_vertex_array(m_handle.get());
+        tgx::detail::context().bind_vertex_array(handle_.get());
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
 
-        m_index_type = type;
-        m_has_index_buffer = true;
-        m_index_count = index_count;
+        index_type_ = type;
+        has_index_buffer_ = true;
+        index_count_ = index_count;
     }
 
     auto detail::check_vertex_inputs(const Shader &shader, const VertexArray &vertices) noexcept -> void {

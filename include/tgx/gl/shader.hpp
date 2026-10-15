@@ -102,18 +102,18 @@ namespace tgx::gl {
         template<UniformValue U>
         friend constexpr auto detail::location(Uniform<U> uniform) noexcept -> std::int32_t;
 
-        Uniform(GlId program, std::int32_t location) noexcept : m_program{program}, m_location{location} {
+        Uniform(GlId program, std::int32_t location) noexcept : program_{program}, location_{location} {
         }
 
         // To catch setting it on another Shader.
-        GlId m_program{0};
+        GlId program_{0};
         // -1 when not found. Setting it then does nothing.
-        std::int32_t m_location{-1};
+        std::int32_t location_{-1};
     };
 
     template<UniformValue T>
     constexpr auto detail::location(Uniform<T> uniform) noexcept -> std::int32_t {
-        return uniform.m_location;
+        return uniform.location_;
     }
 
     // A linked vertex and fragment program. Each source has its own #version
@@ -150,7 +150,7 @@ namespace tgx::gl {
         template<UniformValue T>
         auto set(Uniform<T> uniform, const std::type_identity_t<T> &value) noexcept -> void;
 
-        [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
+        [[nodiscard]] auto id() const noexcept -> GlId { return handle_.get(); }
 
     private:
         friend auto detail::vertex_inputs(const Shader &shader) noexcept -> std::span<const detail::VertexInput>;
@@ -162,15 +162,15 @@ namespace tgx::gl {
             std::vector<detail::VertexInput> inputs,
             std::vector<detail::ShaderSampler> samplers
         ) noexcept
-            : m_handle{std::move(handle)},
-              m_uniforms{std::move(uniforms)},
-              m_inputs{std::move(inputs)},
-              m_samplers{std::move(samplers)} {
+            : handle_{std::move(handle)},
+              uniforms_{std::move(uniforms)},
+              inputs_{std::move(inputs)},
+              samplers_{std::move(samplers)} {
         }
 
-        tgx::detail::Handle<detail::delete_program> m_handle;
-        std::vector<detail::ShaderUniform> m_uniforms;
-        std::vector<detail::VertexInput> m_inputs;
-        std::vector<detail::ShaderSampler> m_samplers;
+        tgx::detail::Handle<detail::delete_program> handle_;
+        std::vector<detail::ShaderUniform> uniforms_;
+        std::vector<detail::VertexInput> inputs_;
+        std::vector<detail::ShaderSampler> samplers_;
     };
 }

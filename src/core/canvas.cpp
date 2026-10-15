@@ -433,12 +433,12 @@ namespace tgx {
         // A negative size would silently count as empty.
         TGX_ASSERT_MSG(size.width >= 0 && size.height >= 0, "canvas of size {}x{}", size.width, size.height);
 
-        m_size = size;
-        m_transform_stale = true;
+        size_ = size;
+        transform_stale_ = true;
     }
 
     auto Canvas::size() const noexcept -> Size {
-        return detail::span_of(m_size, m_viewport, surface().units);
+        return detail::span_of(size_, viewport_, surface().units);
     }
 
     auto Canvas::set_viewport(Rect rect) noexcept -> void {
@@ -450,13 +450,13 @@ namespace tgx {
             rect.x, rect.y, rect.width, rect.height
         );
 
-        m_viewport = rect;
-        m_transform_stale = true;
+        viewport_ = rect;
+        transform_stale_ = true;
     }
 
     auto Canvas::set_target(const RenderTarget *target) noexcept -> void {
-        m_target = detail::target_of(target);
-        m_transform_stale = true;
+        target_ = detail::target_of(target);
+        transform_stale_ = true;
     }
 
     auto Canvas::set_camera(const Camera2D &camera) noexcept -> void {
@@ -467,31 +467,31 @@ namespace tgx {
             camera.zoom, camera.rotation
         );
 
-        m_camera = camera;
-        m_transform_stale = true;
+        camera_ = camera;
+        transform_stale_ = true;
     }
 
     auto Canvas::to_world(Vec2 point) const noexcept -> Vec2 {
-        const auto mapping = screen_mapping(m_size, m_viewport, surface());
-        return m_camera.to_world(mapping ? mapping->to_canvas(point) : point);
+        const auto mapping = screen_mapping(size_, viewport_, surface());
+        return camera_.to_world(mapping ? mapping->to_canvas(point) : point);
     }
 
     auto Canvas::to_screen(Vec2 world) const noexcept -> Vec2 {
-        const auto mapping = screen_mapping(m_size, m_viewport, surface());
-        const Vec2 point = m_camera.to_screen(world);
+        const auto mapping = screen_mapping(size_, viewport_, surface());
+        const Vec2 point = camera_.to_screen(world);
         return mapping ? mapping->to_screen(point) : point;
     }
 
     auto Canvas::set_shader(const gl::Shader *shader) noexcept -> void {
-        m_program = shader ? shader->id() : 0;
-        m_u_projection = -1;
-        m_u_texture = -1;
+        program_ = shader ? shader->id() : 0;
+        u_projection_ = -1;
+        u_texture_ = -1;
         if (!shader) {
             return;
         }
 
         // The only required uniform; the lookup asserts it is a mat4.
-        m_u_projection = gl::detail::location(shader->uniform<Mat4>("u_projection"));
+        u_projection_ = gl::detail::location(shader->uniform<Mat4>("u_projection"));
 
         // Optional. The batch skips Device::draw's checks, so samplers are
         // checked here.
@@ -504,12 +504,12 @@ namespace tgx {
             );
         }
         if (!samplers.empty()) {
-            m_u_texture = gl::detail::location(shader->uniform<gl::TextureSlot>("u_texture"));
+            u_texture_ = gl::detail::location(shader->uniform<gl::TextureSlot>("u_texture"));
         }
     }
 
     auto Canvas::clear(Color color) noexcept -> void {
-        detail::context().clear({.target = m_target, .color = color});
+        detail::context().clear({.target = target_, .color = color});
     }
 
     auto Canvas::rect(Rect rect, Color color) noexcept -> void {
@@ -822,7 +822,7 @@ namespace tgx {
 
     auto Canvas::sprite(const Texture &texture, const Sprite &sprite) noexcept -> void {
         TGX_ASSERT_MSG(
-            texture.id() != m_target.texture,
+            texture.id() != target_.texture,
             "a sprite of the render target the canvas draws into"
         );
 
@@ -935,25 +935,25 @@ namespace tgx {
         text(position, std::string_view{buffer.data(), length}, color, size);
     }
 
-    Canvas::Canvas(Size size) noexcept : m_size{size} {
+    Canvas::Canvas(Size size) noexcept : size_{size} {
     }
 
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
         // A canvas that follows the window notices a resize here.
         const Surface surface = this->surface();
-        if (const Size span = detail::span_of(m_size, m_viewport, surface.units);
-            m_transform_stale || span != m_transform_size) {
+        if (const Size span = detail::span_of(size_, viewport_, surface.units);
+            transform_stale_ || span != transform_size_) {
             refit(span);
         }
         return {
-            .target = m_target,
+            .target = target_,
             .texture = texture,
-            .blend = m_blend,
-            .program = m_program,
-            .u_projection = m_u_projection,
-            .u_texture = m_u_texture,
-            .transform = m_transform,
-            .viewport = pixel_viewport(m_viewport, surface),
+            .blend = blend_,
+            .program = program_,
+            .u_projection = u_projection_,
+            .u_texture = u_texture_,
+            .transform = transform_,
+            .viewport = pixel_viewport(viewport_, surface),
         };
     }
 
@@ -1076,22 +1076,22 @@ namespace tgx {
     auto Canvas::segments(float radius, const detail::BatchState &state) const noexcept -> std::size_t {
         // One unit is pixels / span along the most stretched axis.
         float pixels_per_unit = 1.f;
-        if (!m_transform_size.empty()) {
+        if (!transform_size_.empty()) {
             pixels_per_unit = std::max(
-                static_cast<float>(state.viewport.width) / static_cast<float>(m_transform_size.width),
-                static_cast<float>(state.viewport.height) / static_cast<float>(m_transform_size.height)
+                static_cast<float>(state.viewport.width) / static_cast<float>(transform_size_.width),
+                static_cast<float>(state.viewport.height) / static_cast<float>(transform_size_.height)
             );
         }
-        return detail::segments_for(radius * std::abs(m_camera.zoom) * pixels_per_unit);
+        return detail::segments_for(radius * std::abs(camera_.zoom) * pixels_per_unit);
     }
 
     auto Canvas::surface() const noexcept -> detail::Surface {
-        return detail::surface_of(m_target);
+        return detail::surface_of(target_);
     }
 
     auto Canvas::refit(Size span) noexcept -> void {
-        m_transform_size = span;
-        m_transform = projection_for(span) * m_camera.matrix();
-        m_transform_stale = false;
+        transform_size_ = span;
+        transform_ = projection_for(span) * camera_.matrix();
+        transform_stale_ = false;
     }
 }

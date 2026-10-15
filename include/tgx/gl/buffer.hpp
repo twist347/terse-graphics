@@ -67,22 +67,22 @@ namespace tgx::gl {
 
         // Only for dynamic buffers.
         auto update(std::size_t first, std::span<const T> data) noexcept -> void {
-            TGX_ASSERT_MSG(m_access == BufferAccess::dynamic, "updating an immutable buffer");
+            TGX_ASSERT_MSG(access_ == BufferAccess::dynamic, "updating an immutable buffer");
             TGX_ASSERT_MSG(
-                first <= m_size && data.size() <= m_size - first,
+                first <= size_ && data.size() <= size_ - first,
                 "update of {} elements at {} overruns a buffer of {}",
-                data.size(), first, m_size
+                data.size(), first, size_
             );
 
-            detail::update_buffer(m_handle.get(), first * sizeof(T), std::as_bytes(data));
+            detail::update_buffer(handle_.get(), first * sizeof(T), std::as_bytes(data));
         }
 
-        [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
+        [[nodiscard]] auto id() const noexcept -> GlId { return handle_.get(); }
 
         // In Ts.
-        [[nodiscard]] auto size() const noexcept -> std::size_t { return m_size; }
+        [[nodiscard]] auto size() const noexcept -> std::size_t { return size_; }
 
-        [[nodiscard]] auto access() const noexcept -> BufferAccess { return m_access; }
+        [[nodiscard]] auto access() const noexcept -> BufferAccess { return access_; }
 
     private:
         [[nodiscard]] static auto make(
@@ -102,11 +102,11 @@ namespace tgx::gl {
         }
 
         Buffer(GlId id, std::size_t size, BufferAccess access) noexcept
-            : m_handle{id}, m_size{size}, m_access{access} {
+            : handle_{id}, size_{size}, access_{access} {
         }
 
-        tgx::detail::Handle<detail::delete_buffer> m_handle;
-        std::size_t m_size{0};
-        BufferAccess m_access{BufferAccess::immutable};
+        tgx::detail::Handle<detail::delete_buffer> handle_;
+        std::size_t size_{0};
+        BufferAccess access_{BufferAccess::immutable};
     };
 }

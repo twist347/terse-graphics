@@ -57,15 +57,15 @@ namespace tgx {
 
         // Rows go bottom to top (Texture::bottom_up()). The Canvas handles
         // that; in your own shader v = 0 is the bottom.
-        [[nodiscard]] auto texture() const noexcept -> const Texture & { return m_texture; }
+        [[nodiscard]] auto texture() const noexcept -> const Texture & { return texture_; }
 
-        [[nodiscard]] auto size() const noexcept -> Size { return m_texture.size(); }
+        [[nodiscard]] auto size() const noexcept -> Size { return texture_.size(); }
 
         // Needed by a draw with a depth test or a clear of depth.
-        [[nodiscard]] auto has_depth() const noexcept -> bool { return static_cast<bool>(m_depth); }
+        [[nodiscard]] auto has_depth() const noexcept -> bool { return static_cast<bool>(depth_); }
 
         // The GL framebuffer id.
-        [[nodiscard]] auto id() const noexcept -> GlId { return m_framebuffer.get(); }
+        [[nodiscard]] auto id() const noexcept -> GlId { return framebuffer_.get(); }
 
         // Pixels back to the CPU, rows top to bottom. Draws the waiting shapes
         // and waits for the GPU, so not every frame. Colors stay premultiplied.
@@ -77,12 +77,12 @@ namespace tgx {
             detail::Handle<detail::delete_renderbuffer> depth,
             detail::Handle<detail::delete_framebuffer> framebuffer
         ) noexcept
-            : m_texture{std::move(texture)}, m_depth{std::move(depth)}, m_framebuffer{std::move(framebuffer)} {
+            : texture_{std::move(texture)}, depth_{std::move(depth)}, framebuffer_{std::move(framebuffer)} {
         }
 
-        Texture m_texture;
-        detail::Handle<detail::delete_renderbuffer> m_depth;
-        detail::Handle<detail::delete_framebuffer> m_framebuffer;
+        Texture texture_;
+        detail::Handle<detail::delete_renderbuffer> depth_;
+        detail::Handle<detail::delete_framebuffer> framebuffer_;
     };
 }
 

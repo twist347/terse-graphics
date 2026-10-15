@@ -87,7 +87,7 @@ namespace tgx {
         // stb counts the bytes of a row and of the filtered image in an int
         // and writes garbage beyond it. No PNG reader accepts that size anyway.
         constexpr auto limit = static_cast<std::size_t>(std::numeric_limits<int>::max());
-        if (pixel_count(m_size) >= limit / sizeof(Color) - static_cast<std::size_t>(m_size.height)) {
+        if (pixel_count(size_) >= limit / sizeof(Color) - static_cast<std::size_t>(size_.height)) {
             return std::unexpected{Error::unsupported};
         }
 
@@ -107,9 +107,9 @@ namespace tgx {
                 out.out_of_memory = true;
             }
         };
-        const int stride = m_size.width * static_cast<int>(sizeof(Color));
+        const int stride = size_.width * static_cast<int>(sizeof(Color));
         // stb fails only on allocation.
-        if (stbi_write_png_to_func(append, &encoded, m_size.width, m_size.height, channels, m_pixels.data(), stride) == 0
+        if (stbi_write_png_to_func(append, &encoded, size_.width, size_.height, channels, pixels_.data(), stride) == 0
             || encoded.out_of_memory) {
             return std::unexpected{Error::out_of_memory};
         }

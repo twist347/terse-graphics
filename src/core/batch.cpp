@@ -125,60 +125,60 @@ namespace tgx::detail {
     ) noexcept -> std::uint16_t {
         TGX_ASSERT(vertex_count <= batch_max_vertices && index_count <= batch_max_indices);
 
-        if (state != m_state
-            || m_vertices.size() + vertex_count > batch_max_vertices
-            || m_indices.size() + index_count > batch_max_indices) {
+        if (state != state_
+            || vertices_.size() + vertex_count > batch_max_vertices
+            || indices_.size() + index_count > batch_max_indices) {
             flush(context);
-            m_state = state;
+            state_ = state;
         }
-        return static_cast<std::uint16_t>(m_vertices.size());
+        return static_cast<std::uint16_t>(vertices_.size());
     }
 
     auto Batch::flush(Context &context) noexcept -> void {
-        if (m_indices.empty()) {
+        if (indices_.empty()) {
             return;
         }
 
-        m_vertex_buffer.update(0, m_vertices);
-        m_index_buffer.update(0, m_indices);
+        vertex_buffer_.update(0, vertices_);
+        index_buffer_.update(0, indices_);
 
         // Set on every draw: cheap, and a custom shader may be used elsewhere
         // in between. Raw GL, since Shader::set would call back to flush.
-        const bool custom = m_state.program != 0;
-        const GlId program = custom ? m_state.program : m_shader.id();
-        const std::int32_t u_projection = custom ? m_state.u_projection : m_u_projection;
+        const bool custom = state_.program != 0;
+        const GlId program = custom ? state_.program : shader_.id();
+        const std::int32_t u_projection = custom ? state_.u_projection : u_projection_;
         context.use_program(program);
-        gl::detail::upload_mat4(u_projection, m_state.transform);
+        gl::detail::upload_mat4(u_projection, state_.transform);
         // The built-in shader's was set at creation.
-        if (custom && m_state.u_texture >= 0) {
-            glUniform1i(m_state.u_texture, 0);
+        if (custom && state_.u_texture >= 0) {
+            glUniform1i(state_.u_texture, 0);
         }
 
         context.submit({
-            .target = m_state.target,
+            .target = state_.target,
             .program = program,
-            .vertex_array = m_vertex_array.id(),
+            .vertex_array = vertex_array_.id(),
             .index_type = gl::IndexType::uint16,
-            .count = m_indices.size(),
-            .state = {.blend = m_state.blend},
-            .viewport = m_state.viewport,
-            .textures = {m_state.texture != 0 ? m_state.texture : m_builtin.id()},
+            .count = indices_.size(),
+            .state = {.blend = state_.blend},
+            .viewport = state_.viewport,
+            .textures = {state_.texture != 0 ? state_.texture : builtin_.id()},
         });
 
-        m_vertices.clear();
-        m_indices.clear();
+        vertices_.clear();
+        indices_.clear();
     }
 
     auto Batch::uses_texture(GlId texture) const noexcept -> bool {
-        return !m_indices.empty() && (m_state.texture == texture || m_state.target.texture == texture);
+        return !indices_.empty() && (state_.texture == texture || state_.target.texture == texture);
     }
 
     auto Batch::uses_shader(GlId program) const noexcept -> bool {
-        return !m_indices.empty() && m_state.program == program;
+        return !indices_.empty() && state_.program == program;
     }
 
     auto Batch::uses_target(GlId framebuffer) const noexcept -> bool {
-        return !m_indices.empty() && m_state.target.framebuffer == framebuffer;
+        return !indices_.empty() && state_.target.framebuffer == framebuffer;
     }
 
     Batch::Batch(
@@ -189,14 +189,14 @@ namespace tgx::detail {
         gl::VertexArray vertex_array,
         Texture builtin
     )
-        : m_shader{std::move(shader)},
-          m_u_projection{u_projection},
-          m_vertex_buffer{std::move(vertex_buffer)},
-          m_index_buffer{std::move(index_buffer)},
-          m_vertex_array{std::move(vertex_array)},
-          m_builtin{std::move(builtin)} {
+        : shader_{std::move(shader)},
+          u_projection_{u_projection},
+          vertex_buffer_{std::move(vertex_buffer)},
+          index_buffer_{std::move(index_buffer)},
+          vertex_array_{std::move(vertex_array)},
+          builtin_{std::move(builtin)} {
         // Never filled past this, so adding a shape never allocates.
-        m_vertices.reserve(batch_max_vertices);
-        m_indices.reserve(batch_max_indices);
+        vertices_.reserve(batch_max_vertices);
+        indices_.reserve(batch_max_indices);
     }
 }

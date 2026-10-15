@@ -35,7 +35,7 @@ namespace tgx {
         template<std::integral T>
         explicit Random(T seed) noexcept {
             step();
-            m_state += static_cast<std::uint64_t>(seed);
+            state_ += static_cast<std::uint64_t>(seed);
             step();
         }
 
@@ -115,11 +115,11 @@ namespace tgx {
 
         // Returns the previous state.
         auto step() noexcept -> std::uint64_t {
-            const std::uint64_t old = m_state;
-            m_state = old * 6364136223846793005ull + increment;
+            const std::uint64_t old = state_;
+            state_ = old * 6364136223846793005ull + increment;
             return old;
         }
 
-        std::uint64_t m_state{0};
+        std::uint64_t state_{0};
     };
 }

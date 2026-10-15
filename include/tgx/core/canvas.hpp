@@ -87,7 +87,7 @@ namespace tgx {
         auto set_viewport(Rect rect) noexcept -> void;
 
         // Empty: all of it.
-        [[nodiscard]] auto viewport() const noexcept -> Rect { return m_viewport; }
+        [[nodiscard]] auto viewport() const noexcept -> Rect { return viewport_; }
 
         // A render target to draw into, or nullptr (default) for the window.
         // Its id and size are copied, so it may be moved, but it must exist
@@ -100,7 +100,7 @@ namespace tgx {
         // For the shapes after it.
         auto set_camera(const Camera2D &camera) noexcept -> void;
 
-        [[nodiscard]] auto camera() const noexcept -> const Camera2D & { return m_camera; }
+        [[nodiscard]] auto camera() const noexcept -> const Camera2D & { return camera_; }
 
         // A point of the window or target (in set_viewport() units) in world
         // coordinates, e.g. under the mouse. Accounts for the viewport, size
@@ -111,9 +111,9 @@ namespace tgx {
         [[nodiscard]] auto to_screen(Vec2 world) const noexcept -> Vec2;
 
         // For the shapes after it. Default: Blend::alpha.
-        auto set_blend(Blend blend) noexcept -> void { m_blend = blend; }
+        auto set_blend(Blend blend) noexcept -> void { blend_ = blend; }
 
-        [[nodiscard]] auto blend() const noexcept -> Blend { return m_blend; }
+        [[nodiscard]] auto blend() const noexcept -> Blend { return blend_; }
 
         // Draws the shapes after it with your shader; nullptr restores the
         // built-in one. Its id is copied, as in set_target(). The canvas sets
@@ -298,23 +298,23 @@ namespace tgx {
         // The window or target it draws into.
         [[nodiscard]] auto surface() const noexcept -> detail::Surface;
 
-        // Rebuilds m_transform for the size and the camera.
+        // Rebuilds transform_ for the size and the camera.
         auto refit(Size span) noexcept -> void;
 
-        Size m_size{};
-        Rect m_viewport{};
-        detail::Target m_target{};
-        Camera2D m_camera{};
-        Blend m_blend{Blend::alpha};
+        Size size_{};
+        Rect viewport_{};
+        detail::Target target_{};
+        Camera2D camera_{};
+        Blend blend_{Blend::alpha};
         // 0: the built-in shader.
-        GlId m_program{0};
-        // Looked up in set_shader(). m_u_texture is -1 when there is none.
-        std::int32_t m_u_projection{-1};
-        std::int32_t m_u_texture{-1};
+        GlId program_{0};
+        // Looked up in set_shader(). u_texture_ is -1 when there is none.
+        std::int32_t u_projection_{-1};
+        std::int32_t u_texture_{-1};
         // Canvas coordinates to clip space. Rebuilt at the next shape when
         // stale or when the size changed (e.g. a resized window).
-        Mat4 m_transform{};
-        Size m_transform_size{};
-        bool m_transform_stale{true};
+        Mat4 transform_{};
+        Size transform_size_{};
+        bool transform_stale_{true};
     };
 }

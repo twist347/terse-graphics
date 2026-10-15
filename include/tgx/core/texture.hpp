@@ -89,21 +89,21 @@ namespace tgx {
         // image must fit.
         auto update(int x, int y, const Image &image) noexcept -> void;
 
-        [[nodiscard]] auto id() const noexcept -> GlId { return m_handle.get(); }
+        [[nodiscard]] auto id() const noexcept -> GlId { return handle_.get(); }
 
-        [[nodiscard]] auto size() const noexcept -> Size { return m_size; }
+        [[nodiscard]] auto size() const noexcept -> Size { return size_; }
 
-        [[nodiscard]] auto params() const noexcept -> const TextureParams & { return m_params; }
+        [[nodiscard]] auto params() const noexcept -> const TextureParams & { return params_; }
 
         // Rows go bottom to top: only a RenderTarget's texture. Sprites are
         // still drawn upright; in your own shader v = 0 is the bottom.
-        [[nodiscard]] auto bottom_up() const noexcept -> bool { return m_bottom_up; }
+        [[nodiscard]] auto bottom_up() const noexcept -> bool { return bottom_up_; }
 
     private:
         friend class RenderTarget;
 
         Texture(GlId id, Size size, const TextureParams &params, bool bottom_up) noexcept
-            : m_handle{id}, m_size{size}, m_params{params}, m_bottom_up{bottom_up} {
+            : handle_{id}, size_{size}, params_{params}, bottom_up_{bottom_up} {
         }
 
         // Storage for a RenderTarget to draw into.
@@ -112,9 +112,9 @@ namespace tgx {
             const TextureParams &params
         ) noexcept -> Result<Texture>;
 
-        detail::Handle<detail::delete_texture> m_handle;
-        Size m_size{};
-        TextureParams m_params{};
-        bool m_bottom_up{false};
+        detail::Handle<detail::delete_texture> handle_;
+        Size size_{};
+        TextureParams params_{};
+        bool bottom_up_{false};
     };
 }
