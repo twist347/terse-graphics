@@ -121,6 +121,15 @@ namespace {
         return {0.f, 0.f, static_cast<float>(surface.units.width), static_cast<float>(surface.units.height)};
     }
 
+    // Part of the surface drawn on, in surface units: a size of its own as
+    // large as fits in what is covered, centered; else the viewport as set.
+    [[nodiscard]] auto shown(tgx::Size size, tgx::Rect viewport, const Surface &surface) noexcept -> tgx::Rect {
+        if (size.empty()) {
+            return viewport;
+        }
+        return tgx::detail::fit_into(size, covered(viewport, surface));
+    }
+
     // Part of the surface covered, in pixels.
     [[nodiscard]] auto pixel_viewport(tgx::Rect rect, const Surface &surface) noexcept -> tgx::gl::Viewport {
         if (rect.empty() || surface.units.empty()) {
@@ -158,7 +167,7 @@ namespace {
         tgx::Rect viewport,
         const Surface &surface
     ) noexcept -> std::optional<ScreenMapping> {
-        const tgx::Rect area = covered(viewport, surface);
+        const tgx::Rect area = covered(shown(size, viewport, surface), surface);
         const tgx::Size span = tgx::detail::span_of(size, viewport, surface.units);
         if (area.empty() || span.empty()) {
             return std::nullopt;
@@ -816,7 +825,7 @@ namespace tgx {
             .u_projection = u_projection_,
             .u_texture = u_texture_,
             .transform = transform_,
-            .viewport = pixel_viewport(viewport_, surface),
+            .viewport = pixel_viewport(shown(size_, viewport_, surface), surface),
         };
     }
 

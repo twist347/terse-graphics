@@ -36,3 +36,5 @@ tgx_add_example(scenes 03_fireworks)
 tgx_add_example(scenes 04_synthwave)
 tgx_add_example(scenes 05_flock)
 tgx_add_example(scenes 06_meadow)
+
+tgx_add_example(games 01_pong)

@@ -174,6 +174,21 @@ namespace tgx::detail {
         return arc_segments({0.f, whole_turn / 4.f}, n) + 1;
     }
 
+    // content as large as fits in area, keeping its shape, centered: bars on
+    // two sides. Empty when either is empty. tgx::fit, into a rect anywhere.
+    [[nodiscard]] constexpr auto fit_into(Size content, Rect area) noexcept -> Rect {
+        if (content.empty() || area.empty()) {
+            return {};
+        }
+        const float scale = std::min(
+            area.width / static_cast<float>(content.width),
+            area.height / static_cast<float>(content.height)
+        );
+        const float w = static_cast<float>(content.width) * scale;
+        const float h = static_cast<float>(content.height) * scale;
+        return {area.x + (area.width - w) / 2.f, area.y + (area.height - h) / 2.f, w, h};
+    }
+
     // A canvas's coordinate space: its size if set, else its viewport's, else
     // units.
     [[nodiscard]] inline auto span_of(Size size, Rect viewport, Size units) noexcept -> Size {
@@ -249,12 +264,14 @@ namespace tgx::detail {
         return {mix(&Color::r), mix(&Color::g), mix(&Color::b), mix(&Color::a)};
     }
 
+    // -1, 0 or 1; 0 when neither is held or both are.
+    [[nodiscard]] constexpr auto unit_axis(bool negative, bool positive) noexcept -> float {
+        return static_cast<float>(positive) - static_cast<float>(negative);
+    }
+
     // 0 when none is held or opposites cancel.
     [[nodiscard]] inline auto unit_direction(bool left, bool right, bool up, bool down) noexcept -> Vec2 {
-        const Vec2 direction{
-            static_cast<float>(right) - static_cast<float>(left),
-            static_cast<float>(down) - static_cast<float>(up),
-        };
+        const Vec2 direction{unit_axis(left, right), unit_axis(up, down)};
         return direction == Vec2{} ? direction : normalize(direction);
     }
 }

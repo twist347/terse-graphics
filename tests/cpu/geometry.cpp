@@ -146,6 +146,23 @@ TEST_CASE("quad colors blend flat when opposite corners add up alike") {
     CHECK(tgx::detail::average({red, green, red, green}) == tgx::Color{128, 128, 0, 255});
 }
 
+TEST_CASE("fit_into") {
+    using tgx::detail::fit_into;
+    CHECK(fit_into({4, 2}, {32, 0, 32, 32}) == tgx::Rect{32, 8, 32, 16});   // bars above and below
+    CHECK(fit_into({1, 2}, {0, 0, 40, 40}) == tgx::Rect{10, 0, 20, 40});    // left and right
+    CHECK(fit_into({16, 9}, {10, 10, 160, 90}) == tgx::Rect{10, 10, 160, 90});
+    CHECK(fit_into({}, {0, 0, 10, 10}).empty());
+    CHECK(fit_into({4, 2}, {}).empty());
+}
+
+TEST_CASE("unit_axis") {
+    using tgx::detail::unit_axis;
+    CHECK(unit_axis(false, false) == 0.f);
+    CHECK(unit_axis(true, false) == -1.f);
+    CHECK(unit_axis(false, true) == 1.f);
+    CHECK(unit_axis(true, true) == 0.f);
+}
+
 TEST_CASE("unit_direction") {
     using tgx::detail::unit_direction;
     CHECK(unit_direction(false, false, false, false) == tgx::Vec2{});

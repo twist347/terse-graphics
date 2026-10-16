@@ -108,6 +108,12 @@ time; everything in them is made in code, no files needed.
 | `05_flock`         | A school of fish flocking around the cursor, thousands found through a grid. |
 | `06_meadow`        | A meadow through a whole day in flat shapes: sky, sun and moon, swaying grass. |
 
+Games are small and whole, each in one file: a loop, state, rules.
+
+| `examples/games/` | Shows                                                           |
+|-------------------|-----------------------------------------------------------------|
+| `01_pong`         | Pong against a bot or a friend: a ball that speeds up, a score to 7, a field that keeps its shape. |
+
 ## Building
 
 CMake 3.25+ and a C++23 compiler; every dependency is vendored in

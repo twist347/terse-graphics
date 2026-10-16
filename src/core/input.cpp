@@ -200,6 +200,10 @@ namespace tgx {
         return (bits_of(key) & bit_repeated) != 0;
     }
 
+    auto Input::axis(Key negative, Key positive) const noexcept -> float {
+        return detail::unit_axis(down(negative), down(positive));
+    }
+
     auto Input::direction() const noexcept -> Vec2 {
         const auto held = [this](Key a, Key b) noexcept { return down(a) || down(b); };
         return detail::unit_direction(

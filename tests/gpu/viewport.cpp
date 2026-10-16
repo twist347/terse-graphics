@@ -62,7 +62,8 @@ TEST_CASE("a canvas with a viewport: a minimap") {
     CHECK(image[21, 2] == tgx::colors::white);
 }
 
-TEST_CASE("a canvas of a size of its own is stretched over its viewport") {
+TEST_CASE("a canvas of a size of its own fits its viewport, with bars on two sides") {
+    // 4x2 in a 32x32 viewport: 32x16 at (32, 8), 8 pixels a unit.
     const tgx::RenderTarget target = tgx_test::target({64, 64});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
     tgx::Canvas pixels = canvas;
@@ -70,12 +71,38 @@ TEST_CASE("a canvas of a size of its own is stretched over its viewport") {
     pixels.set_size({4, 2});
 
     canvas.clear(tgx::colors::black);
-    pixels.rect({2, 1, 2, 1}, tgx::colors::green);   // its bottom-right quarter
+    pixels.rect({0, 0, 4, 2}, tgx::colors::green);
+    pixels.rect({2, 1, 2, 1}, tgx::colors::red);    // its bottom-right quarter
+    pixels.rect({0, -1, 4, 1}, tgx::colors::white); // over the top bar: not drawn
 
     const tgx::Image image = target.read();
-    CHECK(image[60, 28] == tgx::colors::green);
-    CHECK(image[44, 28] == tgx::colors::black);
-    CHECK(image[60, 12] == tgx::colors::black);
+    CHECK(image[60, 20] == tgx::colors::red);
+    CHECK(image[44, 20] == tgx::colors::green);
+    CHECK(image[33, 9] == tgx::colors::green);
+    CHECK(image[48, 4] == tgx::colors::black);
+    CHECK(image[48, 28] == tgx::colors::black);
+}
+
+TEST_CASE("a canvas of a size of its own fits a target of another shape") {
+    // 32x16 in 64x64: 64x32 at (0, 16), 2 pixels a unit.
+    const tgx::RenderTarget target = tgx_test::target({64, 64});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    canvas.set_size({32, 16});
+    CHECK(canvas.size() == tgx::Size{32, 16});
+
+    canvas.clear(tgx::colors::black);
+    canvas.rect({0, 0, 32, 16}, tgx::colors::yellow);
+
+    const tgx::Image image = target.read();
+    CHECK(image[32, 32] == tgx::colors::yellow);
+    CHECK(image[1, 17] == tgx::colors::yellow);
+    CHECK(image[32, 8] == tgx::colors::black);
+    CHECK(image[32, 56] == tgx::colors::black);
+
+    // A point in a bar is outside the canvas.
+    CHECK(tgx_test::near(canvas.to_world({32, 16}), {16, 0}));
+    CHECK(tgx_test::near(canvas.to_world({0, 0}), {0, -8}));
+    CHECK(tgx_test::near(canvas.to_screen({32, 16}), {64, 48}));
 }
 
 TEST_CASE("set_size, then back to following what it draws into") {

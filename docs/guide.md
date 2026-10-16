@@ -44,9 +44,10 @@ In `tgx`:
   them; vsync, and a frame rate limit for without it
   (`window().set_fps_limit(60)`).
 - **Input**: keyboard and mouse as of the last poll: keys and buttons held,
-  pressed or released this frame, keys repeated by the OS while held, a
-  direction from WASD or the arrows (`direction()`, length 1, or 0 with
-  nothing held), the mouse in window coordinates (and through
+  pressed or released this frame, keys repeated by the OS while held, an
+  axis from two keys (`axis(Key::w, Key::s)`, -1, 0 or 1), a direction
+  from WASD or the arrows (`direction()`, length 1, or 0 with nothing
+  held), the mouse in window coordinates (and through
   `Canvas::to_world` in the world), the wheel, typed text in UTF-8.
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles,
   circles (also with gradients) and turned ellipses, lines and joined strips of them, outlines,
@@ -197,12 +198,13 @@ shape; `line`, `line_strip` and `line_loop` are centered on their points.
 Curves get as many segments as keep them within a quarter pixel of round, at
 the size they show.
 
-A canvas can instead have a size of its own, a fixed logical resolution
-stretched over the window:
+A canvas can instead have a size of its own, a fixed logical resolution as
+large as fits in the window, keeping its shape: in a window of another shape
+it is centered, with bars of the clear color on two sides.
 
 ```cpp
-tgx::Canvas pixels = app->canvas();
-pixels.set_size({320, 180});   // set_size({}) follows the window again
+tgx::Canvas field = app->canvas();
+field.set_size({1280, 720});   // set_size({}) follows the window again
 ```
 
 It can also cover only a part of the window, for a minimap or a split screen;
@@ -307,7 +309,7 @@ glow.set_blend(tgx::Blend::additive);   // Blend::alpha by default
 `canvas.to_world(point)` gives the world point under a point of what the
 canvas draws into (for the window, such as the mouse), and `to_screen(world)`
 the way back; they go through the canvas's viewport and size as well as its
-camera, so they hold for a minimap or a stretched canvas too.
+camera, so they hold for a minimap or a canvas of a size of its own too.
 
 Text comes in a built-in monospaced pixel font, [unscii-16](http://viznut.fi/unscii/)
 by Viznut (public domain): 8x16 pixels a character, printable ASCII; other

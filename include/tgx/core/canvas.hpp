@@ -72,8 +72,12 @@ namespace tgx {
         [[nodiscard]] static auto create(Size size = {}) noexcept -> Canvas;
 
         // Size of the coordinate space. Empty (default): the size of the
-        // viewport or target. Otherwise a fixed logical resolution, stretched
-        // to fit.
+        // viewport or target. Otherwise a fixed logical resolution, as large
+        // as fits in the viewport or target, keeping its shape, centered;
+        // the bars on two sides stay as clear() leaves them, and nothing is
+        // drawn over them.
+        //
+        //     app->canvas().set_size({1280, 720});   // the same field in any window
         auto set_size(Size size) noexcept -> void;
 
         // The current coordinate space. Never empty while there is a target.

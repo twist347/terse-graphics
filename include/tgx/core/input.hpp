@@ -73,6 +73,12 @@ namespace tgx {
         // Backspace in a text field or stepping through a menu.
         [[nodiscard]] auto repeated(Key key) const noexcept -> bool;
 
+        // Held keys along one line: -1 for negative, 1 for positive, 0 for
+        // neither or both.
+        //
+        //     paddle.y += input.axis(tgx::Key::w, tgx::Key::s) * speed * dt;
+        [[nodiscard]] auto axis(Key negative, Key positive) const noexcept -> float;
+
         // Held WASD or arrow keys, length 1 or 0, y down. Diagonals are as
         // fast as straight lines; opposite keys cancel out.
         //
