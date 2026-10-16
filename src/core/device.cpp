@@ -165,6 +165,7 @@ namespace tgx {
         // not an app frame, and the clock does not tick.
         context.clear({.color = colors::black});
         detail::swap_buffers();
+        context.frame = {};
         return Device{};
     }
 
@@ -214,6 +215,7 @@ namespace tgx {
         context.flush();
         detail::swap_buffers();
         context.clock.tick();
+        context.last_frame = std::exchange(context.frame, {});
     }
 
     auto Device::clock() const noexcept -> const Clock & {
@@ -223,6 +225,10 @@ namespace tgx {
 
     auto Device::restart_clock() noexcept -> void {
         detail::context().clock.restart();
+    }
+
+    auto Device::stats() const noexcept -> FrameStats {
+        return detail::context().last_frame;
     }
 
     auto Device::draw(const gl::Shader &shader, const gl::VertexArray &vertices) noexcept -> void {

@@ -31,6 +31,28 @@ namespace tgx {
         std::optional<float> depth{};
     };
 
+    // The GL work of one frame, from one present() to the next. A switch
+    // counts only when it changes something; setting a uniform or updating a
+    // texture switches too.
+    //
+    //     const tgx::FrameStats stats = app->device().stats();
+    //     canvas.text({10, 30}, std::format("{} draws", stats.draws), tgx::colors::white);
+    struct FrameStats {
+        // Draw calls, the Canvas's included.
+        int draws{0};
+        // Of draws, those of Canvas shapes: one per batch. A batch ends where
+        // the target, viewport, size, camera, texture, blend or shader
+        // changes.
+        int canvas_draws{0};
+        int clears{0};
+        // Another shader made current.
+        int shader_switches{0};
+        // A texture slot given another texture.
+        int texture_switches{0};
+        // Drawing moved between the window and render targets.
+        int target_switches{0};
+    };
+
     // The GL context, ready to draw. One Device, for the one window, which
     // must outlive it. GPU resources (Texture, the gl:: types) must be
     // destroyed before it. It holds no other state, so it moves freely.
@@ -87,6 +109,10 @@ namespace tgx {
         // Makes the next Clock::delta() count from now, e.g. after loading a
         // level. The pause is left out of delta() and fps(), not elapsed().
         auto restart_clock() noexcept -> void;
+
+        // The frame shown by the last present(). Always counted: a few
+        // additions a draw.
+        [[nodiscard]] auto stats() const noexcept -> FrameStats;
 
         // Uses the index buffer if the vertex array has one. Two overloads,
         // since a default argument would need gl::DrawParams defined here.

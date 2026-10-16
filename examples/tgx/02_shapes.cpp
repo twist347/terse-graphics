@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <format>
 #include <numbers>
 #include <print>
 
@@ -93,6 +94,9 @@ int main() {
         canvas.ellipse_lines({1152, 635}, {110, 30}, tgx::colors::light_gray, 6, -0.3f);
 
         canvas.fps({10, 10});
+        // All the shapes above share one texture, shader and blend: one draw.
+        const tgx::FrameStats stats = app->device().stats();
+        canvas.text({10, 30}, std::format("{} draws", stats.draws), tgx::colors::white);
 
         app->swap_buffers();
     }

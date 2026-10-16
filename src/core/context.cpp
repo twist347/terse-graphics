@@ -230,6 +230,7 @@ namespace tgx {
         // glClear ignores the viewport.
         bind_framebuffer(call.target.framebuffer);
         glClear(bits);
+        ++frame.clears;
     }
 
     auto detail::Context::draw(const DrawCall &call) noexcept -> void {
@@ -267,6 +268,7 @@ namespace tgx {
         const GLenum mode = to_gl(call.primitive);
         const auto count = static_cast<GLsizei>(call.count);
 
+        ++frame.draws;
         if (!call.index_type) {
             glDrawArrays(mode, static_cast<GLint>(call.first), count);
             return;
@@ -305,6 +307,7 @@ namespace tgx {
         if (next != framebuffer) {
             glBindFramebuffer(GL_FRAMEBUFFER, next);
             framebuffer = next;
+            ++frame.target_switches;
         }
     }
 
@@ -318,6 +321,7 @@ namespace tgx {
         if (next != program) {
             glUseProgram(next);
             program = next;
+            ++frame.shader_switches;
         }
     }
 
@@ -350,6 +354,7 @@ namespace tgx {
         if (texture != textures[slot]) {
             glBindTexture(GL_TEXTURE_2D, texture);
             textures[slot] = texture;
+            ++frame.texture_switches;
         }
     }
 

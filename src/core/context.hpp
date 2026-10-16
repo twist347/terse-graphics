@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tgx/core/color.hpp"
+#include "tgx/core/device.hpp"
 #include "tgx/core/handle.hpp"
 #include "tgx/core/image.hpp"
 #include "tgx/core/math.hpp"
@@ -87,6 +88,11 @@ namespace tgx::detail {
 
         // Timing of presented frames, read by Clock.
         FrameClock clock;
+
+        // Counted for the frame being drawn, which present() moves to
+        // last_frame.
+        FrameStats frame{};
+        FrameStats last_frame{};
 
         // Null while the batch is created and destroyed, when its own shader
         // and texture call the flush hooks; they skip a null batch. unique_ptr

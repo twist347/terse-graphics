@@ -11,6 +11,7 @@ tgx_add_test(tgx_tests_gpu LABEL gpu SOURCES
         render_target.cpp
         shaders.cpp
         shapes.cpp
+        stats.cpp
         textures.cpp
         viewport.cpp
 )

@@ -276,6 +276,11 @@ uniform of the canvas shader set, has the shapes waiting on it drawn first.
 `device.flush()` is only needed before raw GL calls, and those must leave GL as
 they found it (see [Rules](#rules)).
 
+`device().stats()` counts the last frame's GL work: draws (and how many were
+the canvas's batches), clears, and switches of shader, texture and target. Many
+canvas draws for few shapes mean the batch keeps breaking: on a change of
+target, viewport, size, camera, texture, blend or shader.
+
 Textures load from image files in one call; `Image` is for pixels made in code
 or read on the CPU, rows top to bottom. A sprite needs only a position: by
 default it is the whole texture at its own size.

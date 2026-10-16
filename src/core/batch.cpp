@@ -154,6 +154,7 @@ namespace tgx::detail {
             glUniform1i(state_.u_texture, 0);
         }
 
+        ++context.frame.canvas_draws;
         context.submit({
             .target = state_.target,
             .program = program,
