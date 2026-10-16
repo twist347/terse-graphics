@@ -10,9 +10,13 @@
 // has no such switch, so its functions, and miniaudio's one global, get a
 // tgx_ prefix. miniaudio includes <windows.h>, whose min and max macros would
 // break std::min.
-// MSVC's optimizer warns about vendored code (C4701) past /external:W0.
+// MSVC's code generation warns about vendored code past /external:W0, and a
+// warning level does not reach it: all its warnings on at /W4 are turned off
+// by number (uninitialized, unreachable, not inlined, division by zero,
+// constant overflow, buffer overrun).
 #if defined(_MSC_VER)
 #pragma warning(push, 0)
+#pragma warning(disable: 4700 4701 4702 4703 4714 4723 4724 4756 4789)
 #endif
 #ifndef NOMINMAX
 #define NOMINMAX
