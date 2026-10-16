@@ -5,12 +5,19 @@
 #include "core/file.hpp"
 
 // Compiled here with internal linkage, so an app may link its own stb.
+// MSVC's optimizer warns about vendored code (C4701) past /external:W0.
+#if defined(_MSC_VER)
+#pragma warning(push, 0)
+#endif
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 #define STB_IMAGE_WRITE_STATIC
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 #include <cstddef>
 #include <cstring>
