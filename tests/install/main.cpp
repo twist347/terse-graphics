@@ -1,9 +1,13 @@
 // Built against an installed tgx: the headers are found, the library and what
 // it needs from the system link, and the parts that need no display run.
 // App::create is only linked, not called, so the window, GL and audio code
-// must link too.
+// must link too, and so must GL and GLFW called through the headers tgx
+// installs.
 
 #include "tgx/tgx.hpp"
+
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 #include <cstdio>
 #include <print>
@@ -16,7 +20,12 @@ static_assert(TGX_ENABLE_ASSERTS == 0 || TGX_ENABLE_ASSERTS == 1);
 int main(int argc, char **) {
     if (argc > 1) {
         auto app = tgx::App::create();
-        return app ? 0 : 1;
+        if (!app) {
+            return 1;
+        }
+        std::println("GL {}, focused {}", reinterpret_cast<const char *>(glGetString(GL_VERSION)),
+                     glfwGetWindowAttrib(app->window().native_handle(), GLFW_FOCUSED));
+        return 0;
     }
 
     tgx::Random random{42};

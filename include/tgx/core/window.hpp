@@ -96,7 +96,8 @@ namespace tgx {
         // In pixels: what a draw into the window covers by default.
         [[nodiscard]] auto framebuffer_size() const noexcept -> Size;
 
-        // For what tgx does not do. tgx sets the callbacks: replacing them
+        // For what tgx does not do, with <GLFW/glfw3.h> (tgx ships it with
+        // its own GLFW copy). tgx sets the callbacks: replacing them
         // with glfwSet*Callback stops input(), resized(), focused() and
         // minimized() from updating.
         [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow *;

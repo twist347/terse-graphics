@@ -452,6 +452,26 @@ last takes premultiplied colors, as `premultiplied` does:
 `depth_write`; `Cull` has `none`, `back` and `front`; `Fill` has `solid` and
 `wireframe`.
 
+For what tgx does not wrap, GL and GLFW are an include away: tgx's glad (GL
+3.3 core, already loaded by the `Device`; bring no other loader, its names
+would clash) and, when GLFW is tgx's own copy, GLFW's headers. Include glad
+first, so GLFW leaves the system's GL header out. Call `device.flush()` before
+raw GL and leave GL as found (see [Rules](#rules)); the window is
+`native_handle()`.
+
+```cpp
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
+
+device.flush();               // waiting shapes are not clipped
+glEnable(GL_SCISSOR_TEST);
+glScissor(0, 0, 320, 180);    // pixels from the bottom-left, as GL counts
+device.draw(*shader, vao);
+glDisable(GL_SCISSOR_TEST);   // as found
+
+glfwSetWindowOpacity(app->window().native_handle(), 0.9f);
+```
+
 ## Rules
 
 - **Only `Device` binds for drawing.** Resources have no `bind()`. Editing one
@@ -609,8 +629,9 @@ In another CMake project: `add_subdirectory(terse-graphics)` (or
 FetchContent) and link `tgx::tgx`. Examples and tests are then off. The
 vendored libraries build as `tgx_glad`, `tgx_miniaudio` and so on, apart from
 the project's own, and go inside the tgx library itself, as raylib's do: there
-is one library to link. A `glfw` target the project already has (3.4 or
-newer) is used instead of tgx's copy.
+is one library to link. stb and miniaudio are compiled with internal linkage,
+so the app may link its own copies of them. A `glfw` target the project
+already has (3.4 or newer) is used instead of tgx's copy.
 
 Or installed, as a package:
 

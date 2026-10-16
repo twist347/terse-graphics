@@ -84,10 +84,25 @@ target_include_directories(tgx
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+# For the app's own GL and GLFW calls: <glad/gl.h>, loaded by the Device, and
+# <GLFW/glfw3.h> when GLFW is tgx's copy. Installed under include/tgx, so they
+# shadow no other copy in the prefix.
+target_include_directories(tgx SYSTEM PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glad/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/tgx/glad>
+)
+if (TGX_OWN_GLFW)
+    target_include_directories(tgx SYSTEM PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw-3.5.1/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/tgx/glfw>
+    )
+endif ()
 
-# The copies in thirdparty/ are object libraries, built into tgx: linked for
-# the build only, so an installed tgx asks for none of them. What they need
-# from the system is linked by tgx instead, and travels with it.
+# The copies in thirdparty/ are built into tgx: glad as an object library;
+# stb and miniaudio are headers, compiled by tgx's own sources with internal
+# linkage. Linked for the build only, so an installed tgx asks for none of
+# them. What they need from the system is linked by tgx instead, and travels
+# with it.
 target_link_libraries(tgx PRIVATE
         $<BUILD_INTERFACE:tgx_glad>
         $<BUILD_INTERFACE:tgx_miniaudio>
@@ -173,6 +188,14 @@ if (TGX_INSTALL)
     set(tgx_package_dir ${CMAKE_INSTALL_LIBDIR}/cmake/tgx)
     install(TARGETS tgx EXPORT tgxTargets)
     install(DIRECTORY include/tgx TYPE INCLUDE)
+    install(DIRECTORY thirdparty/glad/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tgx/glad)
+    if (TGX_OWN_GLFW)
+        install(FILES
+                thirdparty/glfw-3.5.1/include/GLFW/glfw3.h
+                thirdparty/glfw-3.5.1/include/GLFW/glfw3native.h
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tgx/glfw/GLFW
+        )
+    endif ()
     install(EXPORT tgxTargets NAMESPACE tgx:: DESTINATION ${tgx_package_dir})
     configure_package_config_file(cmake/tgxConfig.cmake.in tgxConfig.cmake INSTALL_DESTINATION ${tgx_package_dir})
     # Before 1.0 the API changes between minor versions.

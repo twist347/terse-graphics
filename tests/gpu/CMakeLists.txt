@@ -6,6 +6,7 @@ tgx_add_test(tgx_tests_gpu LABEL gpu SOURCES
         main.cpp
         buffers.cpp
         order.cpp
+        raw.cpp
         read.cpp
         render_target.cpp
         shaders.cpp

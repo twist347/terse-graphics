@@ -39,7 +39,8 @@ namespace tgx {
     // presents, so the picture follows call order. Call flush() before raw
     // GL calls.
     //
-    // Raw GL calls must leave GL as they found it. The Device does not set
+    // Raw GL calls go through <glad/gl.h>, which tgx ships and the Device
+    // loads. They must leave GL as they found it. The Device does not set
     // again what it knows is set (framebuffer, program, vertex array,
     // textures and active slot, viewport, clear values, render state). It
     // assumes the rest is at GL's defaults (no scissor or stencil test, all

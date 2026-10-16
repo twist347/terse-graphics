@@ -5,7 +5,50 @@
 #include "core/file.hpp"
 #include "core/log_internal.hpp"
 
+// miniaudio and stb_vorbis are compiled here, private to tgx, so an app may
+// link its own copies. MA_API makes miniaudio's functions static. stb_vorbis
+// has no such switch, so its functions, and miniaudio's one global, get a
+// tgx_ prefix. miniaudio includes <windows.h>, whose min and max macros would
+// break std::min.
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#define MA_API static
+#define ma_atomic_global_lock tgx_ma_atomic_global_lock
+#define stb_vorbis_close tgx_stb_vorbis_close
+#define stb_vorbis_decode_filename tgx_stb_vorbis_decode_filename
+#define stb_vorbis_decode_frame_pushdata tgx_stb_vorbis_decode_frame_pushdata
+#define stb_vorbis_decode_memory tgx_stb_vorbis_decode_memory
+#define stb_vorbis_flush_pushdata tgx_stb_vorbis_flush_pushdata
+#define stb_vorbis_get_comment tgx_stb_vorbis_get_comment
+#define stb_vorbis_get_error tgx_stb_vorbis_get_error
+#define stb_vorbis_get_file_offset tgx_stb_vorbis_get_file_offset
+#define stb_vorbis_get_frame_float tgx_stb_vorbis_get_frame_float
+#define stb_vorbis_get_frame_short tgx_stb_vorbis_get_frame_short
+#define stb_vorbis_get_frame_short_interleaved tgx_stb_vorbis_get_frame_short_interleaved
+#define stb_vorbis_get_info tgx_stb_vorbis_get_info
+#define stb_vorbis_get_sample_offset tgx_stb_vorbis_get_sample_offset
+#define stb_vorbis_get_samples_float tgx_stb_vorbis_get_samples_float
+#define stb_vorbis_get_samples_float_interleaved tgx_stb_vorbis_get_samples_float_interleaved
+#define stb_vorbis_get_samples_short tgx_stb_vorbis_get_samples_short
+#define stb_vorbis_get_samples_short_interleaved tgx_stb_vorbis_get_samples_short_interleaved
+#define stb_vorbis_open_file tgx_stb_vorbis_open_file
+#define stb_vorbis_open_file_section tgx_stb_vorbis_open_file_section
+#define stb_vorbis_open_filename tgx_stb_vorbis_open_filename
+#define stb_vorbis_open_memory tgx_stb_vorbis_open_memory
+#define stb_vorbis_open_pushdata tgx_stb_vorbis_open_pushdata
+#define stb_vorbis_seek tgx_stb_vorbis_seek
+#define stb_vorbis_seek_frame tgx_stb_vorbis_seek_frame
+#define stb_vorbis_seek_start tgx_stb_vorbis_seek_start
+#define stb_vorbis_stream_length_in_samples tgx_stb_vorbis_stream_length_in_samples
+#define stb_vorbis_stream_length_in_seconds tgx_stb_vorbis_stream_length_in_seconds
+// Its declarations go before miniaudio's implementation, its own after.
+#define STB_VORBIS_HEADER_ONLY
+#include <stb/stb_vorbis.c>
+#define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio/miniaudio.h>
+#undef STB_VORBIS_HEADER_ONLY
+#include <stb/stb_vorbis.c>
 
 #include <algorithm>
 #include <array>

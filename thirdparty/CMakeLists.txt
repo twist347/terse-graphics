@@ -1,7 +1,8 @@
 # Targets of our own copies are prefixed tgx_, so a project that adds tgx
 # with add_subdirectory and has its own glad or stb keeps its names. They are
-# object libraries, built into libtgx itself as raylib does: one library to
-# link and to install.
+# built into libtgx itself as raylib does: one library to link and to
+# install. stb and miniaudio are compiled by tgx's sources with internal
+# linkage, so an app may link its own copies of them too.
 add_subdirectory(glad)
 add_subdirectory(miniaudio)
 add_subdirectory(stb)
