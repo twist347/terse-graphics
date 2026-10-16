@@ -15,6 +15,10 @@ namespace tgx {
         const char *title{"tgx"};
         bool vsync{true};
         int fps_limit{0};
+        // Samples per pixel, for smooth edges of turned and round shapes: 0
+        // for none, 4 the usual. The window's only, not render targets'. The
+        // driver may give another count; the Device logs it.
+        int msaa{0};
         // Reports driver messages but slows the driver: on by default only
         // with asserts. TGX_ENABLE_ASSERTS, unlike NDEBUG, is the same for the
         // library and the app.

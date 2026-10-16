@@ -19,7 +19,8 @@ light and a scanline shader, all made in code.*
 ## What there is
 
 - **Window and loop**: one call to start, a GLFW-shaped loop, fullscreen,
-  focus, a frame clock.
+  focus, a frame clock, antialiasing (MSAA), the program's folder and one for
+  saves.
 - **Input**: keys, mouse buttons, the wheel, typed text.
 - **Canvas**: shapes, gradients, sprites and text in a built-in pixel font,
   under a 2D camera, batched into as few draws as the GPU allows.
@@ -72,7 +73,7 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `examples/tgx/` | Shows                                                              |
 |-----------------|--------------------------------------------------------------------|
 | `01_window`     | The bare loop: a window cleared to one color.                      |
-| `02_shapes`     | The `Canvas` shapes, one call each: filled, outlined, see-through. |
+| `02_shapes`     | The `Canvas` shapes, one call each: filled, outlined, see-through; smooth edges with MSAA. |
 | `03_texture`    | An `Image` made pixel by pixel, as a `Texture`, drawn as a sprite. |
 | `04_sprite`     | The `Sprite` fields: part of an atlas, mirrored, tinted, turned.   |
 | `05_moving`     | Movement, a `Timer` and easing by `clock().delta()`, the same at any frame rate. |

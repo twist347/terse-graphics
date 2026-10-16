@@ -15,6 +15,7 @@ tgx_add_test(tgx_tests_cpu LABEL cpu INTERNAL SOURCES
         geometry.cpp
         image.cpp
         math.cpp
+        paths.cpp
         random.cpp
         text.cpp
         timer.cpp

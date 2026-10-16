@@ -16,7 +16,8 @@ int main() {
     // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
-    auto app = tgx::App::create({.title = "tgx - 02 shapes"});
+    // 4 samples a pixel: smooth edges on round and turned shapes.
+    auto app = tgx::App::create({.title = "tgx - 02 shapes", .msaa = 4});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;

@@ -92,6 +92,13 @@ namespace {
         tgx::detail::log_info("  glsl:     {}", gl_string(GL_SHADING_LANGUAGE_VERSION));
         const int max_size = tgx::detail::max_texture_size();
         tgx::detail::log_info("  textures: up to {}x{}", max_size, max_size);
+        GLint samples = 0;
+        glGetIntegerv(GL_SAMPLES, &samples);
+        if (samples > 0) {
+            tgx::detail::log_info("  msaa:     {} samples", samples);
+        } else {
+            tgx::detail::log_info("  msaa:     off");
+        }
     }
 
     // Logged last in the context info: with the callback off, driver

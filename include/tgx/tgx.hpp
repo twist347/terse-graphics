@@ -25,6 +25,7 @@
 #include "tgx/core/input.hpp"
 #include "tgx/core/log.hpp"
 #include "tgx/core/math.hpp"
+#include "tgx/core/paths.hpp"
 #include "tgx/core/random.hpp"
 #include "tgx/core/render_target.hpp"
 #include "tgx/core/texture.hpp"

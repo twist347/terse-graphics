@@ -277,6 +277,7 @@ namespace tgx {
         TGX_ASSERT_MSG(!params.size.empty(), "window of size {}x{}", params.size.width, params.size.height);
         TGX_ASSERT(params.title);
         TGX_ASSERT_MSG(params.fps_limit >= 0, "fps limit {}", params.fps_limit);
+        TGX_ASSERT_MSG(params.msaa >= 0, "msaa {}", params.msaa);
 
         glfwSetErrorCallback(on_glfw_error);
         if (glfwInit() != GLFW_TRUE) {
@@ -288,6 +289,7 @@ namespace tgx {
         // (Device asserts it only for render targets), and raw GL a stencil.
         glfwWindowHint(GLFW_DEPTH_BITS, 24);
         glfwWindowHint(GLFW_STENCIL_BITS, 8);
+        glfwWindowHint(GLFW_SAMPLES, std::max(params.msaa, 0));
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, gl::version_major);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, gl::version_minor);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

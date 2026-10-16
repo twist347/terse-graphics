@@ -60,6 +60,7 @@ set(TGX_CORE_SOURCES
         src/core/image.cpp
         src/core/input.cpp
         src/core/log.cpp
+        src/core/paths.cpp
         src/core/render_target.cpp
         src/core/texture.cpp
         src/core/window.cpp

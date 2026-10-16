@@ -42,7 +42,12 @@ In `tgx`:
   minimized (`focused()`, `minimized()`, to pause on); frames timed as they are
   presented (`clock()`: delta, elapsed, fps), and `canvas.fps(pos)` to show
   them; vsync, and a frame rate limit for without it
-  (`window().set_fps_limit(60)`).
+  (`window().set_fps_limit(60)`); smooth edges with multisampling
+  (`WindowParams::msaa = 4`, the window only, not render targets).
+- **Folders**: `app_directory()`, where the program is, for files shipped
+  next to it whatever the working directory; `save_directory("me", "game")`,
+  the user's folder for saves and settings (`%APPDATA%`, `~/Library/Application
+  Support`, `~/.local/share`), created if missing.
 - **Input**: keyboard and mouse as of the last poll: keys and buttons held,
   pressed or released this frame, keys repeated by the OS while held, an
   axis from two keys (`axis(Key::w, Key::s)`, -1, 0 or 1), a direction
@@ -585,6 +590,7 @@ report needs:
 [tgx] info:   vendor:   NVIDIA Corporation
 [tgx] info:   glsl:     3.30 NVIDIA via Cg compiler
 [tgx] info:   textures: up to 32768x32768
+[tgx] info:   msaa:     off
 [tgx] info:   debug:    on
 [tgx] info: audio: Built-in Audio Analog Stereo via PulseAudio, 48000 Hz, 2 channels
 ```
