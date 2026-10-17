@@ -70,7 +70,7 @@ namespace {
         last_pos.fill(center);
         last_color.fill(surface(tgx::Vec3{0.f, 0.f, -1.f}));
         for (int k = 1; k <= rings; ++k) {
-            const float rho = std::sin(static_cast<float>(k) / static_cast<float>(rings) * pi / 2.f);
+            const float rho = tgx::ease::out_sine(static_cast<float>(k) / static_cast<float>(rings));
             for (std::size_t i = 0; i < sides; ++i) {
                 const tgx::Vec2 dir = tgx::from_angle(2.f * pi * static_cast<float>(i) / static_cast<float>(sides));
                 pos[i] = center + dir * (rho * radius);
@@ -113,7 +113,7 @@ int main() {
     std::vector<Star> stars;
     for (const auto &[count, depth] : layers) {
         for (int i = 0; i < count; ++i) {
-            const tgx::Vec2 uv{rng.next_float(0.f, 1.f), rng.next_float(0.f, 1.f)};
+            const tgx::Vec2 uv = rng.point_in({0.f, 0.f, 1.f, 1.f});
             const float size = depth * rng.next_float(1.2f, 2.4f) + rng.next_float(0.3f, 0.6f);
             const tgx::Color tint = tgx::Color::hsv(rng.next_float(20.f, 240.f), rng.next_float(0.f, 0.25f), 1.f);
             stars.push_back({uv, depth, size, rng.next_float(0.f, 2.f * pi), rng.next_float(0.6f, 2.5f), tint});

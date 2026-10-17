@@ -53,7 +53,7 @@ int main() {
         for (const tgx::Vec2 tree: trees) {
             world.circle(tree, 40, tgx::colors::green);
         }
-        world.rect({player.x - 10, player.y - 10, 20, 20}, tgx::colors::yellow);
+        world.rect(tgx::Rect::from_center(player, {20, 20}), tgx::colors::yellow);
 
         // The HUD, drawn after the world so it is on top: how far the player
         // has gone.

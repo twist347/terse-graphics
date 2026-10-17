@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <numbers>
 #include <print>
 #include <string>
 
@@ -31,13 +30,13 @@ namespace {
 
     constexpr float ball_radius = 10;
     constexpr float ball_serve_speed = 450;
-    constexpr float ball_serve_angle = std::numbers::pi_v<float> / 6; // 30
+    constexpr float ball_serve_angle = tgx::radians(30);
     constexpr float ball_speedup = 1.06f;
     constexpr float ball_max_speed = 1000;
     // The longest step one update takes. With ball_max_speed it keeps the ball
     // from passing a paddle in one step: 1000 / 30 < paddle width + diameter.
     constexpr float max_step = 1.f / 30;
-    constexpr float ball_max_bounce_angle = std::numbers::pi_v<float> / 3; // 60
+    constexpr float ball_max_bounce_angle = tgx::radians(60);
     constexpr tgx::Color ball_color = tgx::colors::red;
 
     constexpr float serve_delay = 1;
@@ -75,7 +74,9 @@ namespace {
         // From where it stands, toward -1 (left) or 1 (right), at a random angle.
         void serve(float toward, tgx::Random &random) {
             const float angle = random.next_float(-ball_serve_angle, ball_serve_angle);
-            vel = tgx::Vec2{std::cos(angle) * toward, std::sin(angle)} * ball_serve_speed;
+            tgx::Vec2 dir = tgx::from_angle(angle);
+            dir.x *= toward;
+            vel = dir * ball_serve_speed;
         }
 
         void bounce_off(tgx::Rect paddle) {
@@ -88,7 +89,9 @@ namespace {
             const float angle = offset * ball_max_bounce_angle;
             const float speed = std::min(tgx::length(vel) * ball_speedup, ball_max_speed);
 
-            vel = tgx::Vec2{std::cos(angle) * away, std::sin(angle)} * speed;
+            tgx::Vec2 dir = tgx::from_angle(angle);
+            dir.x *= away;
+            vel = dir * speed;
             // Out of the paddle, so the next frame does not hit again.
             body.center.x = away < 0 ? paddle.x - body.radius : paddle.right() + body.radius;
         }

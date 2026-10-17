@@ -192,7 +192,7 @@ int main() {
         const float day = smooth(-0.1f, 0.3f, altitude);
         const float dark = 1.f - smooth(-0.5f, -0.15f, altitude);
         const Vec2 mouse = input.mouse();
-        const bool mouse_in = mouse.x >= 0.f && mouse.y >= 0.f && mouse.x < size.x && mouse.y < size.y;
+        const bool mouse_in = tgx::contains(tgx::Rect{0.f, 0.f, size.x, size.y}, mouse);
         canvas.rect_gradient({0.f, 0.f, size.x, size.y * 0.7f}, sky.top, sky.bottom);
 
         // Stars and clouds come from the same seed every frame: no storage.

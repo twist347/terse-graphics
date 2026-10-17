@@ -60,7 +60,8 @@ namespace {
 
     struct Rocket {
         tgx::Vec2 from, to;
-        float delay, age, flight;
+        float delay;
+        tgx::Timer flight;
         Style style;
     };
 
@@ -116,7 +117,7 @@ namespace {
         case Style::ring: {
             // Two circles seen at an angle, tilted.
             const tgx::Vec2 across = tgx::from_angle(rng.next_float(-0.6f, 0.6f));
-            const tgx::Vec2 up = tgx::Vec2{-across.y, across.x} * rng.next_float(0.35f, 0.9f);
+            const tgx::Vec2 up = -tgx::perpendicular(across) * rng.next_float(0.35f, 0.9f);
             for (int i = 0; i < 120; ++i) {
                 // Sparks in pairs, one on each circle.
                 const int pair = i / 2;
@@ -164,7 +165,7 @@ namespace {
     ) -> void {
         const float length = std::max(size, tgx::length(velocity) * 0.09f);
         canvas.sprite(glow, {.position = at, .size = {length, size}, .origin = {length * 0.5f, size * 0.5f},
-                             .rotation = std::atan2(velocity.y, velocity.x), .tint = tint});
+                             .rotation = tgx::angle(velocity), .tint = tint});
     }
 
     // How far the ripples shift a reflected point sideways.
@@ -177,7 +178,7 @@ namespace {
                 Style style = static_cast<Style>(rng.next_int(0, 3))) -> void {
         if (rockets.size() < rockets.capacity()) {
             const tgx::Vec2 from{to.x + rng.next_float(-40.f, 40.f), horizon};
-            rockets.push_back({from, to, delay, 0.f, rng.next_float(1.f, 1.4f), style});
+            rockets.push_back({from, to, delay, tgx::Timer::once(rng.next_float(1.f, 1.4f)), style});
         }
     }
 }
@@ -268,20 +269,19 @@ int main() {
             if (r.delay > 0.f) {
                 continue;
             }
-            r.age += dt;
-            if (r.age >= r.flight) {
+            if (r.flight.tick(dt)) {
                 burst(particles, r.to, r.style, height);
                 continue;
             }
-            const float t = r.age / r.flight;
+            const float t = r.flight.progress();
             const tgx::Vec2 at = tgx::lerp(r.from, r.to, tgx::ease::out_quad(t));
             draw_glow(light, *glow, at, (r.to - r.from) * (1.f - t), 0.012f * height, tgx::Color::rgb(0xfff0c8));
             // A trail of embers, falling away behind.
-            const tgx::Vec2 drift{rng.next_float(-12.f, 12.f), rng.next_float(10.f, 40.f)};
+            const tgx::Vec2 drift = rng.point_in({-12.f, 10.f, 24.f, 30.f});
             emit(particles, {at, drift, gold, 0.f, rng.next_float(0.4f, 0.8f), 0.009f * height, 1.5f, 0.f,
                              Kind::ember, 0.f});
         }
-        std::erase_if(rockets, [](const Rocket &r) { return r.age >= r.flight; });
+        std::erase_if(rockets, [](const Rocket &r) { return r.flight.done(); });
 
         // By index: the loop may add particles, within the reserved size.
         for (std::size_t i = 0; i < particles.size(); ++i) {

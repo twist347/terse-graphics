@@ -21,7 +21,7 @@ namespace {
         for (const tgx::Vec2 tree: trees) {
             canvas.circle(tree, 40, tgx::colors::green);
         }
-        canvas.rect({player.x - 10, player.y - 10, 20, 20}, tgx::colors::yellow);
+        canvas.rect(tgx::Rect::from_center(player, {20, 20}), tgx::colors::yellow);
     }
 }
 

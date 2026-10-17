@@ -65,7 +65,7 @@ int main() {
         for (const tgx::Vec2 dot: dots) {
             world.circle(dot, 8, tgx::colors::cyan);
         }
-        world.rect({player.x - 20, player.y - 20, 40, 40}, tgx::colors::yellow);
+        world.rect(tgx::Rect::from_center(player, {40, 40}), tgx::colors::yellow);
         world.circle_lines(mouse, 16, tgx::colors::white, 2);
 
         screen.fps({10, 10});

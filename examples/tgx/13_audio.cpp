@@ -101,7 +101,8 @@ int main(int argc, char **argv) {
         for (std::size_t i = 0; i < keys.size(); ++i) {
             const tgx::Rect key{40.f + 90.f * static_cast<float>(i), 110, 80, 80};
             canvas.rect(key, tgx::lerp(tgx::colors::gray, tgx::colors::yellow, lit[i]));
-            canvas.text({key.x + 34, key.y + 32}, std::format("{}", i + 1), tgx::colors::black);
+            canvas.text(key.center(), std::format("{}", i + 1), tgx::colors::black, tgx::Canvas::default_text_size,
+                {0.5f, 0.5f});
         }
 
         // Where the notes will sound, from left to right.

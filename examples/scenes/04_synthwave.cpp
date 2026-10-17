@@ -201,7 +201,7 @@ namespace {
         const float offset = std::fmod(travel, 1.f);
         for (float z = 1.f - offset; z < grid_far; z += 1.f) {
             const float y = horizon + focal / z;
-            const float fade = std::pow(1.f - z / grid_far, 2.f);
+            const float fade = tgx::ease::in_quad(1.f - z / grid_far);
             neon(glow, {-view.x * 0.2f, y}, {view.x * 1.2f, y}, grid_color, std::clamp(2.6f / z, 1.f, 3.f), fade);
         }
         constexpr int half_columns = grid_columns / 2;
@@ -284,15 +284,16 @@ int main() {
         const float dt = std::min(app->clock().delta(), 0.1f);
         const float time = static_cast<float>(app->clock().elapsed());
         // Keys turn the wheel, the mouse sets it; the view follows and banks.
-        const tgx::Vec2 keys = input.direction(tgx::Key::left, tgx::Key::right, tgx::Key::up, tgx::Key::down);
-        steer_target = std::clamp(steer_target + keys.x * 1.6f * dt, -1.f, 1.f);
+        const float steer_keys = input.axis(tgx::Key::left, tgx::Key::right);
+        const float speed_keys = input.axis(tgx::Key::up, tgx::Key::down);
+        steer_target = std::clamp(steer_target + steer_keys * 1.6f * dt, -1.f, 1.f);
         if (tgx::length_squared(input.mouse_delta()) > 0.f && canvas.size().width > 0) {
             steer_target = std::clamp(input.mouse().x / static_cast<float>(canvas.size().width) * 2.f - 1.f, -1.f, 1.f);
         }
         const float turn = (steer_target - steer) * std::min(dt * 3.f, 1.f);
         steer += turn;
         bank += (turn / std::max(dt, 1e-4f) - bank) * std::min(dt * 6.f, 1.f);
-        speed = std::clamp(speed - keys.y * 4.f * dt, 0.5f, 12.f);
+        speed = std::clamp(speed - speed_keys * 4.f * dt, 0.5f, 12.f);
         travel += speed * dt;
         crt_on = crt_on != input.pressed(tgx::Key::c);
         tube.set_shader(crt_on ? &*crt : nullptr);
@@ -304,7 +305,7 @@ int main() {
         glow.set_camera(camera);
 
         // Wider and taller than the picture, so the bank shows no edges.
-        const tgx::Rect wide{-view.x * 0.1f, -view.y * 0.2f, view.x * 1.2f, view.y * 1.4f};
+        const tgx::Rect wide = tgx::Rect::from_center(view / 2.f, {view.x * 1.2f, view.y * 1.4f});
         const float step = horizon / static_cast<float>(sky.size() - 1);
         world.rect({wide.x, wide.y, wide.width, -wide.y}, sky[0]);
         for (std::size_t i = 0; i + 1 < sky.size(); ++i) {

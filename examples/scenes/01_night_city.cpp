@@ -144,7 +144,7 @@ namespace {
 
     struct Lightning {
         std::vector<tgx::Vec2> bolt;
-        float left{0.f};
+        tgx::Timer strike = tgx::Timer::once_ready(strike_time);
     };
 
     // A jagged path from the sky down to a roof.
@@ -152,7 +152,7 @@ namespace {
         std::vector<tgx::Vec2> bolt{{rng.next_float(40.f, width - 40.f), 0.f}};
         while (bolt.back().y < road_y - 60.f) {
             const tgx::Vec2 last = bolt.back();
-            bolt.push_back({last.x + rng.next_float(-9.f, 9.f), last.y + rng.next_float(6.f, 14.f)});
+            bolt.push_back(last + rng.point_in({-9.f, 6.f, 18.f, 8.f}));
         }
         return bolt;
     }
@@ -273,7 +273,7 @@ int main() {
     const tgx::Vec2 rain_direction = tgx::normalize(tgx::Vec2{-0.25f, 1.f});
 
     Lightning lightning;
-    float next_strike = rng.next_float(4.f, 9.f);
+    tgx::Timer next_strike = tgx::Timer::once(rng.next_float(4.f, 9.f));
     float car_x = width + 40.f;
     float scroll = 0.f;
     float time = 0.f;
@@ -291,7 +291,7 @@ int main() {
         const tgx::Vec2 position{picture.x, picture.y};
         const tgx::Vec2 size{picture.width, picture.height};
         // A minimized window has no picture to point into.
-        const float to_pixels = picture.width > 0.f ? width / picture.width : 0.f;
+        const float to_pixels = picture.empty() ? 0.f : width / picture.width;
         const tgx::Vec2 mouse = (app->input().mouse() - position) * to_pixels;
 
         // Rain: drops fall along the wind and splash where they meet the road.
@@ -325,15 +325,16 @@ int main() {
             }
         }
 
-        if (app->input().pressed(tgx::Key::space) || time > next_strike) {
-            lightning = {make_bolt(), strike_time};
-            next_strike = time + rng.next_float(6.f, 14.f);
+        if (app->input().pressed(tgx::Key::space) || next_strike.tick(dt)) {
+            lightning.bolt = make_bolt();
+            lightning.strike.reset();
+            next_strike = tgx::Timer::once(rng.next_float(6.f, 14.f));
         }
-        lightning.left = std::max(lightning.left - dt, 0.f);
+        lightning.strike.tick(dt);
         // Two flickers, bright then fading.
-        const float flash = lightning.left > 0.f
-                                ? (std::fmod(lightning.left, 0.12f) > 0.05f ? 1.f : 0.4f) * (lightning.left / strike_time)
-                                : 0.f;
+        const float left = lightning.strike.left();
+        const float flash =
+            lightning.strike.done() ? 0.f : (std::fmod(left, 0.12f) > 0.05f ? 1.f : 0.4f) * (1.f - lightning.strike.progress());
 
         car_x -= 45.f * dt;
         if (car_x < -90.f) {
@@ -351,7 +352,7 @@ int main() {
         world.circle({257.f, 31.f}, 10.f, sky_at(31.f, flash * 0.6f));
         light.circle_gradient({262.f, 34.f}, 26.f, moonlight.fade(0.12f), moonlight.fade(0.f));
 
-        if (lightning.left > 0.f && flash > 0.5f) {
+        if (!lightning.strike.done() && flash > 0.5f) {
             light.line_strip(lightning.bolt, strike_glow.fade(0.5f), 3.f);
             world.line_strip(lightning.bolt, tgx::colors::white, 1.f);
         }

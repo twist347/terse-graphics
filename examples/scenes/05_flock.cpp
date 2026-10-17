@@ -313,20 +313,20 @@ int main() {
         const float rest = 1.f - std::max(lure_power, scare_power);
         if (rest > 0.f && (mouse.x > 640.f || mouse.y > 64.f)) {
             const float r = 16.f + 4.f * pulse;
-            canvas.ring(mouse, r - 1.f, r + 1.f, 0.f, 2.f * pi, tgx::colors::white.fade(0.35f * rest));
+            canvas.circle_lines(mouse, r + 1.f, tgx::colors::white.fade(0.35f * rest), 2.f);
         }
         if (lure_power > 0.f) {
             const float r = 80.f + 8.f * pulse;
             const tgx::Color cyan = tgx::Color::rgb(0x6fe7ff);
-            canvas.ring(mouse, r - 10.f, r, 0.f, 2.f * pi, cyan.fade(0.08f * lure_power));
-            canvas.ring(mouse, r - 1.5f, r + 1.5f, 0.f, 2.f * pi, cyan.fade(0.6f * lure_power));
+            canvas.circle_lines(mouse, r, cyan.fade(0.08f * lure_power), 10.f);
+            canvas.circle_lines(mouse, r + 1.5f, cyan.fade(0.6f * lure_power), 3.f);
         }
         if (scare_power > 0.f) {
             const tgx::Color coral = tgx::Color::rgb(0xffc2b0);
             for (std::size_t w = 0; w < 3; ++w) {
                 const float t = std::fmod(time * 0.9f + static_cast<float>(w) / 3.f, 1.f);
                 const float r = 20.f + 200.f * tgx::ease::out_cubic(t);
-                canvas.ring(mouse, r - 2.f, r + 2.f, 0.f, 2.f * pi, coral.fade(0.7f * (1.f - t) * scare_power));
+                canvas.circle_lines(mouse, r + 2.f, coral.fade(0.7f * (1.f - t) * scare_power), 4.f);
             }
         }
         canvas.set_blend(tgx::Blend::alpha);
