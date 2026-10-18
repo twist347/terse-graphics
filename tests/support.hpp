@@ -46,13 +46,13 @@ namespace tgx_test {
     // not leave the file behind. Declared before whatever holds the file
     // open, as Windows does not remove an open file.
     struct TempFile {
-        std::filesystem::path path;
+        std::filesystem::path path{};
 
         explicit TempFile(std::string_view name) : path{temp_path(name)} {}
         TempFile(const TempFile &) = delete;
         auto operator=(const TempFile &) -> TempFile & = delete;
         ~TempFile() {
-            std::error_code ignored;
+            std::error_code ignored{};
             std::filesystem::remove(path, ignored);
         }
     };

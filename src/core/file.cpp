@@ -7,7 +7,7 @@
 namespace {
     // A directory may open fine and report a bogus size (LLONG_MAX on ext4).
     [[nodiscard]] auto regular_file(const std::filesystem::path &path) -> bool {
-        std::error_code err;
+        std::error_code err{};
         return std::filesystem::is_regular_file(path, err);
     }
 }
@@ -56,13 +56,13 @@ namespace tgx {
         file.close();
 
         if (file) {
-            std::error_code err;
+            std::error_code err{};
             std::filesystem::rename(temp, path, err);
             if (!err) {
                 return {};
             }
         }
-        std::error_code ignored;
+        std::error_code ignored{};
         std::filesystem::remove(temp, ignored);
         return std::unexpected{Error::io};
     }

@@ -19,7 +19,7 @@ namespace tgx::detail {
             return;
         }
 
-        char buf[1024];
+        char buf[1024]{};
         const auto res = std::format_to_n(buf, sizeof(buf), fmt, std::forward<Ts>(args)...);
         log_write(level, std::string_view{buf, res.out});
     }

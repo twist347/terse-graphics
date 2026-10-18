@@ -1,10 +1,14 @@
 #include "tgx/core/audio.hpp"
 
+#include "core/tone.hpp"
+
 #include "support.hpp"
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <fstream>
 #include <span>
@@ -36,6 +40,71 @@ TEST_CASE("Sound::from_samples") {
     CHECK(sound.sample_rate() == 44100);
     // Frames, not samples: two channels share a second's worth.
     CHECK(sound.duration() == doctest::Approx(1.0));
+}
+
+TEST_CASE("Sound::tone") {
+    const tgx::Sound sound = tgx::Sound::tone({.duration = 0.5f});
+    CHECK(sound.channels() == 1);
+    CHECK(sound.sample_rate() == tgx::detail::tone_rate);
+    CHECK(sound.duration() == doctest::Approx(0.5).epsilon(1e-4));
+}
+
+TEST_CASE("tone waves start at 0 and rise, within [-1, 1]") {
+    using tgx::Waveform;
+    using tgx::detail::wave_at;
+    for (const Waveform waveform : {Waveform::sine, Waveform::triangle, Waveform::sawtooth}) {
+        CAPTURE(static_cast<int>(waveform));
+        CHECK(wave_at(waveform, 0) == doctest::Approx(0));
+        CHECK(wave_at(waveform, 0.1) > 0);
+        for (double phase = 0; phase < 1; phase += 0.01) {
+            CHECK(std::abs(wave_at(waveform, phase)) <= 1.0 + 1e-9);
+        }
+    }
+    CHECK(wave_at(Waveform::triangle, 0.25) == doctest::Approx(1));
+    CHECK(wave_at(Waveform::triangle, 0.75) == doctest::Approx(-1));
+    CHECK(wave_at(Waveform::sawtooth, 0.5) == doctest::Approx(-1));
+    CHECK(wave_at(Waveform::square, 0.25) == 1);
+    CHECK(wave_at(Waveform::square, 0.75) == -1);
+}
+
+TEST_CASE("a tone starts and ends silent, peaks at its volume") {
+    // A square has no zero crossings to hide a click: only the envelope can.
+    const auto samples = tgx::detail::tone_samples({
+        .waveform = tgx::Waveform::square, .frequency = 100, .duration = 0.1f, .volume = 0.4f,
+    });
+    CHECK(samples.front() == 0.f);
+    CHECK(samples.back() == 0.f);
+    const auto peak = std::ranges::max(samples, {}, [](float s) { return std::abs(s); });
+    CHECK(std::abs(peak) == doctest::Approx(0.4f));
+}
+
+TEST_CASE("a tone with no attack starts at its peak") {
+    const auto samples = tgx::detail::tone_samples({.waveform = tgx::Waveform::square, .volume = 0.3f, .attack = 0});
+    CHECK(samples.front() == doctest::Approx(0.3f));
+}
+
+TEST_CASE("a decaying tone dies away") {
+    const auto samples = tgx::detail::tone_samples({.duration = 1, .volume = 1, .decay = 6});
+    const auto loudest = [&](std::size_t from) {
+        float most = 0;
+        for (std::size_t i = from; i < from + 1000; ++i) {
+            most = std::max(most, std::abs(samples[i]));
+        }
+        return most;
+    };
+    // e^(-6 * 0.5): a twentieth at half a second.
+    CHECK(loudest(22050) == doctest::Approx(std::exp(-3.f)).epsilon(0.05));
+    CHECK(loudest(1000) > loudest(22050));
+}
+
+TEST_CASE("tone noise is the same every time and follows its frequency") {
+    const tgx::ToneParams params{.waveform = tgx::Waveform::noise, .frequency = 100, .attack = 0};
+    const auto a = tgx::detail::tone_samples(params);
+    const auto b = tgx::detail::tone_samples(params);
+    CHECK(a == b);
+    // 100 Hz: a level held for 1 / 200 s, 220 samples and a half.
+    CHECK(a[0] == a[219]);
+    CHECK(a[0] != a[221]);
 }
 
 TEST_CASE("Sound::decode") {

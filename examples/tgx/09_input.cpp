@@ -28,7 +28,7 @@ int main() {
     constexpr float speed = 300;
     tgx::Vec2 player{0, 0};
     float zoom = 1;
-    std::vector<tgx::Vec2> dots;
+    std::vector<tgx::Vec2> dots{};
 
     while (!app->should_close()) {
         app->poll_events();

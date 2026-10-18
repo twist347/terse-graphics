@@ -15,12 +15,12 @@
 
 namespace {
     struct SceneVertex {
-        tgx::Vec3 position;
-        tgx::Color color;
+        tgx::Vec3 position{};
+        tgx::Color color{};
     };
 
     struct CoverVertex {
-        tgx::Vec2 position;
+        tgx::Vec2 position{};
     };
 
     constexpr const char *scene_vertex_source = TGX_GLSL_VERSION R"(
@@ -112,7 +112,7 @@ int main() {
         return 1;
     }
 
-    std::string log;
+    std::string log{};
     auto scene_shader = tgx::gl::Shader::from_source(scene_vertex_source, scene_fragment_source, &log);
     if (!scene_shader) {
         std::print(stderr, "scene shader: {}\n{}", scene_shader.error(), log);

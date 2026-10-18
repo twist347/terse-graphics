@@ -36,7 +36,7 @@ namespace tgx {
             const float s = std::sin(rotation) * zoom;
             const Vec2 moved = offset - Vec2{target.x * c - target.y * s, target.x * s + target.y * c};
 
-            Mat4 m;
+            Mat4 m{};
             m.columns[0] = {c, s, 0.f, 0.f};
             m.columns[1] = {-s, c, 0.f, 0.f};
             m.columns[3] = {moved.x, moved.y, 0.f, 1.f};

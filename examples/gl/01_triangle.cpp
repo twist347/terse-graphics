@@ -10,8 +10,8 @@
 
 namespace {
     struct Vertex {
-        tgx::Vec2 position;
-        tgx::Color color;
+        tgx::Vec2 position{};
+        tgx::Color color{};
     };
 
     // Positions go straight through: GL's clip space, (-1, -1) at the
@@ -63,7 +63,7 @@ int main() {
         return 1;
     }
 
-    std::string log;
+    std::string log{};
     auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
     if (!shader) {
         std::print(stderr, "shader: {}\n{}", shader.error(), log);

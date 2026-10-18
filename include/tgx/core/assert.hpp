@@ -30,7 +30,7 @@ namespace tgx::detail {
         std::format_string<Ts...> fmt,
         Ts &&... args
     ) noexcept -> void {
-        char buf[512];
+        char buf[512]{};
         const auto res = std::format_to_n(buf, sizeof(buf) - 1, fmt, std::forward<Ts>(args)...);
         *res.out = '\0';
 

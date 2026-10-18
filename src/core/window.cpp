@@ -59,7 +59,7 @@ namespace {
         tgx::Size windowed_size{};
     };
 
-    WindowState s_window;
+    WindowState s_window{};
 
     // Both sizes on either callback: GLFW does not always report both (on
     // Wayland, glfwSetWindowSize reports only the framebuffer). A round trip
@@ -263,7 +263,7 @@ namespace {
                 );
             }
         }
-        std::error_code err;
+        std::error_code err{};
         const std::filesystem::path cwd = std::filesystem::current_path(err);
         if (!err) {
             const std::u8string utf8 = cwd.u8string();
@@ -360,7 +360,7 @@ namespace tgx {
     }
 
     auto Window::input() const noexcept -> const Input & {
-        static const Input input;
+        static const Input input{};
         return input;
     }
 

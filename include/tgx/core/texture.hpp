@@ -112,7 +112,7 @@ namespace tgx {
             const TextureParams &params
         ) noexcept -> Result<Texture>;
 
-        detail::Handle<detail::delete_texture> handle_;
+        detail::Handle<detail::delete_texture> handle_{};
         Size size_{};
         TextureParams params_{};
         bool bottom_up_{false};

@@ -110,7 +110,7 @@ int main() {
 
     // Stars in layers, the far ones many, small, dim and slow; white, a little tinted.
     constexpr std::array layers{std::pair{260, 0.15f}, std::pair{120, 0.4f}, std::pair{40, 0.8f}};
-    std::vector<Star> stars;
+    std::vector<Star> stars{};
     for (const auto &[count, depth] : layers) {
         for (int i = 0; i < count; ++i) {
             const tgx::Vec2 uv = rng.point_in({0.f, 0.f, 1.f, 1.f});
@@ -122,7 +122,7 @@ int main() {
 
     // The nebula: soft blobs, teal to violet to pink, on a band from the bottom-left up.
     constexpr std::array hues{285.f, 215.f, 185.f, 205.f, 330.f};
-    std::vector<Blob> nebula;
+    std::vector<Blob> nebula{};
     for (int i = 0; i < 22; ++i) {
         const tgx::Vec2 along = tgx::lerp(tgx::Vec2{0.05f, 0.95f}, tgx::Vec2{0.75f, -0.05f}, rng.next_float(0.f, 1.f));
         const tgx::Vec2 uv = along + tgx::Vec2{0.7f, 0.5f} * rng.next_float(-0.18f, 0.18f);
@@ -133,7 +133,7 @@ int main() {
     // Rocks from far (small, dark, slow) to near, so the near ones draw last.
     constexpr std::array stones{tgx::Color::rgb(0x9a8270), tgx::Color::rgb(0x86808e)};
     const tgx::Vec2 start{static_cast<float>(canvas.size().width), static_cast<float>(canvas.size().height)};
-    std::vector<Rock> rocks;
+    std::vector<Rock> rocks{};
     for (int i = 1; i <= 18; ++i) {
         const float depth = static_cast<float>(i) / 18.f;
         const tgx::Vec2 pos{rng.next_float(0.f, 1.f) * start.x, rng.next_float(0.55f, 0.86f)};
@@ -144,9 +144,9 @@ int main() {
         rocks.push_back(rock);
     }
 
-    std::vector<Spark> sparks;
+    std::vector<Spark> sparks{};
     sparks.reserve(2048);
-    std::vector<Wave> waves;
+    std::vector<Wave> waves{};
     waves.reserve(16);
 
     tgx::Vec2 ship = start * 0.4f, ship_vel{};

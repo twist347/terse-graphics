@@ -364,6 +364,17 @@ A `Sound` is decoded whole into memory when loaded, or made from samples in
 code (`Sound::from_samples`). Up to 64 plays sound at once; past that the one
 playing longest is cut off. Destroying a sound stops what of it still plays.
 
+A beep, a blip or a hiss needs no file: `Sound::tone` makes one from a
+waveform (sine, square, triangle, sawtooth, noise), a frequency, a duration,
+a volume, an attack and a decay. Sweeps, chords and anything richer go
+through `from_samples`.
+
+```cpp
+auto hit = tgx::Sound::tone({.waveform = tgx::Waveform::square, .frequency = 459, .duration = 0.1f});
+auto pluck = tgx::Sound::tone({.duration = 0.5f, .decay = 6});
+auto crash = tgx::Sound::tone({.waveform = tgx::Waveform::noise, .frequency = 4000, .duration = 0.6f, .decay = 5});
+```
+
 Music streams from its file while it plays, and needs nothing called every
 frame:
 
@@ -509,7 +520,7 @@ glfwSetWindowOpacity(app->window().native_handle(), 0.9f);
   texture the driver has no room for comes back as `Error::out_of_memory`. Host
   memory running out is not reported: the functions that allocate as much as
   their input asks for (`Image::create`, `from_pixels`, `load`, `decode`;
-  `Sound::load`, `decode`, `from_samples`; `Music::load`; `Texture::load`;
+  `Sound::load`, `decode`, `from_samples`, `tone`; `Music::load`; `Texture::load`;
   `Device::read`, `RenderTarget::read`; `gl::Shader::from_source`) may throw
   `std::bad_alloc`, and everywhere else, `noexcept` included, it ends the
   program.

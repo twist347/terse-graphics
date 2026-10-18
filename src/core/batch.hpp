@@ -23,9 +23,9 @@ namespace tgx::detail {
     // The layout the built-in shader reads, and a custom one must too
     // (Canvas::set_shader).
     struct BatchVertex {
-        Vec2 position;
-        Vec2 uv;
-        Color color;
+        Vec2 position{};
+        Vec2 uv{};
+        Color color{};
     };
 
     // What the waiting vertices are drawn with; a different state draws them
@@ -99,7 +99,7 @@ namespace tgx::detail {
 
         gl::Shader shader_;
         // The built-in shader's.
-        std::int32_t u_projection_;
+        std::int32_t u_projection_{};
         gl::Buffer<BatchVertex> vertex_buffer_;
         gl::Buffer<std::uint16_t> index_buffer_;
         gl::VertexArray vertex_array_;
@@ -107,8 +107,8 @@ namespace tgx::detail {
         // and shapes in a row share one shader and one draw.
         Texture builtin_;
 
-        std::vector<BatchVertex> vertices_;
-        std::vector<std::uint16_t> indices_;
+        std::vector<BatchVertex> vertices_{};
+        std::vector<std::uint16_t> indices_{};
         BatchState state_{};
     };
 

@@ -64,6 +64,6 @@ namespace tgx {
         }
 
         Size size_{};
-        std::vector<Color> pixels_;
+        std::vector<Color> pixels_{};
     };
 }

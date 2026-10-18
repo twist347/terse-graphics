@@ -81,8 +81,8 @@ namespace tgx {
         }
 
         Texture texture_;
-        detail::Handle<detail::delete_renderbuffer> depth_;
-        detail::Handle<detail::delete_framebuffer> framebuffer_;
+        detail::Handle<detail::delete_renderbuffer> depth_{};
+        detail::Handle<detail::delete_framebuffer> framebuffer_{};
     };
 }
 

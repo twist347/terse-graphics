@@ -48,11 +48,11 @@ namespace {
             return {};
         }
         // The path the program was started by, maybe through a link.
-        std::error_code error;
+        std::error_code error{};
         fs::path path = fs::canonical(buffer.c_str(), error);
         return error ? fs::path{} : path;
 #elif defined(__linux__)
-        std::error_code error;
+        std::error_code error{};
         fs::path path = fs::read_symlink("/proc/self/exe", error);
         return error ? fs::path{} : path;
 #else
@@ -127,7 +127,7 @@ namespace tgx {
         }
         path /= utf8_path(application);
 
-        std::error_code error;
+        std::error_code error{};
         fs::create_directories(path, error);
         if (error || !fs::is_directory(path, error)) {
             return std::unexpected{Error::io};

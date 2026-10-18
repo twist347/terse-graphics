@@ -29,6 +29,36 @@ namespace tgx {
         float pitch{1.f};
     };
 
+    // The shape of a Sound::tone.
+    enum class Waveform : std::uint8_t {
+        sine,
+        square,
+        triangle,
+        sawtooth,
+        // A random level, new twice a period: low frequencies rumble, high
+        // ones hiss. The same on every call.
+        noise,
+    };
+
+    // A Sound::tone.
+    //
+    //     // a pluck: rises in 5 ms, then dies away
+    //     auto note = tgx::Sound::tone({.duration = 0.5f, .decay = 6});
+    struct ToneParams {
+        Waveform waveform{Waveform::sine};
+        // In Hz, up to 22050.
+        float frequency{440.f};
+        // In seconds. Above 0.
+        float duration{0.2f};
+        // The peak, in [0, 1].
+        float volume{0.5f};
+        // Seconds from silence to the peak; 0 starts at it.
+        float attack{0.005f};
+        // How fast it dies away: the level is the peak times e^(-decay * t).
+        // 0 holds it; 6 falls to a twentieth in half a second.
+        float decay{0.f};
+    };
+
     // A short sound kept whole in memory: a jump, a shot, a click. Can play
     // many times at once; each play runs to its end.
     //
@@ -57,6 +87,13 @@ namespace tgx {
             int sample_rate
         ) -> Sound;
 
+        // A tone made in code, mono at 44100 Hz. Its last 5 ms fade out, so
+        // it ends without a click.
+        //
+        //     // the paddle of the arcade Pong
+        //     auto hit = tgx::Sound::tone({.waveform = tgx::Waveform::square, .frequency = 459, .duration = 0.096f});
+        [[nodiscard]] static auto tone(const ToneParams &params) -> Sound;
+
         Sound(const Sound &) = delete;
         auto operator=(const Sound &) -> Sound & = delete;
 
@@ -80,7 +117,7 @@ namespace tgx {
         // Stops its plays.
         auto release() noexcept -> void;
 
-        std::vector<float> samples_;
+        std::vector<float> samples_{};
         int channels_{0};
         int sample_rate_{0};
         // Tags the voices playing this sound; 0 once moved from. A moved
@@ -147,7 +184,7 @@ namespace tgx {
     private:
         explicit Music(std::unique_ptr<detail::MusicStream> stream) noexcept;
 
-        std::unique_ptr<detail::MusicStream> stream_;
+        std::unique_ptr<detail::MusicStream> stream_{};
     };
 
     // The sound output, one per process. App creates it: app->audio(). Its

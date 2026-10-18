@@ -1,6 +1,7 @@
 // Pong to 7 points: W/S moves the left paddle; the right one is a bot, or
 // with Tab a second player on Up/Down. Space pauses; Enter starts a new match
-// once one is won. The field keeps its shape at any window size.
+// once one is won. The field keeps its shape at any window size. Beeps for
+// paddle, wall and point are made in code and heard from where the ball is.
 
 #include "tgx/tgx.hpp"
 
@@ -49,40 +50,66 @@ namespace {
     // Around the field when the window is not its shape.
     constexpr tgx::Color bar_color = tgx::colors::black;
 
-    struct Ball {
-        tgx::Circle body;
-        tgx::Vec2 vel;
-        tgx::Color color;
+    // A square wave, as the arcade one had.
+    [[nodiscard]] auto beep(float frequency, float duration) -> tgx::Sound {
+        return tgx::Sound::tone({
+            .waveform = tgx::Waveform::square, .frequency = frequency, .duration = duration, .volume = 0.2f,
+        });
+    }
 
-        void update(float dt) {
+    // The pitches and lengths of the 1972 arcade Pong.
+    struct Sounds {
+        tgx::Sound paddle = beep(459, 0.096f);
+        tgx::Sound wall = beep(226, 0.016f);
+        tgx::Sound point = beep(490, 0.257f);
+    };
+
+    // Panned from the left edge of the field to the right one.
+    auto play(tgx::Audio &audio, const tgx::Sound &sound, float x) -> void {
+        const float pan = std::clamp(x / field_width * 2 - 1, -1.f, 1.f);
+        audio.play(sound, {.pan = pan});
+    }
+
+    struct Ball {
+        tgx::Circle body{};
+        tgx::Vec2 vel{};
+        tgx::Color color{};
+
+        // True if it hit the top or bottom.
+        auto update(float dt) -> bool {
             body.center += vel * dt;
 
             // Off the top or bottom: back on the field, heading away from the edge.
             if (body.center.y - body.radius < 0) {
                 body.center.y = body.radius;
                 vel.y = std::abs(vel.y);
-            } else if (body.center.y + body.radius > field_height) {
+                return true;
+            }
+            if (body.center.y + body.radius > field_height) {
                 body.center.y = field_height - body.radius;
                 vel.y = -std::abs(vel.y);
+                return true;
             }
+            return false;
         }
 
-        void draw(tgx::Canvas &canvas) const {
+        auto draw(tgx::Canvas &canvas) const -> void {
             canvas.circle(body.center, body.radius, color);
         }
 
         // From where it stands, toward -1 (left) or 1 (right), at a random angle.
-        void serve(float toward, tgx::Random &random) {
+        auto serve(float toward, tgx::Random &random) -> void {
             const float angle = random.next_float(-ball_serve_angle, ball_serve_angle);
             tgx::Vec2 dir = tgx::from_angle(angle);
             dir.x *= toward;
             vel = dir * ball_serve_speed;
         }
 
-        void bounce_off(tgx::Rect paddle) {
+        // True if it hit the paddle.
+        auto bounce_off(tgx::Rect paddle) -> bool {
             const float away = body.center.x < paddle.center().x ? -1.f : 1.f;
             if (!tgx::overlaps(paddle, body) || vel.x * away > 0) {
-                return;
+                return false;
             }
 
             const float offset = std::clamp((body.center.y - paddle.center().y) / (paddle.height / 2), -1.f, 1.f);
@@ -94,17 +121,18 @@ namespace {
             vel = dir * speed;
             // Out of the paddle, so the next frame does not hit again.
             body.center.x = away < 0 ? paddle.x - body.radius : paddle.right() + body.radius;
+            return true;
         }
     };
 
     struct Paddle {
-        tgx::Rect body;
-        tgx::Color color;
-        tgx::Key up;
-        tgx::Key down;
+        tgx::Rect body{};
+        tgx::Color color{};
+        tgx::Key up{};
+        tgx::Key down{};
         bool bot = false;
 
-        void update(const tgx::Input &input, const Ball &ball, float dt) {
+        auto update(const tgx::Input &input, const Ball &ball, float dt) -> void {
             const float axis = bot ? follow(ball) : input.axis(up, down);
             const float speed = bot ? bot_speed : paddle_speed;
             body.y = std::clamp(body.y + axis * speed * dt, 0.f, field_height - body.height);
@@ -122,7 +150,7 @@ namespace {
             return gap > 0 ? 1.f : -1.f;
         }
 
-        void draw(tgx::Canvas &canvas) const {
+        auto draw(tgx::Canvas &canvas) const -> void {
             canvas.rect(body, color);
         }
     };
@@ -148,9 +176,9 @@ namespace {
         tgx::Timer serve_timer = tgx::Timer::once(serve_delay);
         float serve_toward = 1;
         bool paused = false;
-        tgx::Random random;
+        tgx::Random random{};
 
-        void update(const tgx::Input &input, float dt) {
+        auto update(const tgx::Input &input, tgx::Audio &audio, const Sounds &sounds, float dt) -> void {
             if (over()) {
                 if (input.pressed(tgx::Key::enter)) {
                     // A new match, against whom the last one was.
@@ -175,20 +203,26 @@ namespace {
             if (serve_timer.tick(dt)) {
                 ball.serve(serve_toward, random);
             }
-            ball.update(dt);
-            ball.bounce_off(left.body);
-            ball.bounce_off(right.body);
+            if (ball.update(dt)) {
+                play(audio, sounds.wall, ball.body.center.x);
+            }
+            if (ball.bounce_off(left.body) || ball.bounce_off(right.body)) {
+                play(audio, sounds.paddle, ball.body.center.x);
+            }
 
             // Past a side, wholly: a point to the other player, the next serve
             // toward the one who missed.
-            if (ball.body.center.x < -ball.body.radius) {
+            const float x = ball.body.center.x;
+            if (x < -ball.body.radius) {
+                play(audio, sounds.point, x);
                 goal(right_score, -1);
-            } else if (ball.body.center.x > field_width + ball.body.radius) {
+            } else if (x > field_width + ball.body.radius) {
+                play(audio, sounds.point, x);
                 goal(left_score, 1);
             }
         }
 
-        void goal(int &score, float toward) {
+        auto goal(int &score, float toward) -> void {
             ++score;
             ball.body.center = field_center;
             ball.vel = {};
@@ -200,7 +234,7 @@ namespace {
             return left_score == winning_score || right_score == winning_score;
         }
 
-        void draw(tgx::Canvas &canvas) const {
+        auto draw(tgx::Canvas &canvas) const -> void {
             canvas.clear(bar_color);
             canvas.rect({0, 0, field_width, field_height}, bg_color);
             left.draw(canvas);
@@ -229,7 +263,7 @@ namespace {
             canvas.text({10, field_height - 10}, players, tgx::colors::gray, 16, {0, 1});
         }
 
-        static void draw_net(tgx::Canvas &canvas) {
+        static auto draw_net(tgx::Canvas &canvas) -> void {
             constexpr float dash = 20;
             for (float y = dash / 2; y < field_height; y += dash * 2) {
                 canvas.rect({field_width / 2 - net_width / 2, y, net_width, dash}, net_color);
@@ -250,6 +284,7 @@ int main() {
     auto &canvas = app->canvas();
     // The same field in any window: as large as fits, with bars on two sides.
     canvas.set_size(field_size);
+    const Sounds sounds{};
     Game game{};
 
     while (!app->should_close()) {
@@ -257,7 +292,7 @@ int main() {
 
         // A stall (a dragged window, a hiccup) is not one huge step through a paddle.
         const float dt = std::min(app->clock().delta(), max_step);
-        game.update(app->input(), dt);
+        game.update(app->input(), app->audio(), sounds, dt);
         game.draw(canvas);
         canvas.fps({10, 10});
 

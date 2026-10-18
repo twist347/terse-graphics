@@ -334,13 +334,13 @@ namespace tgx {
     }
 
     [[nodiscard]] constexpr auto translate(Vec3 offset) noexcept -> Mat4 {
-        Mat4 m;
+        Mat4 m{};
         m.columns[3] = {offset.x, offset.y, offset.z, 1.f};
         return m;
     }
 
     [[nodiscard]] constexpr auto scale(Vec3 factors) noexcept -> Mat4 {
-        Mat4 m;
+        Mat4 m{};
         m.columns[0].x = factors.x;
         m.columns[1].y = factors.y;
         m.columns[2].z = factors.z;

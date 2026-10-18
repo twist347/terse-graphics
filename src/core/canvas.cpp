@@ -150,8 +150,8 @@ namespace {
     // canvas = (screen - offset) * scale, per axis. None for a minimized
     // window.
     struct ScreenMapping {
-        tgx::Vec2 offset;
-        tgx::Vec2 scale;
+        tgx::Vec2 offset{};
+        tgx::Vec2 scale{};
 
         [[nodiscard]] auto to_canvas(tgx::Vec2 screen) const noexcept -> tgx::Vec2 {
             return {(screen.x - offset.x) * scale.x, (screen.y - offset.y) * scale.y};
@@ -879,8 +879,8 @@ namespace tgx {
         }
 
         struct Line {
-            Vec2 direction;
-            float length;
+            Vec2 direction{};
+            float length{};
         };
         const auto line_between = [&](std::size_t from, std::size_t to) noexcept {
             const float length = tgx::length(points[to] - points[from]);
@@ -901,7 +901,7 @@ namespace tgx {
         Line current = line_between(a, b);
 
         // A loop starts at a corner too: the one with the closing line.
-        std::optional<detail::Joint> start;
+        std::optional<detail::Joint> start{};
         if (closed) {
             std::size_t last = n - 1;
             while (!kept(last)) {
@@ -916,8 +916,8 @@ namespace tgx {
 
             // Shared with the next line if mitered; otherwise square, with
             // the outside of the corner filled in.
-            std::optional<Line> next;
-            std::optional<detail::Joint> end;
+            std::optional<Line> next{};
+            std::optional<detail::Joint> end{};
             if (c < n) {
                 next = line_between(b, c);
                 end = joint_at(b, current, *next);

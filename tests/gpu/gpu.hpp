@@ -35,7 +35,7 @@ namespace tgx_test {
     // what it is drawn into, or the viewport it is given.
     struct Cover {
         struct Vertex {
-            tgx::Vec2 position;
+            tgx::Vec2 position{};
         };
 
         tgx::gl::Shader shader;

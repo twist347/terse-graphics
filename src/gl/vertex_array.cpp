@@ -21,11 +21,11 @@ namespace {
     // How GL reads a format, and the shader input kind it needs. The only
     // table of formats.
     struct GlFormat {
-        GLint components;
-        GLenum type;
-        GLboolean normalized;
-        ComponentKind kind;
-        std::size_t size;
+        GLint components{};
+        GLenum type{};
+        GLboolean normalized{};
+        ComponentKind kind{};
+        std::size_t size{};
     };
 
     [[nodiscard]] constexpr auto to_gl(tgx::gl::VertexFormat format) noexcept -> GlFormat {

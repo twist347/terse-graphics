@@ -110,7 +110,7 @@ namespace tgx {
         // Encodes into memory, so the path is opened the same way as when
         // reading.
         struct Encoded {
-            std::vector<std::byte> png;
+            std::vector<std::byte> png{};
             bool out_of_memory{false};
         } encoded;
         // Called from C: no exception may escape.

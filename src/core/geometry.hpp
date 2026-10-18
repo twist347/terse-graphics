@@ -39,8 +39,8 @@ namespace tgx::detail {
 
     // Start angle and clockwise sweep, at most a full turn.
     struct Arc {
-        float start;
-        float sweep;
+        float start{};
+        float sweep{};
     };
 
     [[nodiscard]] inline auto arc_between(float start, float end) noexcept -> Arc {
@@ -73,10 +73,10 @@ namespace tgx::detail {
     // The points of an arc split into n segments, radius around center, as
     // push_fan and push_band take them.
     struct Rim {
-        Vec2 center;
-        float radius;
-        Arc arc;
-        std::size_t n;
+        Vec2 center{};
+        float radius{};
+        Arc arc{};
+        std::size_t n{};
 
         [[nodiscard]] auto operator()(std::size_t i) const noexcept -> Vec2 {
             return center + arc_point(arc, i, n) * radius;
@@ -95,10 +95,10 @@ namespace tgx::detail {
     // As Rim, for a whole ellipse turned by an angle of cosine and sine turn.
     // inset moves the points inward, for an outline; under min(radii).
     struct EllipseRim {
-        Vec2 center;
-        Vec2 radii;
-        Vec2 turn;
-        std::size_t n;
+        Vec2 center{};
+        Vec2 radii{};
+        Vec2 turn{};
+        std::size_t n{};
         float inset = 0.f;
 
         [[nodiscard]] auto operator()(std::size_t i) const noexcept -> Vec2 {
@@ -204,8 +204,8 @@ namespace tgx::detail {
     // Where two lines of a strip meet: the points both share, plus along the
     // first line's perpendicular and minus the other way.
     struct Joint {
-        Vec2 plus;
-        Vec2 minus;
+        Vec2 plus{};
+        Vec2 minus{};
     };
 
     // How far a miter may reach from the line's center, in half thicknesses.

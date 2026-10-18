@@ -31,10 +31,10 @@ namespace {
         tgx::Vec2 mouse{};
         tgx::Vec2 mouse_delta{};
         tgx::Vec2 wheel{};
-        std::string text;
+        std::string text{};
     };
 
-    InputState s_input;
+    InputState s_input{};
 
     // Asserted: a value cast from outside the enum would read past the
     // array.

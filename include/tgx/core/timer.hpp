@@ -89,9 +89,9 @@ namespace tgx {
             TGX_ASSERT_MSG(seconds > 0.f && std::isfinite(seconds), "timer of {} seconds", seconds);
         }
 
-        float period_;
-        float elapsed_;
-        bool repeat_;
-        bool done_;
+        float period_{};
+        float elapsed_{};
+        bool repeat_{};
+        bool done_{};
     };
 }

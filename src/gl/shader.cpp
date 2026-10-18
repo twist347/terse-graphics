@@ -140,7 +140,7 @@ namespace {
         glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
         glGetProgramiv(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_length);
 
-        std::vector<ShaderUniform> uniforms;
+        std::vector<ShaderUniform> uniforms{};
         // Longest name plus GL's terminator, which the location query needs.
         std::string name(static_cast<std::size_t>(max_length), '\0');
         for (GLint i = 0; i < count; ++i) {
@@ -168,7 +168,7 @@ namespace {
     }
 
     [[nodiscard]] auto collect_samplers(std::span<const ShaderUniform> uniforms) -> std::vector<ShaderSampler> {
-        std::vector<ShaderSampler> samplers;
+        std::vector<ShaderSampler> samplers{};
         for (const auto &uniform: uniforms) {
             if (uniform.gl_type == GL_SAMPLER_2D) {
                 samplers.push_back({uniform.name, uniform.location});
@@ -184,7 +184,7 @@ namespace {
         glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
         glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &max_length);
 
-        std::vector<VertexInput> inputs;
+        std::vector<VertexInput> inputs{};
         std::string name(static_cast<std::size_t>(max_length), '\0');
         for (GLint i = 0; i < count; ++i) {
             GLsizei length = 0;
@@ -412,7 +412,7 @@ namespace tgx::gl {
         // Read before the handle moves. Vertex inputs are only for an assert.
         auto uniforms = collect_uniforms(program.get());
         auto samplers = collect_samplers(uniforms);
-        std::vector<VertexInput> inputs;
+        std::vector<VertexInput> inputs{};
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
             inputs = collect_vertex_inputs(program.get());
         }

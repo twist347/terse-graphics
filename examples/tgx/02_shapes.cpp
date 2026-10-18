@@ -64,7 +64,7 @@ int main() {
             tgx::Vec2{946, 400}, tgx::Vec2{996, 530},
         };
         canvas.line_strip(zigzag, tgx::colors::orange, 6);
-        std::array<tgx::Vec2, 10> star;
+        std::array<tgx::Vec2, 10> star{};
         for (std::size_t i = 0; i < star.size(); ++i) {
             const float radius = i % 2 == 0 ? 70.f : 30.f;
             star[i] = tgx::Vec2{1152, 465} + tgx::from_angle(-pi / 2 + pi * static_cast<float>(i) / 5) * radius;

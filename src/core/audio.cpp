@@ -4,6 +4,7 @@
 
 #include "core/file.hpp"
 #include "core/log_internal.hpp"
+#include "core/tone.hpp"
 
 // miniaudio and stb_vorbis are compiled here, private to tgx, so an app may
 // link its own copies. MA_API makes miniaudio's functions static. stb_vorbis
@@ -82,8 +83,8 @@ namespace {
 
     // One play of a Sound. data reads its samples in place.
     struct Voice {
-        ma_audio_buffer_ref data;
-        ma_sound sound;
+        ma_audio_buffer_ref data{};
+        ma_sound sound{};
         // Sound id; 0 while free.
         std::uint32_t owner{0};
         // Play counter at start. The oldest is cut off first.
@@ -92,13 +93,13 @@ namespace {
 
     // On the heap: neither the engine nor the voices may move.
     struct AudioState {
-        ma_engine engine;
+        ma_engine engine{};
         std::array<Voice, max_voices + 1> voices;
         std::uint64_t plays{0};
     };
 
     // Null with no Audio or a silent one.
-    std::unique_ptr<AudioState> s_audio;
+    std::unique_ptr<AudioState> s_audio{};
     // Kept while silent too. Reset to 1 when the Audio is destroyed.
     float s_volume{1.f};
     // Atomic: Sounds may be loaded on other threads.
@@ -151,7 +152,7 @@ namespace {
 namespace tgx::detail {
     // live is false while the Audio is silent: then sound is not set up.
     struct MusicStream {
-        ma_sound sound;
+        ma_sound sound{};
         bool live{false};
         double duration{0.0};
         // Last set. Kept for a silent stream too.
@@ -260,7 +261,7 @@ namespace tgx {
 
         // In chunks: Vorbis cannot report its length up front. When the
         // length is known, all of it plus one chunk is reserved.
-        std::vector<float> samples;
+        std::vector<float> samples{};
         constexpr ma_uint64 chunk = 4096;
         if (ma_uint64 frames = 0; ma_decoder_get_length_in_pcm_frames(&decoder, &frames) == MA_SUCCESS) {
             samples.reserve(static_cast<std::size_t>((frames + chunk) * channels));
@@ -299,6 +300,10 @@ namespace tgx {
         );
 
         return Sound{std::vector<float>(samples.begin(), samples.end()), channels, sample_rate};
+    }
+
+    auto Sound::tone(const ToneParams &params) -> Sound {
+        return Sound{detail::tone_samples(params), 1, detail::tone_rate};
     }
 
     Sound::Sound(Sound &&other) noexcept

@@ -45,7 +45,7 @@ namespace tgx {
             return std::unexpected{texture.error()};
         }
 
-        detail::Handle<detail::delete_renderbuffer> depth;
+        detail::Handle<detail::delete_renderbuffer> depth{};
         if (params.depth) {
             auto id = make_depth(size);
             if (!id) {

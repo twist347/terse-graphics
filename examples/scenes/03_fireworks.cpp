@@ -51,18 +51,18 @@ namespace {
     enum class Style : std::uint8_t { sphere, ring, willow, crackle };
 
     struct Particle {
-        tgx::Vec2 position, velocity;
-        tgx::Color color;
-        float age, life, size, drag, gravity;
-        Kind kind;
-        float seed;
+        tgx::Vec2 position{}, velocity{};
+        tgx::Color color{};
+        float age{}, life{}, size{}, drag{}, gravity{};
+        Kind kind{};
+        float seed{};
     };
 
     struct Rocket {
-        tgx::Vec2 from, to;
-        float delay;
+        tgx::Vec2 from{}, to{};
+        float delay{};
         tgx::Timer flight;
-        Style style;
+        Style style{};
     };
 
     // White, its alpha falling off from a bright core: one sprite per spark.
@@ -200,9 +200,9 @@ int main() {
         return 1;
     }
 
-    std::vector<Particle> particles;
+    std::vector<Particle> particles{};
     particles.reserve(max_particles);
-    std::vector<Rocket> rockets;
+    std::vector<Rocket> rockets{};
     rockets.reserve(128);
     auto next_launch = tgx::Timer::once(0.1f);
 

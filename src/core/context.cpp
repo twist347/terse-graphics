@@ -23,7 +23,7 @@
 static_assert(std::is_same_v<GLuint, tgx::GlId>);
 
 namespace {
-    tgx::detail::Context s_context;
+    tgx::detail::Context s_context{};
 
     auto apply_clear_color(tgx::Color color) noexcept -> void {
         const tgx::Vec4 unit = tgx::to_vec4(color);
@@ -56,10 +56,10 @@ namespace {
     }
 
     struct GlBlend {
-        GLenum src_rgb;
-        GLenum dst_rgb;
-        GLenum src_alpha;
-        GLenum dst_alpha;
+        GLenum src_rgb{};
+        GLenum dst_rgb{};
+        GLenum src_alpha{};
+        GLenum dst_alpha{};
     };
 
     // Alpha stores coverage, building up like layers of paint, as a later

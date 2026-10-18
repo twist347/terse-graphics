@@ -77,24 +77,24 @@ namespace {
 
     // A window of a building; a lit one flickers off now and then, and back.
     struct Pane {
-        tgx::Rect rect;
-        bool lit;
+        tgx::Rect rect{};
+        bool lit{};
     };
 
     struct Building {
-        tgx::Rect rect;
-        std::vector<Pane> panes;
+        tgx::Rect rect{};
+        std::vector<Pane> panes{};
     };
 
     // A band of buildings twice as wide as the view, drawn twice side by side
     // so it can scroll for ever. speed is how fast it moves against the near
     // street: the far ones slower.
     struct Layer {
-        std::vector<Building> buildings;
-        float speed;
-        tgx::Color wall;
-        tgx::Color window;
-        float span;
+        std::vector<Building> buildings{};
+        float speed{};
+        tgx::Color wall{};
+        tgx::Color window{};
+        float span{};
     };
 
     // lit is the share of windows lit at the start.
@@ -125,17 +125,17 @@ namespace {
     }
 
     struct Drop {
-        tgx::Vec2 position;
-        float speed;
+        tgx::Vec2 position{};
+        float speed{};
     };
 
     // How long a splash lasts, in seconds.
     constexpr float splash_life = 0.3f;
 
     struct Splash {
-        tgx::Vec2 position;
-        tgx::Vec2 velocity;
-        float life;
+        tgx::Vec2 position{};
+        tgx::Vec2 velocity{};
+        float life{};
     };
 
     // How long a strike lights the sky, in seconds, and the color of its glow.
@@ -143,7 +143,7 @@ namespace {
     constexpr tgx::Color strike_glow = tgx::Color::rgb(0x9fb4ff);
 
     struct Lightning {
-        std::vector<tgx::Vec2> bolt;
+        std::vector<tgx::Vec2> bolt{};
         tgx::Timer strike = tgx::Timer::once_ready(strike_time);
     };
 
@@ -235,7 +235,7 @@ int main() {
         return 1;
     }
 
-    std::string log;
+    std::string log{};
     auto crt = tgx::gl::Shader::from_source(crt_vertex, crt_fragment, &log);
     if (!crt) {
         std::print(stderr, "crt shader: {}\n{}", crt.error(), log);
@@ -268,11 +268,11 @@ int main() {
     for (Drop &drop: drops) {
         drop = {rng.point_in({0.f, -height, width + 60.f, height + road_y}), rng.next_float(160.f, 240.f)};
     }
-    std::vector<Splash> splashes;
+    std::vector<Splash> splashes{};
     // Falling a little to the left, as in a wind.
     const tgx::Vec2 rain_direction = tgx::normalize(tgx::Vec2{-0.25f, 1.f});
 
-    Lightning lightning;
+    Lightning lightning{};
     tgx::Timer next_strike = tgx::Timer::once(rng.next_float(4.f, 9.f));
     float car_x = width + 40.f;
     float scroll = 0.f;

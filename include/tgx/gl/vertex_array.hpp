@@ -181,7 +181,7 @@ namespace tgx::gl {
 
         auto attach_index_buffer(GlId buffer, IndexType type, std::size_t index_count) noexcept -> void;
 
-        tgx::detail::Handle<detail::delete_vertex_array> handle_;
+        tgx::detail::Handle<detail::delete_vertex_array> handle_{};
         std::size_t stride_{0};
         // GL 3.3 ties an attribute's format to its buffer, so the layout is
         // kept to give to GL again when the buffer changes.

@@ -226,7 +226,7 @@ int main() {
         return 1;
     }
 
-    std::string log;
+    std::string log{};
     auto bright = tgx::gl::Shader::from_source(vertex_source, bright_fragment, &log);
     auto crt = tgx::gl::Shader::from_source(vertex_source, crt_fragment, &log);
     if (!bright || !crt) {

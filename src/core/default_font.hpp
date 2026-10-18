@@ -16,8 +16,8 @@ namespace tgx::detail::default_font {
     // Place in the atlas. width is also the pen advance. Every glyph is a
     // full line tall.
     struct Glyph {
-        std::uint16_t x;
-        std::uint8_t width;
+        std::uint16_t x{};
+        std::uint8_t width{};
     };
 
     inline constexpr std::array glyphs{

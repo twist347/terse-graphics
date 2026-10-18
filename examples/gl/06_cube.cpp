@@ -11,8 +11,8 @@
 
 namespace {
     struct Vertex {
-        tgx::Vec3 position;
-        tgx::Color color;
+        tgx::Vec3 position{};
+        tgx::Color color{};
     };
 
     // u_mvp takes a vertex from the cube's own space to clip space in one go:
@@ -110,7 +110,7 @@ int main() {
         return 1;
     }
 
-    std::string log;
+    std::string log{};
     auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source, &log);
     if (!shader) {
         std::print(stderr, "shader: {}\n{}", shader.error(), log);

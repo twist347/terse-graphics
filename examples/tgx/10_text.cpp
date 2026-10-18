@@ -20,7 +20,7 @@ int main() {
 
     const auto &input = app->input();
     auto &canvas = app->canvas();
-    std::string typed;
+    std::string typed{};
 
     while (!app->should_close()) {
         app->poll_events();

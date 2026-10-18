@@ -24,8 +24,8 @@ namespace {
     constexpr float pi = std::numbers::pi_v<float>;
 
     struct Fish {
-        tgx::Vec2 position;
-        tgx::Vec2 velocity;
+        tgx::Vec2 position{};
+        tgx::Vec2 velocity{};
     };
 
     constexpr float sight = 40.f;
@@ -41,9 +41,9 @@ namespace {
         std::size_t columns{1};
         std::size_t rows{1};
         // Cell c holds order[starts[c]] up to order[starts[c + 1]].
-        std::vector<std::size_t> starts;
-        std::vector<std::size_t> order;
-        std::vector<std::size_t> cell_of;
+        std::vector<std::size_t> starts{};
+        std::vector<std::size_t> order{};
+        std::vector<std::size_t> cell_of{};
 
         [[nodiscard]] auto column(float x) const noexcept -> std::size_t {
             return static_cast<std::size_t>(std::clamp(x / sight, 0.f, static_cast<float>(columns - 1)));
@@ -123,16 +123,16 @@ int main() {
     constexpr std::size_t mote_count = 160;
 
     tgx::Random random{2024};
-    std::vector<Fish> fish;
+    std::vector<Fish> fish{};
     fish.reserve(max_count);
     for (std::size_t i = 0; i < start_count; ++i) {
         fish.push_back(spawn(random, canvas.size()));
     }
     std::vector<tgx::Vec2> pushes(max_count);
-    Grid grid;
+    Grid grid{};
 
     // Specks drifting up in the light, in fractions of the window.
-    std::array<tgx::Vec3, mote_count> motes;
+    std::array<tgx::Vec3, mote_count> motes{};
     for (auto &mote : motes) {
         mote = {random.next_float(0.f, 1.f), random.next_float(0.f, 1.f), random.next_float(0.4f, 1.f)};
     }

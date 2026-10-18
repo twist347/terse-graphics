@@ -105,7 +105,7 @@ namespace tgx::gl {
             : handle_{id}, size_{size}, access_{access} {
         }
 
-        tgx::detail::Handle<detail::delete_buffer> handle_;
+        tgx::detail::Handle<detail::delete_buffer> handle_{};
         std::size_t size_{0};
         BufferAccess access_{BufferAccess::immutable};
     };

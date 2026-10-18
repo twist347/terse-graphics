@@ -150,7 +150,7 @@ int main() {
 
     // Seeded: the same meadow on every run. Grass is drawn back to front.
     tgx::Random random{20261015};
-    std::array<Blade, 700> blades;
+    std::array<Blade, 700> blades{};
     for (std::size_t i = 0; i < blades.size(); ++i) {
         const float shade = random.next_float(0.f, 1.f);
         const float depth = (static_cast<float>(i) + random.next_float(0.f, 1.f)) / static_cast<float>(blades.size());
@@ -159,7 +159,7 @@ int main() {
             lerp(Color::rgb(0x2c7032), Color::rgb(0x4e963a), shade),
             lerp(Color::rgb(0x88c44e), Color::rgb(0xc6e274), shade)};
     }
-    std::array<Firefly, 40> fireflies;
+    std::array<Firefly, 40> fireflies{};
     for (auto &fly : fireflies) {
         fly = {random.point_in({0.f, 500.f, 1280.f, 200.f}), {}, random.next_float(0.f, 9.f)};
     }

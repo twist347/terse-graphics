@@ -7,7 +7,7 @@
 using tgx_test::near;
 
 TEST_CASE("the default camera shows the world as it is") {
-    const tgx::Camera2D camera;
+    const tgx::Camera2D camera{};
     CHECK(camera.to_screen({12, 34}) == tgx::Vec2{12, 34});
     CHECK(camera.to_world({12, 34}) == tgx::Vec2{12, 34});
 }

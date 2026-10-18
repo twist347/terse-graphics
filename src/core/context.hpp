@@ -87,7 +87,7 @@ namespace tgx::detail {
         std::uint32_t active_slot{0};
 
         // Timing of presented frames, read by Clock.
-        FrameClock clock;
+        FrameClock clock{};
 
         // Counted for the frame being drawn, which present() moves to
         // last_frame.
@@ -97,7 +97,7 @@ namespace tgx::detail {
         // Null while the batch is created and destroyed, when its own shader
         // and texture call the flush hooks; they skip a null batch. unique_ptr
         // is nulled before it deletes; optional does not promise that.
-        std::unique_ptr<Batch> batch;
+        std::unique_ptr<Batch> batch{};
 
         // For a context just made current: forgets tracked state and sets GL
         // to match. A GL context can outlive a Device and keep what it set.

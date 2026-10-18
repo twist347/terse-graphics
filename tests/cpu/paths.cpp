@@ -28,7 +28,7 @@ namespace {
         auto operator=(const TempOrganization &) -> TempOrganization & = delete;
         ~TempOrganization() {
             if (!path.empty()) {
-                std::error_code ignored;
+                std::error_code ignored{};
                 fs::remove_all(path, ignored);
             }
         }
@@ -48,7 +48,7 @@ TEST_CASE("app_directory: the folder this test program is in") {
 }
 
 TEST_CASE("save_directory: organization/application, created") {
-    TempOrganization organization;
+    TempOrganization organization{};
     const auto saves = tgx::save_directory(organization.name, "game one");
     REQUIRE(saves.has_value());
     organization.path = saves->parent_path();
@@ -65,7 +65,7 @@ TEST_CASE("save_directory: organization/application, created") {
 }
 
 TEST_CASE("save_directory: no organization") {
-    TempOrganization application;
+    TempOrganization application{};
     const auto saves = tgx::save_directory("", application.name);
     REQUIRE(saves.has_value());
     application.path = *saves;
@@ -79,7 +79,7 @@ namespace {
     // Sets an environment variable while it lives, then puts the old value
     // back.
     struct ScopedVariable {
-        const char *name;
+        const char *name{};
         std::string old{};
         bool had{false};
 
@@ -103,13 +103,13 @@ namespace {
 
     // A temp folder removed with all inside it when it goes out of scope.
     struct TempFolder {
-        fs::path path;
+        fs::path path{};
 
         explicit TempFolder(std::string_view name) : path{tgx_test::temp_path(name)} {}
         TempFolder(const TempFolder &) = delete;
         auto operator=(const TempFolder &) -> TempFolder & = delete;
         ~TempFolder() {
-            std::error_code ignored;
+            std::error_code ignored{};
             fs::remove_all(path, ignored);
         }
     };

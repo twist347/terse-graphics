@@ -33,7 +33,7 @@ namespace tgx::gl {
 
         // An active uniform. An array is listed once, without "[0]".
         struct ShaderUniform {
-            std::string name;
+            std::string name{};
             std::int32_t location{-1};
             // E.g. GL_FLOAT_VEC4.
             std::uint32_t gl_type{0};
@@ -43,7 +43,7 @@ namespace tgx::gl {
 
         // An active input of the vertex stage.
         struct VertexInput {
-            std::string name;
+            std::string name{};
             std::uint32_t location{0};
             // Consecutive locations used. A mat4 uses four.
             std::uint32_t slots{1};
@@ -52,7 +52,7 @@ namespace tgx::gl {
 
         // An active sampler2D uniform and its texture slot.
         struct ShaderSampler {
-            std::string name;
+            std::string name{};
             std::int32_t location{-1};
             // Last set with a TextureSlot. GL starts every sampler at 0.
             std::uint32_t slot{0};
@@ -168,9 +168,9 @@ namespace tgx::gl {
               samplers_{std::move(samplers)} {
         }
 
-        tgx::detail::Handle<detail::delete_program> handle_;
-        std::vector<detail::ShaderUniform> uniforms_;
-        std::vector<detail::VertexInput> inputs_;
-        std::vector<detail::ShaderSampler> samplers_;
+        tgx::detail::Handle<detail::delete_program> handle_{};
+        std::vector<detail::ShaderUniform> uniforms_{};
+        std::vector<detail::VertexInput> inputs_{};
+        std::vector<detail::ShaderSampler> samplers_{};
     };
 }

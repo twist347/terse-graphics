@@ -8,33 +8,15 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdio>
 #include <format>
-#include <numbers>
 #include <optional>
 #include <print>
 #include <string>
 #include <utility>
-#include <vector>
 
 namespace {
-    // A plucked note: a sine dying away, with a few milliseconds of fade in
-    // so it starts without a click.
-    [[nodiscard]] auto make_note() -> tgx::Sound {
-        constexpr int rate = 44100;
-        constexpr float frequency = 440.f;
-        std::vector<float> samples(rate / 2);
-        for (std::size_t i = 0; i < samples.size(); ++i) {
-            const float t = static_cast<float>(i) / rate;
-            const float fade_in = std::min(t / 0.005f, 1.f);
-            const float decay = std::exp(-6.f * t);
-            samples[i] = 0.5f * fade_in * decay * std::sin(2.f * std::numbers::pi_v<float> * frequency * t);
-        }
-        return tgx::Sound::from_samples(samples, 1, rate);
-    }
-
     // A pentatonic scale: each pitch a ratio to the note as made.
     constexpr std::array keys{
         tgx::Key::digit1, tgx::Key::digit2, tgx::Key::digit3, tgx::Key::digit4, tgx::Key::digit5,
@@ -54,9 +36,10 @@ int main(int argc, char **argv) {
     }
 
     auto &audio = app->audio();
-    const tgx::Sound note = make_note();
+    // A plucked note: a sine dying away.
+    const tgx::Sound note = tgx::Sound::tone({.duration = 0.5f, .decay = 6});
 
-    std::optional<tgx::Music> music;
+    std::optional<tgx::Music> music{};
     if (argc > 1) {
         auto loaded = tgx::Music::load(argv[1]);
         if (!loaded) {

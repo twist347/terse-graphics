@@ -10,11 +10,11 @@
 TEST_CASE("easing") {
     using Curve = float (*)(float) noexcept;
     struct Family {
-        const char *name;
-        Curve in;
-        Curve out;
-        Curve in_out;
-        bool overshoots;
+        const char *name{};
+        Curve in{};
+        Curve out{};
+        Curve in_out{};
+        bool overshoots{};
     };
     namespace ease = tgx::ease;
     const std::array families{
