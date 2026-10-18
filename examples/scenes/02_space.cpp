@@ -203,7 +203,7 @@ int main() {
         canvas.rect_gradient({0.f, 0.f, w, h}, tgx::Color::rgb(0x0b0d22), tgx::Color::rgb(0x0a0615));
         canvas.set_blend(tgx::Blend::additive);
         const float diagonal = std::hypot(w, h);
-        const tgx::Color glare = tgx::Color::rgb(0xffcf9a);
+        constexpr tgx::Color glare = tgx::Color::rgb(0xffcf9a);
         canvas.circle_gradient({-0.05f * w, -0.1f * h}, 0.75f * diagonal, glare.fade(0.22f), glare.fade(0.f));
         const tgx::Vec2 lean = (ship - tgx::Vec2{w / 2.f, h / 2.f}) * -0.02f;
         for (const Blob &blob : nebula) {
@@ -261,7 +261,7 @@ int main() {
         draw_moon(true);
         draw_rings(true);
         canvas.set_blend(tgx::Blend::additive);
-        const tgx::Color haze = tgx::Color::rgb(0xffb070);
+        constexpr tgx::Color haze = tgx::Color::rgb(0xffb070);
         canvas.circle_gradient(center + sun_2d * (radius * 0.08f), radius * 1.3f, haze.fade(0.3f), haze.fade(0.f));
         // Bands by latitude, the poles duller; the night side keeps a little blue.
         canvas.set_blend(tgx::Blend::alpha);
@@ -305,7 +305,7 @@ int main() {
 
         // Light: sparks, shockwaves, the engine's flame.
         canvas.set_blend(tgx::Blend::additive);
-        const tgx::Color ice = tgx::Color::rgb(0x6cc4ff), white = tgx::colors::white;
+        constexpr tgx::Color ice = tgx::Color::rgb(0x6cc4ff), white = tgx::colors::white;
         for (const Spark &spark : sparks) {
             const float age = time - spark.born, t = age / spark.life;
             const tgx::Color color = tgx::lerp(spark.hot, spark.cool, t).fade((1.f - t) * (1.f - t) * 0.8f);
@@ -319,7 +319,7 @@ int main() {
             canvas.circle_gradient(wave.pos, 60.f * (1.f + t), white.fade(0.7f - 2.f * t), white.fade(0.f));
         }
         const float flame = (10.f + 22.f * thrust) * (0.85f + 0.15f * std::sin(time * 40.f) * std::sin(time * 23.f));
-        const tgx::Color fire = tgx::Color::rgb(0xffcf7a), ember = tgx::Color::rgb(0xff9d4a);
+        constexpr tgx::Color fire = tgx::Color::rgb(0xffcf7a), ember = tgx::Color::rgb(0xff9d4a);
         canvas.circle_gradient(on_ship({-7.f, 0.f}), 20.f + 14.f * thrust, ember.fade(0.45f), ember.fade(0.f));
         const tgx::Vec2 tip = on_ship({-6.f - flame, 0.f}), core = on_ship({-6.f - flame / 2.f, 0.f});
         canvas.triangle_gradient(on_ship({-6.f, -4.f}), on_ship({-6.f, 4.f}), tip, fire, fire, ember.fade(0.f));

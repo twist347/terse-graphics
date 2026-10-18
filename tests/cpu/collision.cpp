@@ -7,14 +7,14 @@
 #include <array>
 
 TEST_CASE("contains") {
-    const tgx::Rect tile{0, 0, 10, 10};
+    constexpr tgx::Rect tile{0, 0, 10, 10};
     CHECK(tgx::contains(tile, {0, 0}));
     CHECK(tgx::contains(tile, {9.99f, 5}));
     // Right and bottom edges are outside: a point between two tiles is in one.
     CHECK_FALSE(tgx::contains(tile, {10, 5}));
     CHECK_FALSE(tgx::contains(tile, {5, 10}));
 
-    const tgx::Circle circle{{0, 0}, 5};
+    constexpr tgx::Circle circle{{0, 0}, 5};
     CHECK(tgx::contains(circle, {3, 4}));   // on the edge
     CHECK_FALSE(tgx::contains(circle, {4, 4}));
 
@@ -28,7 +28,7 @@ TEST_CASE("contains") {
 
 TEST_CASE("contains for a polygon") {
     // An L: not convex, with the notch at the bottom right.
-    const std::array l{
+    constexpr std::array l{
         tgx::Vec2{0, 0}, tgx::Vec2{10, 0}, tgx::Vec2{10, 4}, tgx::Vec2{4, 4}, tgx::Vec2{4, 10}, tgx::Vec2{0, 10},
     };
     CHECK(tgx::contains(l, {8, 2}));
@@ -40,14 +40,14 @@ TEST_CASE("contains for a polygon") {
     CHECK_FALSE(tgx::contains(l, {12, 4}));
 
     // Either way round.
-    const std::array reversed{
+    constexpr std::array reversed{
         tgx::Vec2{0, 10}, tgx::Vec2{4, 10}, tgx::Vec2{4, 4}, tgx::Vec2{10, 4}, tgx::Vec2{10, 0}, tgx::Vec2{0, 0},
     };
     CHECK(tgx::contains(reversed, {8, 2}));
     CHECK_FALSE(tgx::contains(reversed, {8, 8}));
 
     // Two points have no inside.
-    const std::array line{tgx::Vec2{0, 0}, tgx::Vec2{10, 10}};
+    constexpr std::array line{tgx::Vec2{0, 0}, tgx::Vec2{10, 10}};
     CHECK_FALSE(tgx::contains(line, {5, 5}));
 }
 
@@ -59,7 +59,7 @@ TEST_CASE("overlaps") {
     CHECK(tgx::overlaps(tgx::Circle{{0, 0}, 5}, tgx::Circle{{8, 0}, 5}));
     CHECK_FALSE(tgx::overlaps(tgx::Circle{{0, 0}, 5}, tgx::Circle{{10, 0}, 5}));
 
-    const tgx::Rect rect{0, 0, 10, 10};
+    constexpr tgx::Rect rect{0, 0, 10, 10};
     CHECK(tgx::overlaps(rect, tgx::Circle{{12, 5}, 3}));
     CHECK(tgx::overlaps(tgx::Circle{{12, 5}, 3}, rect));
     // Near the corner, but the corner is further than the radius.
@@ -67,7 +67,7 @@ TEST_CASE("overlaps") {
 
     // A rect of no area overlaps nothing, even well inside another, as
     // intersection() gives it nothing to share.
-    const tgx::Rect none{0, 0, 0, 0};
+    constexpr tgx::Rect none{0, 0, 0, 0};
     CHECK_FALSE(tgx::overlaps(none, tgx::Rect{-1, -1, 2, 2}));
     CHECK_FALSE(tgx::overlaps(tgx::Rect{-1, -1, 2, 2}, none));
     CHECK(tgx::intersection(none, tgx::Rect{-1, -1, 2, 2}).empty());
@@ -98,7 +98,7 @@ TEST_CASE("intersection") {
     CHECK(tgx::intersection(tgx::Rect{0, 0, 10, 10}, tgx::Rect{6, 7, 10, 10}) == tgx::Rect{6, 7, 4, 3});
     CHECK(tgx::intersection(tgx::Rect{0, 0, 10, 10}, tgx::Rect{20, 0, 5, 5}) == tgx::Rect{});
 
-    const auto cross = tgx::intersection({0, 0}, {10, 10}, {0, 10}, {10, 0});
+    constexpr auto cross = tgx::intersection({0, 0}, {10, 10}, {0, 10}, {10, 0});
     REQUIRE(cross.has_value());
     CHECK(*cross == tgx::Vec2{5, 5});
     // Ends count.

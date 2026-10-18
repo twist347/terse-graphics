@@ -219,7 +219,7 @@ namespace tgx {
     }
 
     auto Device::clock() const noexcept -> const Clock & {
-        static const Clock clock{};
+        static constexpr Clock clock{};
         return clock;
     }
 

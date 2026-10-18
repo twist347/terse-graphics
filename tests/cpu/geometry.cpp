@@ -16,7 +16,7 @@ TEST_CASE("circles get as many segments as keep them round") {
     CHECK(segments_for(10.f) <= segments_for(100.f));
 
     // Within a quarter pixel of the true circle.
-    const float radius = 100.f;
+    constexpr float radius = 100.f;
     const auto n = static_cast<float>(segments_for(radius));
     CHECK(radius * (1.f - std::cos(std::numbers::pi_v<float> / n)) <= tgx::detail::circle_tolerance);
 }
@@ -36,7 +36,7 @@ TEST_CASE("arcs") {
         CHECK(tgx::detail::arc_segments({0.f, 0.f}, 64) == 1);
     }
     SUBCASE("a rim runs clockwise from the start") {
-        const tgx::detail::Rim rim{{10, 10}, 2.f, tgx::detail::full_circle, 4};
+        constexpr tgx::detail::Rim rim{{10, 10}, 2.f, tgx::detail::full_circle, 4};
         CHECK(near(rim(0), {12, 10}));
         CHECK(near(rim(1), {10, 12}));
         CHECK(near(rim(4), rim(0)));
@@ -45,24 +45,24 @@ TEST_CASE("arcs") {
 
 TEST_CASE("ellipse rims") {
     using tgx::detail::EllipseRim;
-    const tgx::Vec2 center{100, 50};
+    constexpr tgx::Vec2 center{100, 50};
 
     SUBCASE("points lie on the radii, turned") {
-        const EllipseRim rim{center, {40, 10}, {1, 0}, 4};
+        constexpr EllipseRim rim{center, {40, 10}, {1, 0}, 4};
         CHECK(near(rim(0), {140, 50}));
         CHECK(near(rim(1), {100, 60}));
         const EllipseRim turned{center, {40, 10}, tgx::from_angle(std::numbers::pi_v<float> / 2.f), 4};
         CHECK(near(turned(0), {100, 90}));
     }
     SUBCASE("inset moves the axis points straight in") {
-        const EllipseRim rim{center, {40, 10}, {1, 0}, 4, 3.f};
+        constexpr EllipseRim rim{center, {40, 10}, {1, 0}, 4, 3.f};
         CHECK(near(rim(0), {137, 50}));
         CHECK(near(rim(1), {100, 57}));
     }
     SUBCASE("inset past the end curvature keeps each point on its own side") {
-        const std::size_t n = 256;
-        const EllipseRim edge{center, {40, 4}, {1, 0}, n};
-        const EllipseRim inset{center, {40, 4}, {1, 0}, n, 3.f};
+        constexpr std::size_t n = 256;
+        constexpr EllipseRim edge{center, {40, 4}, {1, 0}, n};
+        constexpr EllipseRim inset{center, {40, 4}, {1, 0}, n, 3.f};
         for (std::size_t i = 0; i < n; ++i) {
             const tgx::Vec2 e = edge(i) - center;
             const tgx::Vec2 p = inset(i) - center;
@@ -76,7 +76,7 @@ TEST_CASE("ellipse rims") {
 
 TEST_CASE("corners") {
     SUBCASE("clockwise from the top-left") {
-        const auto box = tgx::detail::corners(tgx::Rect{1, 2, 3, 4});
+        constexpr auto box = tgx::detail::corners(tgx::Rect{1, 2, 3, 4});
         CHECK(box[0] == tgx::Vec2{1, 2});
         CHECK(box[1] == tgx::Vec2{4, 2});
         CHECK(box[2] == tgx::Vec2{4, 6});
@@ -88,7 +88,7 @@ TEST_CASE("corners") {
         CHECK(near(box[2], {9, 12}));
     }
     SUBCASE("a rounded rim starts at the left end of the top-left corner") {
-        const tgx::Rect rect{0, 0, 100, 50};
+        constexpr tgx::Rect rect{0, 0, 100, 50};
         const std::size_t points = tgx::detail::corner_points(32);
         CHECK(points == 9);
         CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 0.f, points, 0), {0, 10}));
@@ -108,8 +108,8 @@ TEST_CASE("a canvas spans its own size, else its viewport, else the surface") {
 
 TEST_CASE("line joints") {
     using tgx::detail::joint;
-    const tgx::Vec2 at{10, 10};
-    const float half = 2.f;
+    constexpr tgx::Vec2 at{10, 10};
+    constexpr float half = 2.f;
 
     SUBCASE("a right angle is mitered, its points the diagonal away") {
         const auto j = joint(at, {1, 0}, {0, 1}, half, 100.f);

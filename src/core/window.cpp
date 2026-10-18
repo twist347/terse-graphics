@@ -360,7 +360,7 @@ namespace tgx {
     }
 
     auto Window::input() const noexcept -> const Input & {
-        static const Input input{};
+        static constexpr Input input{};
         return input;
     }
 

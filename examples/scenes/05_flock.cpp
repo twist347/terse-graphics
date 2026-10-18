@@ -282,7 +282,7 @@ int main() {
         for (std::size_t o = 0; o < orbs.size(); ++o) {
             const float r = orb_radii[o];
             const float breath = 1.f + 0.06f * std::sin(time * 1.3f + static_cast<float>(o) * 2.f);
-            const tgx::Color glow = tgx::Color::rgb(0xb388ff);
+            constexpr tgx::Color glow = tgx::Color::rgb(0xb388ff);
             canvas.circle_gradient(orbs[o], r * 2.6f * breath, glow.fade(0.22f), glow.fade(0.f));
             canvas.circle_gradient(orbs[o], r * breath, tgx::Color::rgb(0xf0e6ff).fade(0.3f), glow.fade(0.08f));
             canvas.circle_lines(orbs[o], r * breath, tgx::Color::rgb(0xe0d0ff).fade(0.5f), 1.5f);
@@ -317,12 +317,12 @@ int main() {
         }
         if (lure_power > 0.f) {
             const float r = 80.f + 8.f * pulse;
-            const tgx::Color cyan = tgx::Color::rgb(0x6fe7ff);
+            constexpr tgx::Color cyan = tgx::Color::rgb(0x6fe7ff);
             canvas.circle_lines(mouse, r, cyan.fade(0.08f * lure_power), 10.f);
             canvas.circle_lines(mouse, r + 1.5f, cyan.fade(0.6f * lure_power), 3.f);
         }
         if (scare_power > 0.f) {
-            const tgx::Color coral = tgx::Color::rgb(0xffc2b0);
+            constexpr tgx::Color coral = tgx::Color::rgb(0xffc2b0);
             for (std::size_t w = 0; w < 3; ++w) {
                 const float t = std::fmod(time * 0.9f + static_cast<float>(w) / 3.f, 1.f);
                 const float r = 20.f + 200.f * tgx::ease::out_cubic(t);

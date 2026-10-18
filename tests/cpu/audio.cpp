@@ -98,7 +98,7 @@ TEST_CASE("a decaying tone dies away") {
 }
 
 TEST_CASE("tone noise is the same every time and follows its frequency") {
-    const tgx::ToneParams params{.waveform = tgx::Waveform::noise, .frequency = 100, .attack = 0};
+    constexpr tgx::ToneParams params{.waveform = tgx::Waveform::noise, .frequency = 100, .attack = 0};
     const auto a = tgx::detail::tone_samples(params);
     const auto b = tgx::detail::tone_samples(params);
     CHECK(a == b);
@@ -114,7 +114,7 @@ TEST_CASE("Sound::decode") {
     CHECK(sound->sample_rate() == 8000);
     CHECK(sound->duration() == doctest::Approx(8.0 / 8000.0));
 
-    const std::array garbage{std::byte{1}, std::byte{2}, std::byte{3}, std::byte{4}};
+    constexpr std::array garbage{std::byte{1}, std::byte{2}, std::byte{3}, std::byte{4}};
     const auto bad = tgx::Sound::decode(garbage);
     REQUIRE_FALSE(bad.has_value());
     CHECK(bad.error() == tgx::Error::decode);

@@ -17,7 +17,7 @@ TEST_CASE("easing") {
         bool overshoots{};
     };
     namespace ease = tgx::ease;
-    const std::array families{
+    constexpr std::array families{
         Family{"sine", ease::in_sine, ease::out_sine, ease::in_out_sine, false},
         Family{"quad", ease::in_quad, ease::out_quad, ease::in_out_quad, false},
         Family{"cubic", ease::in_cubic, ease::out_cubic, ease::in_out_cubic, false},

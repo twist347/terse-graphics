@@ -13,8 +13,8 @@ namespace {
 }
 
 TEST_CASE("Vec2 arithmetic") {
-    const tgx::Vec2 a{1, 2};
-    const tgx::Vec2 b{3, -1};
+    constexpr tgx::Vec2 a{1, 2};
+    constexpr tgx::Vec2 b{3, -1};
     CHECK(a + b == tgx::Vec2{4, 1});
     CHECK(a - b == tgx::Vec2{-2, 3});
     CHECK(-a == tgx::Vec2{-1, -2});
@@ -74,7 +74,7 @@ TEST_CASE("Size and Rect") {
     // A minimized window must not put inf into a projection.
     CHECK(tgx::Size{0, 0}.aspect() == 1.f);
 
-    const tgx::Rect r{10, 20, 30, 40};
+    constexpr tgx::Rect r{10, 20, 30, 40};
     CHECK(r.right() == 40.f);
     CHECK(r.bottom() == 60.f);
     CHECK(r.center() == tgx::Vec2{25, 40});
@@ -91,7 +91,7 @@ TEST_CASE("Size and Rect") {
 }
 
 TEST_CASE("Mat4") {
-    const tgx::Vec4 p{1, 2, 3, 1};
+    constexpr tgx::Vec4 p{1, 2, 3, 1};
     CHECK(tgx::Mat4{} * p == p);
     CHECK(tgx::translate({10, 0, 0}) * p == tgx::Vec4{11, 2, 3, 1});
     // b first, then a: the point is scaled, then moved.
@@ -101,7 +101,7 @@ TEST_CASE("Mat4") {
 
 TEST_CASE("ortho as 2D drawing uses it") {
     // The canvas's projection: (0, 0) at the top-left, y down.
-    const tgx::Mat4 m = tgx::ortho(0, 320, 180, 0);
+    constexpr tgx::Mat4 m = tgx::ortho(0, 320, 180, 0);
     CHECK(near(m * tgx::Vec4{0, 0, 0, 1}, {-1, 1, 0, 1}));
     CHECK(near(m * tgx::Vec4{320, 180, 0, 1}, {1, -1, 0, 1}));
     CHECK(near(m * tgx::Vec4{160, 90, 0, 1}, {0, 0, 0, 1}));

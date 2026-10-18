@@ -76,7 +76,7 @@ TEST_CASE("additive blending adds up") {
 TEST_CASE("line_strip: a mitered corner") {
     const tgx::RenderTarget target = tgx_test::target({256, 256});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
-    const std::array corner{tgx::Vec2{10, 10}, tgx::Vec2{210, 10}, tgx::Vec2{210, 210}};
+    constexpr std::array corner{tgx::Vec2{10, 10}, tgx::Vec2{210, 10}, tgx::Vec2{210, 210}};
 
     canvas.clear(tgx::colors::black);
     canvas.line_strip(corner, tgx::colors::green, 10.f);
@@ -91,7 +91,7 @@ TEST_CASE("line_strip: a mitered corner") {
 TEST_CASE("line_strip: a hairpin turn has no spike") {
     const tgx::RenderTarget target = tgx_test::target({256, 256});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
-    const std::array hairpin{tgx::Vec2{10, 100}, tgx::Vec2{210, 100}, tgx::Vec2{10, 112}};
+    constexpr std::array hairpin{tgx::Vec2{10, 100}, tgx::Vec2{210, 100}, tgx::Vec2{10, 112}};
 
     canvas.clear(tgx::colors::black);
     canvas.line_strip(hairpin, tgx::colors::white, 8.f);
@@ -104,8 +104,8 @@ TEST_CASE("line_strip: a hairpin turn has no spike") {
 TEST_CASE("line_strip: a repeated point is skipped, a single one draws nothing") {
     const tgx::RenderTarget target = tgx_test::target({256, 256});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
-    const std::array repeated{tgx::Vec2{60, 150}, tgx::Vec2{60, 150}, tgx::Vec2{160, 150}};
-    const std::array single{tgx::Vec2{200, 200}};
+    constexpr std::array repeated{tgx::Vec2{60, 150}, tgx::Vec2{60, 150}, tgx::Vec2{160, 150}};
+    constexpr std::array single{tgx::Vec2{200, 200}};
 
     canvas.clear(tgx::colors::black);
     canvas.line_strip(repeated, tgx::colors::yellow, 4.f);
@@ -238,7 +238,7 @@ TEST_CASE("triangle_lines: inside the edges, the corners sharp") {
 TEST_CASE("line_loop: the closing corner is joined too") {
     const tgx::RenderTarget target = tgx_test::target({256, 256});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
-    const std::array square{tgx::Vec2{50, 50}, tgx::Vec2{200, 50}, tgx::Vec2{200, 200}, tgx::Vec2{50, 200}};
+    constexpr std::array square{tgx::Vec2{50, 50}, tgx::Vec2{200, 50}, tgx::Vec2{200, 200}, tgx::Vec2{50, 200}};
 
     canvas.clear(tgx::colors::black);
     canvas.line_loop(square, tgx::colors::white, 10);
@@ -255,10 +255,10 @@ TEST_CASE("line_loop: the closing corner is joined too") {
 TEST_CASE("line_loop: a repeated point, the first again at the end, one point") {
     const tgx::RenderTarget target = tgx_test::target({256, 256});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
-    const std::array repeated{
+    constexpr std::array repeated{
         tgx::Vec2{50, 50}, tgx::Vec2{200, 50}, tgx::Vec2{200, 50}, tgx::Vec2{200, 200}, tgx::Vec2{50, 50},
     };
-    const std::array single{tgx::Vec2{20, 230}};
+    constexpr std::array single{tgx::Vec2{20, 230}};
 
     canvas.clear(tgx::colors::black);
     canvas.set_blend(tgx::Blend::additive);
@@ -386,7 +386,7 @@ TEST_CASE("poly: a square with a corner up, and its frame") {
     canvas.clear(tgx::colors::black);
     canvas.poly_lines({64, 64}, 4, 50, pi / 4.f, tgx::colors::white, 5);
     image = target.read();
-    const int edge = 64 - 35;
+    constexpr int edge = 64 - 35;
     CHECK(image[64, edge + 2] == tgx::colors::white);
     CHECK(image[64, edge - 2] == tgx::colors::black);
     CHECK(image[64, edge + 8] == tgx::colors::black);
@@ -405,7 +405,7 @@ TEST_CASE("text anchored: the same pixels as placed by hand, line by line") {
 
     // Centered: each line by its own width, the block by its height (two
     // lines, 32), the shifts rounded to whole units.
-    const tgx::Vec2 center{128, 64};
+    constexpr tgx::Vec2 center{128, 64};
     const tgx::Image anchored = drawn([&] {
         canvas.text(center, "Hello\nhi", tgx::colors::white, 16, {0.5f, 0.5f});
     });

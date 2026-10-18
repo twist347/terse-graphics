@@ -26,7 +26,7 @@ TEST_CASE("a seed gives the same numbers everywhere") {
 
 TEST_CASE("a seed of any integer type") {
     // An int in a variable goes in braces, and the same value seeds the same.
-    const int level = 42;
+    constexpr int level = 42;
     tgx::Random from_int{level};
     tgx::Random from_u64{std::uint64_t{42}};
     CHECK(from_int.next_u32() == from_u64.next_u32());
@@ -69,7 +69,7 @@ TEST_CASE("chance, points and directions") {
     CHECK_FALSE(random.chance(0.f));
     CHECK(random.chance(1.f));
 
-    const tgx::Rect rect{10, 20, 30, 40};
+    constexpr tgx::Rect rect{10, 20, 30, 40};
     for (int i = 0; i < 1000; ++i) {
         const tgx::Vec2 p = random.point_in(rect);
         REQUIRE(p.x >= rect.x);
@@ -87,7 +87,7 @@ namespace {
 
 TEST_CASE("pick takes from arrays and vectors alike") {
     tgx::Random random{4};
-    const std::array colors{tgx::colors::red, tgx::colors::green, tgx::colors::blue};
+    constexpr std::array colors{tgx::colors::red, tgx::colors::green, tgx::colors::blue};
     const tgx::Color picked = random.pick(colors);
     CHECK((picked == tgx::colors::red || picked == tgx::colors::green || picked == tgx::colors::blue));
 

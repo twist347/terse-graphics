@@ -40,7 +40,7 @@ TEST_CASE("Image made in code") {
     // Row by row, width pixels each: (2, 1) is the last.
     CHECK(image.pixels()[5] == tgx::colors::red);
 
-    const std::array pixels{tgx::colors::red, tgx::colors::green};
+    constexpr std::array pixels{tgx::colors::red, tgx::colors::green};
     const tgx::Image copy = tgx::Image::from_pixels({2, 1}, pixels);
     CHECK(copy[1, 0] == tgx::colors::green);
 }
@@ -53,7 +53,7 @@ TEST_CASE("Image::decode") {
     CHECK((*image)[0, 0] == tgx::colors::red);
     CHECK((*image)[0, 1] == tgx::Color{0, 0, 255, 128});
 
-    const std::array garbage{std::byte{1}, std::byte{2}, std::byte{3}};
+    constexpr std::array garbage{std::byte{1}, std::byte{2}, std::byte{3}};
     const auto bad = tgx::Image::decode(garbage);
     REQUIRE_FALSE(bad.has_value());
     CHECK(bad.error() == tgx::Error::decode);

@@ -22,7 +22,7 @@ namespace {
 
     // Red, green on top; blue, white below.
     [[nodiscard]] auto quarters() -> tgx::Texture {
-        const std::array colors{tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white};
+        constexpr std::array colors{tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white};
         return texture(tgx::Image::from_pixels({2, 2}, colors), {.filter = tgx::TextureFilter::nearest});
     }
 }

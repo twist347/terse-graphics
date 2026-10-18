@@ -560,7 +560,7 @@ namespace tgx {
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
         // Thick enough, the ring has no hole.
-        const detail::Arc arc = detail::full_circle;
+        constexpr detail::Arc arc = detail::full_circle;
         ring(center, std::max(radius - thickness, 0.f), radius, arc.start, arc.sweep, color);
     }
 
