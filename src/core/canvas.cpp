@@ -650,7 +650,7 @@ namespace tgx {
         const std::size_t n = segments(std::max(radii.x, radii.y), state);
         const Vec2 turn = from_angle(rotation);
         const detail::EllipseRim outer{center, radii, turn, n};
-        const detail::EllipseRim inner{center, radii, turn, n, thickness};
+        const detail::EllipseRim inner{.center = center, .radii = radii, .turn = turn, .n = n, .inset = thickness};
         push_band(state, n, outer, inner, color, true);
     }
 
@@ -661,7 +661,7 @@ namespace tgx {
         if (radius == 0.f) {
             return;
         }
-        const detail::Arc arc{rotation, detail::whole_turn};
+        const detail::Arc arc{.start = rotation, .sweep = detail::whole_turn};
         push_fan(state_for(0), center, n, detail::Rim{center, radius, arc, n}, color, color, true);
     }
 
@@ -687,7 +687,7 @@ namespace tgx {
             return;
         }
 
-        const detail::Arc arc{rotation, detail::whole_turn};
+        const detail::Arc arc{.start = rotation, .sweep = detail::whole_turn};
         const detail::Rim corner{center, radius, arc, n};
         push_outline(state_for(0), n, corner, center, inradius, thickness, color);
     }

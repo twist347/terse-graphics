@@ -106,6 +106,11 @@ namespace tgx::detail {
         if (!target) {
             return {};
         }
-        return {target->id(), target->texture().id(), target->size(), target->has_depth()};
+        return {
+            .framebuffer = target->id(),
+            .texture = target->texture().id(),
+            .size = target->size(),
+            .depth = target->has_depth(),
+        };
     }
 }

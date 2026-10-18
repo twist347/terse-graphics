@@ -160,9 +160,9 @@ namespace {
 namespace tgx {
     auto detail::surface_of(const Target &target) noexcept -> Surface {
         if (target.framebuffer == 0) {
-            return {framebuffer_size(), window_size()};
+            return {.pixels = framebuffer_size(), .units = window_size()};
         }
-        return {target.size, target.size};
+        return {.pixels = target.size, .units = target.size};
     }
 
     auto detail::Context::reset() noexcept -> void {

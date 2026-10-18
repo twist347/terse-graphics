@@ -47,7 +47,7 @@ namespace tgx::detail {
         if (end < start) {
             std::swap(start, end);
         }
-        return {start, std::min(end - start, whole_turn)};
+        return {.start = start, .sweep = std::min(end - start, whole_turn)};
     }
 
     // Segments for the arc, given n for the whole circle. At least one.
@@ -63,7 +63,7 @@ namespace tgx::detail {
     }
 
     // As circle() draws it.
-    inline constexpr Arc full_circle{0.f, whole_turn};
+    inline constexpr Arc full_circle{.start = 0.f, .sweep = whole_turn};
 
     // Point i of a unit-circle arc split into n segments.
     [[nodiscard]] inline auto arc_point(const Arc &arc, std::size_t i, std::size_t n) noexcept -> Vec2 {
@@ -99,7 +99,7 @@ namespace tgx::detail {
         Vec2 radii{};
         Vec2 turn{};
         std::size_t n{};
-        float inset = 0.f;
+        float inset{0.f};
 
         [[nodiscard]] auto operator()(std::size_t i) const noexcept -> Vec2 {
             const Vec2 unit = arc_point(full_circle, i, n);
@@ -165,7 +165,7 @@ namespace tgx::detail {
         // The top-left quarter starts at half a turn (left); each next corner
         // a quarter turn later.
         constexpr float quarter = whole_turn / 4.f;
-        const Arc arc{quarter * static_cast<float>(corner + 2), quarter};
+        const Arc arc{.start = quarter * static_cast<float>(corner + 2), .sweep = quarter};
         return centers[corner] + arc_point(arc, step, points - 1) * std::max(radius - inset, 0.f);
     }
 
