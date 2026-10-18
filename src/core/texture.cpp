@@ -49,8 +49,7 @@ namespace {
         TGX_ASSERT_MSG(!size.empty(), "texture of size {}x{}", size.width, size.height);
 
         // A driver limit, not a caller error: it differs between GPUs.
-        const int max_size = tgx::detail::max_texture_size();
-        if (size.width > max_size || size.height > max_size) {
+        if (const int max_size = tgx::detail::max_texture_size(); size.width > max_size || size.height > max_size) {
             return std::unexpected{tgx::Error::unsupported};
         }
 

@@ -203,8 +203,8 @@ namespace tgx {
         if (call.color) {
             // A render target holds premultiplied colors, as Blend::alpha
             // leaves them; a straight transparent color would show brighter.
-            const Color color = call.target.framebuffer != 0 ? call.color->premultiplied() : *call.color;
-            if (color != clear_color) {
+            if (const Color color = call.target.framebuffer != 0 ? call.color->premultiplied() : *call.color;
+                color != clear_color) {
                 clear_color = color;
                 apply_clear_color(clear_color);
             }

@@ -373,8 +373,8 @@ namespace tgx {
             return std::unexpected{Error::decode};
         }
         stream->live = true;
-        float seconds = 0.f;
-        if (ma_sound_get_length_in_seconds(&stream->sound, &seconds) == MA_SUCCESS && seconds > 0.f) {
+        if (float seconds = 0.f;
+            ma_sound_get_length_in_seconds(&stream->sound, &seconds) == MA_SUCCESS && seconds > 0.f) {
             stream->duration = seconds;
         } else {
             stream->duration = measure(path).value_or(0.0);
@@ -467,9 +467,8 @@ namespace tgx {
     }
 
     auto Music::position() const noexcept -> double {
-        float cursor = 0.f;
         const ma_sound *sound = live_sound(stream_);
-        if (sound && ma_sound_get_cursor_in_seconds(sound, &cursor) == MA_SUCCESS) {
+        if (float cursor = 0.f; sound && ma_sound_get_cursor_in_seconds(sound, &cursor) == MA_SUCCESS) {
             return cursor;
         }
         return 0.0;
@@ -491,8 +490,8 @@ namespace tgx {
             detail::log_warn("audio: out of memory, sound stays silent");
             return Audio{};
         }
-        const ma_engine_config config = ma_engine_config_init();
-        if (ma_engine_init(&config, &state->engine) != MA_SUCCESS) {
+        if (const ma_engine_config config = ma_engine_config_init();
+            ma_engine_init(&config, &state->engine) != MA_SUCCESS) {
             detail::log_warn("audio: no output device, sound stays silent");
             return Audio{};
         }

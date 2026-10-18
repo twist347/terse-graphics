@@ -66,8 +66,7 @@ namespace tgx::detail {
             double wave = 0;
             if (p.waveform == Waveform::noise) {
                 // A new level every half period, as a square changes.
-                const auto step = static_cast<long>(cycles * 2);
-                if (step != noise_step) {
+                if (const auto step = static_cast<long>(cycles * 2); step != noise_step) {
                     noise_step = step;
                     noise = random.next_float(-1.f, 1.f);
                 }

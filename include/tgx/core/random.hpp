@@ -69,8 +69,7 @@ namespace tgx {
                 return static_cast<int>(next_u32());
             }
             std::uint64_t product = static_cast<std::uint64_t>(next_u32()) * range;
-            auto low = static_cast<std::uint32_t>(product);
-            if (low < range) {
+            if (auto low = static_cast<std::uint32_t>(product); low < range) {
                 const std::uint32_t threshold = (0u - range) % range;
                 while (low < threshold) {
                     product = static_cast<std::uint64_t>(next_u32()) * range;
