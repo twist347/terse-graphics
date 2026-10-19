@@ -364,6 +364,16 @@ A `Sound` is decoded whole into memory when loaded, or made from samples in
 code (`Sound::from_samples`). Up to 64 plays sound at once; past that the one
 playing longest is cut off. Destroying a sound stops what of it still plays.
 
+`play` returns a `Playback`, which controls that one play and leaves the other
+plays of the sound alone. Once the play is over it does nothing, so it can be
+kept as long as you like:
+
+```cpp
+tgx::Playback engine = app->audio().play(*hum);
+engine.pause();                    // resume(), stop(), playing()
+app->audio().stop(*hum);           // every play of the sound
+```
+
 A beep, a blip or a hiss needs no file: `Sound::tone` makes one from a
 waveform (sine, square, triangle, sawtooth, noise), a frequency, a duration,
 a volume, an attack and a decay. Sweeps, chords and anything richer go

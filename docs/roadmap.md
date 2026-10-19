@@ -21,8 +21,6 @@ Features:
 - Clipping to a rectangle without changing coordinates (raylib's scissor
   mode).
 - Nine-slice sprites, for UI frames that stretch.
-- Control of one playing sound: stop or pause that instance, not every one of
-  the `Sound`.
 
 ## After 1.0
 

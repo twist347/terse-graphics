@@ -8,13 +8,16 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <fstream>
 #include <span>
+#include <thread>
 #include <vector>
 
-// Sounds and Music load without an Audio: nothing here opens an output.
+// Sounds and Music load without an Audio. Only the Playback test opens an
+// output, and checks plays only when there is a device.
 
 namespace {
     // A WAV of 8 stereo frames at 8000 Hz, 16-bit.
@@ -157,4 +160,56 @@ TEST_CASE("Music without an Audio loads, measures and stays quiet") {
     const auto missing = tgx::Music::load("there/is/no/such/music.ogg");
     REQUIRE_FALSE(missing.has_value());
     CHECK(missing.error() == tgx::Error::io);
+}
+
+TEST_CASE("a Playback stops or pauses its own play") {
+    tgx::Playback none{};
+    none.pause();
+    none.resume();
+    none.stop();
+    CHECK_FALSE(none.playing());
+
+    tgx::Audio audio = tgx::Audio::create();
+    if (!audio.active()) {
+        MESSAGE("no output device: plays not checked");
+        return;
+    }
+
+    // A second of silence: long enough to stay playing through the checks.
+    const std::vector<float> silence(44100, 0.f);
+    const tgx::Sound sound = tgx::Sound::from_samples(silence, 1, 44100);
+
+    tgx::Playback a = audio.play(sound);
+    const tgx::Playback b = audio.play(sound);
+    CHECK(a.playing());
+
+    a.pause();
+    CHECK_FALSE(a.playing());
+    CHECK(b.playing());
+    a.resume();
+    CHECK(a.playing());
+
+    a.stop();
+    CHECK_FALSE(a.playing());
+    CHECK(b.playing());
+    a.resume();
+    CHECK_FALSE(a.playing());
+
+    // The voice a held is free again; a new play there is not a.
+    const tgx::Playback c = audio.play(sound);
+    CHECK(c.playing());
+    CHECK_FALSE(a.playing());
+
+    audio.stop(sound);
+    CHECK_FALSE(b.playing());
+    CHECK_FALSE(c.playing());
+
+    // Ended: resume() does not start it over.
+    const std::vector<float> blip(441, 0.f);
+    const tgx::Sound short_sound = tgx::Sound::from_samples(blip, 1, 44100);
+    tgx::Playback ended = audio.play(short_sound);
+    std::this_thread::sleep_for(std::chrono::milliseconds{300});
+    CHECK_FALSE(ended.playing());
+    ended.resume();
+    CHECK_FALSE(ended.playing());
 }

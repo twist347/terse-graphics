@@ -95,13 +95,15 @@ namespace {
     struct AudioState {
         ma_engine engine{};
         std::array<Voice, max_voices + 1> voices;
-        std::uint64_t plays{0};
     };
 
     // Null with no Audio or a silent one.
     std::unique_ptr<AudioState> s_audio{};
     // Kept while silent too. Reset to 1 when the Audio is destroyed.
     float s_volume{1.f};
+    // Counts plays over every Audio, so a Playback never matches a later
+    // Audio's play.
+    std::uint64_t s_plays{0};
     // Atomic: Sounds may be loaded on other threads.
     std::atomic<std::uint32_t> s_next_sound_id{1};
 
@@ -133,6 +135,23 @@ namespace {
             return;
         }
         free_voice(*std::ranges::min_element(audio.voices, {}, &Voice::started));
+    }
+
+    // The voice still holding this play, or null. A play at its end is freed
+    // here: miniaudio would start it over from the beginning.
+    auto voice_of(std::uint32_t index, std::uint64_t play) noexcept -> Voice * {
+        if (play == 0 || !s_audio) {
+            return nullptr;
+        }
+        Voice &voice = s_audio->voices[index];
+        if (voice.owner == 0 || voice.started != play) {
+            return nullptr;
+        }
+        if (ma_sound_at_end(&voice.sound)) {
+            free_voice(voice);
+            return nullptr;
+        }
+        return &voice;
     }
 
     // Touches no shared state for id 0 (moved from). This keeps loading on
@@ -481,6 +500,31 @@ namespace tgx {
     Music::Music(std::unique_ptr<detail::MusicStream> stream) noexcept : stream_{std::move(stream)} {
     }
 
+    // Playback
+
+    auto Playback::stop() noexcept -> void {
+        if (Voice *voice = voice_of(voice_, play_)) {
+            free_voice(*voice);
+        }
+    }
+
+    auto Playback::pause() noexcept -> void {
+        if (Voice *voice = voice_of(voice_, play_)) {
+            ma_sound_stop(&voice->sound);
+        }
+    }
+
+    auto Playback::resume() noexcept -> void {
+        if (Voice *voice = voice_of(voice_, play_)) {
+            ma_sound_start(&voice->sound);
+        }
+    }
+
+    auto Playback::playing() const noexcept -> bool {
+        const Voice *voice = voice_of(voice_, play_);
+        return voice && ma_sound_is_playing(&voice->sound);
+    }
+
     // Audio
 
     auto Audio::create() noexcept -> Audio {
@@ -529,7 +573,7 @@ namespace tgx {
         return static_cast<bool>(s_audio);
     }
 
-    auto Audio::play(const Sound &sound, const PlayParams &params) noexcept -> void {
+    auto Audio::play(const Sound &sound, const PlayParams &params) noexcept -> Playback {
         // miniaudio would silently keep the old pitch.
         TGX_ASSERT_MSG(
             std::isfinite(params.pitch) && params.pitch > 0.f,
@@ -540,7 +584,7 @@ namespace tgx {
         TGX_ASSERT_MSG(params.pan >= -1.f && params.pan <= 1.f, "pan {}: not from -1 to 1", params.pan);
 
         if (!s_audio || sound.id_ == 0 || sound.samples_.empty()) {
-            return;
+            return {};
         }
 
         Voice &voice = take_voice(*s_audio);
@@ -552,7 +596,7 @@ namespace tgx {
                 frames,
                 &voice.data
             ) != MA_SUCCESS) {
-            return;
+            return {};
         }
         // The ref init takes no rate. The engine resamples from it.
         voice.data.sampleRate = static_cast<ma_uint32>(sound.sample_rate_);
@@ -565,16 +609,17 @@ namespace tgx {
                 &voice.sound
             ) != MA_SUCCESS) {
             ma_audio_buffer_ref_uninit(&voice.data);
-            return;
+            return {};
         }
 
         ma_sound_set_volume(&voice.sound, params.volume);
         ma_sound_set_pan(&voice.sound, params.pan);
         ma_sound_set_pitch(&voice.sound, params.pitch);
         voice.owner = sound.id_;
-        voice.started = ++s_audio->plays;
+        voice.started = ++s_plays;
         ma_sound_start(&voice.sound);
         keep_to_max(*s_audio);
+        return {static_cast<std::uint32_t>(&voice - s_audio->voices.data()), voice.started};
     }
 
     auto Audio::stop(const Sound &sound) noexcept -> void {

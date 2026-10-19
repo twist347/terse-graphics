@@ -1,5 +1,6 @@
 // Sound: a note made in code, played at five pitches with keys 1 to 5,
-// panned to where the mouse is. Given a music file (OGG, MP3, FLAC or WAV) on
+// panned to where the mouse is. Space plays a long note that P pauses and
+// resumes and S stops, leaving the others alone. Given a music file (OGG, MP3, FLAC or WAV) on
 // the command line, M plays and pauses it while it streams from the disk:
 //
 //     tgx_13_audio theme.ogg
@@ -38,6 +39,15 @@ int main(int argc, char **argv) {
     auto &audio = app->audio();
     // A plucked note: a sine dying away.
     const tgx::Sound note = tgx::Sound::tone({.duration = 0.5f, .decay = 6});
+    // A low hum that takes its time to fade.
+    const tgx::Sound drone = tgx::Sound::tone({
+        .waveform = tgx::Waveform::triangle,
+        .frequency = 110,
+        .duration = 4,
+        .volume = 0.4f,
+        .decay = 0.5f,
+    });
+    tgx::Playback hum{};
 
     std::optional<tgx::Music> music{};
     if (argc > 1) {
@@ -68,6 +78,19 @@ int main(int argc, char **argv) {
             }
             lit[i] = std::max(lit[i] - 3.f * app->clock().delta(), 0.f);
         }
+        if (input.pressed(tgx::Key::space)) {
+            hum = audio.play(drone);
+        }
+        if (input.pressed(tgx::Key::p)) {
+            if (hum.playing()) {
+                hum.pause();
+            } else {
+                hum.resume();
+            }
+        }
+        if (input.pressed(tgx::Key::s)) {
+            hum.stop();
+        }
         if (music && input.pressed(tgx::Key::m)) {
             if (music->playing()) {
                 music->pause();
@@ -92,13 +115,16 @@ int main(int argc, char **argv) {
         canvas.rect({40, 220, 440, 4}, tgx::colors::gray);
         canvas.circle({40 + (pan + 1.f) / 2.f * 440, 222}, 8, tgx::colors::yellow);
 
+        canvas.text({40, 260}, "Space: a long note, P: pause / resume it, S: stop it", tgx::colors::light_gray);
+        canvas.text({40, 290}, hum.playing() ? "the long note sounds" : "the long note is silent", tgx::colors::white);
+
         if (music) {
-            canvas.text({40, 260}, "M: play / pause the music", tgx::colors::light_gray);
+            canvas.text({40, 340}, "M: play / pause the music", tgx::colors::light_gray);
             const char *state = music->playing() ? "playing" : "paused";
             const std::string where = std::format("{} {:.1f} / {:.1f} s", state, music->position(), music->duration());
-            canvas.text({40, 290}, where, tgx::colors::white);
+            canvas.text({40, 370}, where, tgx::colors::white);
         } else {
-            canvas.text({40, 260}, "no music file given", tgx::colors::light_gray);
+            canvas.text({40, 340}, "no music file given", tgx::colors::light_gray);
         }
 
         canvas.fps({10, 10});

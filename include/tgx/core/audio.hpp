@@ -59,6 +59,41 @@ namespace tgx {
         float decay{0.f};
     };
 
+    // One play of a Sound, from Audio::play: a small value to keep or drop.
+    // Once the play has ended, been stopped or cut off, or its Sound is gone,
+    // it does nothing and playing() is false.
+    //
+    //     tgx::Playback hum = audio.play(engine);
+    //     hum.pause();    // resume() goes on from there
+    class Playback {
+    public:
+        // Plays nothing.
+        Playback() = default;
+
+        // For good: it cannot resume.
+        auto stop() noexcept -> void;
+
+        // Keeps the position for resume(). A paused play still counts toward
+        // the 64 that sound at once.
+        auto pause() noexcept -> void;
+
+        auto resume() noexcept -> void;
+
+        // False once paused, ended, stopped or cut off.
+        [[nodiscard]] auto playing() const noexcept -> bool;
+
+    private:
+        friend class Audio;
+
+        Playback(std::uint32_t voice, std::uint64_t play) noexcept : voice_{voice}, play_{play} {
+        }
+
+        // Which voice of the pool, and which play in it: voices are reused.
+        std::uint32_t voice_{0};
+        // 0 for no play.
+        std::uint64_t play_{0};
+    };
+
     // A short sound kept whole in memory: a jump, a shot, a click. Can play
     // many times at once; each play runs to its end.
     //
@@ -211,8 +246,9 @@ namespace tgx {
         [[nodiscard]] auto active() const noexcept -> bool;
 
         // From the start, on top of whatever plays, the same sound included.
-        // Up to 64 at once; past that, the oldest play is cut off.
-        auto play(const Sound &sound, const PlayParams &params = {}) noexcept -> void;
+        // Up to 64 at once; past that, the oldest play is cut off. The result
+        // stops or pauses this play alone; ignore it otherwise.
+        auto play(const Sound &sound, const PlayParams &params = {}) noexcept -> Playback;
 
         // Stops every play of the sound.
         auto stop(const Sound &sound) noexcept -> void;

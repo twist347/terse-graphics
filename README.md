@@ -84,7 +84,7 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `10_text`       | Text in the built-in font: sizes, lines, centering, a field to type in. |
 | `11_collision`  | Collision checks: a point in a shape, shapes overlapping, the part rects share. |
 | `12_pixel_art`  | A render target: the world at 320x180, scaled up into sharp square pixels. |
-| `13_audio`      | Notes made in code, played at five pitches and panned; music streamed from a file. |
+| `13_audio`      | Notes made in code, played at five pitches and panned; a long note paused and stopped on its own; music streamed from a file. |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|
