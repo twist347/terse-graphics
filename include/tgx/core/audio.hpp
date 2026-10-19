@@ -30,7 +30,7 @@ namespace tgx {
     };
 
     // The shape of a Sound::tone.
-    enum class Waveform : std::uint8_t {
+    enum class Waveform : std::int32_t {
         sine,
         square,
         triangle,

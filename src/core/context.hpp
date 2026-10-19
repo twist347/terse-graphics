@@ -120,25 +120,25 @@ namespace tgx::detail {
         [[nodiscard]] auto read(const Target &target) -> Image;
 
         // Unless already bound.
-        auto bind_framebuffer(GlId framebuffer) noexcept -> void;
+        auto bind_framebuffer(GlId next) noexcept -> void;
 
         // Call before deleting a framebuffer. If bound, GL falls back to the
         // window's, and GL may reuse the id.
-        auto forget_framebuffer(GlId framebuffer) noexcept -> void;
+        auto forget_framebuffer(GlId id) noexcept -> void;
 
         // Unless already current.
-        auto use_program(GlId program) noexcept -> void;
+        auto use_program(GlId next) noexcept -> void;
 
         // Call before deleting a program. GL may reuse the id, which must not
         // be mistaken for the current one.
-        auto forget_program(GlId program) noexcept -> void;
+        auto forget_program(GlId id) noexcept -> void;
 
         // Unless already bound.
-        auto bind_vertex_array(GlId vertex_array) noexcept -> void;
+        auto bind_vertex_array(GlId next) noexcept -> void;
 
         // Call before deleting a vertex array. GL unbinds it and may reuse
         // the id.
-        auto forget_vertex_array(GlId vertex_array) noexcept -> void;
+        auto forget_vertex_array(GlId id) noexcept -> void;
 
         // Unless already bound there. Leaves the slot active. slot must be
         // below gl::max_texture_slots.

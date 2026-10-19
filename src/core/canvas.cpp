@@ -29,7 +29,6 @@
 namespace {
     using tgx::detail::Batch;
     using tgx::detail::BatchState;
-    using tgx::detail::BatchVertex;
     using tgx::detail::Surface;
 
     static_assert(
