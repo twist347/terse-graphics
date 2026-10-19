@@ -6,6 +6,7 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cstddef>
 #include <numbers>
 #include <utility>
 
@@ -24,6 +25,17 @@ namespace {
     [[nodiscard]] auto quarters() -> tgx::Texture {
         constexpr std::array colors{tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white};
         return texture(tgx::Image::from_pixels({2, 2}, colors), {.filter = tgx::TextureFilter::nearest});
+    }
+
+    // A color per texel, for each piece of a nine-slice.
+    constexpr std::array nine{
+        tgx::colors::red, tgx::colors::green, tgx::colors::blue,
+        tgx::colors::yellow, tgx::colors::cyan, tgx::colors::magenta,
+        tgx::colors::white, tgx::colors::gray, tgx::colors::orange,
+    };
+
+    [[nodiscard]] auto ninths() -> tgx::Texture {
+        return texture(tgx::Image::from_pixels({3, 3}, nine), {.filter = tgx::TextureFilter::nearest});
     }
 }
 
@@ -72,6 +84,68 @@ TEST_CASE("a part of a texture as src, tinted") {
     CHECK(image[8, 16] == tgx::colors::blue);
     CHECK(image[24, 16] == tgx::colors::white);
     CHECK(image[48, 16] == tgx::colors::red);
+}
+
+TEST_CASE("a nine-slice keeps its corners, stretches its edges and middle") {
+    const tgx::RenderTarget target = tgx_test::target({64, 64});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    const tgx::Texture texture = ninths();
+    constexpr tgx::Borders borders{1, 1, 1, 1};
+
+    canvas.clear(tgx::colors::black);
+    canvas.nine_slice(texture, {.size = {64, 48}, .borders = borders, .border_scale = 8});
+    tgx::Image image = target.read();
+    // Borders 8 wide, the middle 48 by 32.
+    constexpr std::array xs{4, 32, 60};
+    constexpr std::array ys{4, 24, 44};
+    for (std::size_t row = 0; row < 3; ++row) {
+        for (std::size_t column = 0; column < 3; ++column) {
+            CAPTURE(row);
+            CAPTURE(column);
+            CHECK(image[xs[column], ys[row]] == nine[row * 3 + column]);
+        }
+    }
+    CHECK(image[32, 56] == tgx::colors::black);
+
+    // Too small for its borders: they shrink to 4, and no middle is left.
+    canvas.clear(tgx::colors::black);
+    canvas.nine_slice(texture, {.size = {8, 8}, .borders = borders, .border_scale = 8});
+    image = target.read();
+    CHECK(image[2, 2] == tgx::colors::red);
+    CHECK(image[6, 2] == tgx::colors::blue);
+    CHECK(image[2, 6] == tgx::colors::white);
+    CHECK(image[6, 6] == tgx::colors::orange);
+    CHECK(image[10, 2] == tgx::colors::black);
+
+    // Turned clockwise about its middle: the top-left corner goes top right.
+    canvas.clear(tgx::colors::black);
+    canvas.nine_slice(texture, {
+        .position = {32, 32},
+        .size = {64, 48},
+        .borders = borders,
+        .border_scale = 8,
+        .origin = {32, 24},
+        .rotation = std::numbers::pi_v<float> / 2.f,
+    });
+    image = target.read();
+    CHECK(image[52, 4] == tgx::colors::red);
+    CHECK(image[12, 60] == tgx::colors::orange);
+}
+
+TEST_CASE("a nine-slice with zero top and bottom is cut in three") {
+    const tgx::RenderTarget target = tgx_test::target({64, 64});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    const tgx::Texture texture = ninths();
+
+    canvas.clear(tgx::colors::black);
+    canvas.nine_slice(texture, {.size = {64, 30}, .borders = {1, 0, 1, 0}, .border_scale = 8});
+
+    // Each column keeps all three rows, 10 high.
+    const tgx::Image image = target.read();
+    CHECK(image[4, 5] == tgx::colors::red);
+    CHECK(image[4, 15] == tgx::colors::yellow);
+    CHECK(image[32, 15] == tgx::colors::cyan);
+    CHECK(image[60, 25] == tgx::colors::orange);
 }
 
 TEST_CASE("a texture destroyed while its sprite waits, and one made after it") {

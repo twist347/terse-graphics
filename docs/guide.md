@@ -60,7 +60,8 @@ In `tgx`:
   (`window().set_cursor_shape(...)`).
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles,
   circles (also with gradients) and turned ellipses, lines and joined strips of them, outlines,
-  sprites (parts of textures, mirrored, turned, tinted) and text in a
+  sprites (parts of textures, mirrored, turned, tinted), nine-slice frames
+  that stretch with their corners kept, and text in a
   built-in pixel font, under a 2D camera, with a choice of blending.
   Collected and drawn in batches, always in the order of the calls.
 - **Collisions**: `contains` (a point in a rect, circle, triangle or polygon),
@@ -301,6 +302,21 @@ canvas.sprite(*atlas, {
     .origin = {32, 32},            // the point at position, and what rotation turns around
     .rotation = angle,             // radians, clockwise
     .tint = tgx::colors::red,
+});
+```
+
+A nine-slice draws a frame at any size from a small texture: its borders cut
+it in nine, the corners keep their size, the edges stretch along and the
+middle both ways. Borders of zero on two sides cut it in three, for bars.
+Placed, turned and tinted as a sprite; mirroring is not supported.
+
+```cpp
+canvas.nine_slice(*ui, {
+    .position = {x, y},
+    .size = {200, 80},             // borders that do not fit shrink to fit
+    .src = {0, 0, 6, 6},           // texels; default: the whole texture
+    .borders = {2, 2, 2, 2},       // left, top, right, bottom, in texels
+    .border_scale = 4,             // border texels drawn 4 times as big
 });
 ```
 

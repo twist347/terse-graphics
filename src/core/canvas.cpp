@@ -290,6 +290,23 @@ namespace {
         );
         return static_cast<std::size_t>(std::clamp(sides, 3, static_cast<int>(tgx::detail::max_segments)));
     }
+
+    // src, or the whole texture when src is empty. Not Rect::empty(): a
+    // negative size is mirrored, not empty.
+    [[nodiscard]] auto src_or_whole(tgx::Rect src, tgx::Size texture_size) noexcept -> tgx::Rect {
+        if (src.width == 0.f && src.height == 0.f) {
+            return {0.f, 0.f, static_cast<float>(texture_size.width), static_cast<float>(texture_size.height)};
+        }
+        return src;
+    }
+
+    // Border widths on the canvas: scaled, then shrunk together when they do
+    // not fit in space.
+    [[nodiscard]] auto fit_borders(float first, float second, float scale, float space) noexcept -> std::array<float, 2> {
+        const float total = (first + second) * scale;
+        const float shrink = total > space ? space / total : 1.f;
+        return {first * scale * shrink, second * scale * shrink};
+    }
 }
 
 namespace tgx {
@@ -698,10 +715,7 @@ namespace tgx {
         );
 
         const Size texture_size = texture.size();
-        // Not Rect::empty(): a negative size is mirrored, not empty.
-        const Rect src = sprite.src.width == 0.f && sprite.src.height == 0.f
-            ? Rect{0.f, 0.f, static_cast<float>(texture_size.width), static_cast<float>(texture_size.height)}
-            : sprite.src;
+        const Rect src = src_or_whole(sprite.src, texture_size);
 
         const bool natural = sprite.size == Vec2{};
         const float width = natural ? std::abs(src.width) : sprite.size.x;
@@ -729,6 +743,77 @@ namespace tgx {
             detail::corners({u0, v0}, {u1, v1}),
             {sprite.tint, sprite.tint, sprite.tint, sprite.tint}
         );
+    }
+
+    auto Canvas::nine_slice(const Texture &texture, const NineSlice &slice) noexcept -> void {
+        TGX_ASSERT_MSG(
+            texture.id() != target_.texture,
+            "a nine-slice of the render target the canvas draws into"
+        );
+
+        const Size texture_size = texture.size();
+        const Rect src = src_or_whole(slice.src, texture_size);
+        const Borders &borders = slice.borders;
+        TGX_ASSERT_MSG(src.width >= 0.f && src.height >= 0.f, "a mirrored nine-slice src, {}x{}", src.width, src.height);
+        TGX_ASSERT_MSG(
+            borders.left >= 0.f && borders.top >= 0.f && borders.right >= 0.f && borders.bottom >= 0.f,
+            "nine-slice borders below zero"
+        );
+        TGX_ASSERT_MSG(
+            borders.left + borders.right <= src.width && borders.top + borders.bottom <= src.height,
+            "nine-slice borders bigger than src, {}x{}", src.width, src.height
+        );
+
+        const Vec2 size = slice.size == Vec2{} ? Vec2{src.width, src.height} : slice.size;
+        const auto [left, right] = fit_borders(borders.left, borders.right, slice.border_scale, size.x);
+        const auto [top, bottom] = fit_borders(borders.top, borders.bottom, slice.border_scale, size.y);
+
+        // The cuts, from the top-left corner: on the canvas and in the texture.
+        const std::array xs{0.f, left, size.x - right, size.x};
+        const std::array ys{0.f, top, size.y - bottom, size.y};
+        const auto width = static_cast<float>(texture_size.width);
+        const auto height = static_cast<float>(texture_size.height);
+        std::array us{src.x, src.x + borders.left, src.x + src.width - borders.right, src.x + src.width};
+        std::array vs{src.y, src.y + borders.top, src.y + src.height - borders.bottom, src.y + src.height};
+        for (float &u: us) {
+            u /= width;
+        }
+        for (float &v: vs) {
+            v /= height;
+            // A render target's rows go bottom to top.
+            if (texture.bottom_up()) {
+                v = 1.f - v;
+            }
+        }
+
+        // Where the cuts cross, placed and turned as a sprite.
+        const float c = std::cos(slice.rotation);
+        const float s = std::sin(slice.rotation);
+        std::array<Vec2, 16> points{};
+        for (std::size_t row = 0; row < 4; ++row) {
+            for (std::size_t column = 0; column < 4; ++column) {
+                const Vec2 local = Vec2{xs[column], ys[row]} - slice.origin;
+                points[row * 4 + column] = Vec2{local.x * c - local.y * s, local.x * s + local.y * c} + slice.position;
+            }
+        }
+
+        const BatchState state = state_for(texture.id());
+        const Color tint = slice.tint;
+        for (std::size_t row = 0; row < 3; ++row) {
+            for (std::size_t column = 0; column < 3; ++column) {
+                // A border of zero leaves its pieces empty.
+                if (xs[column] == xs[column + 1] || ys[row] == ys[row + 1]) {
+                    continue;
+                }
+                const std::size_t i = row * 4 + column;
+                push_quad(
+                    state,
+                    {points[i], points[i + 1], points[i + 5], points[i + 4]},
+                    detail::corners({us[column], vs[row]}, {us[column + 1], vs[row + 1]}),
+                    {tint, tint, tint, tint}
+                );
+            }
+        }
     }
 
     auto Canvas::text(Vec2 position, std::string_view text, Color color, float size, Vec2 anchor) noexcept -> void {

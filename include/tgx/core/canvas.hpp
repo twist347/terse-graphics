@@ -44,6 +44,38 @@ namespace tgx {
         Color tint{colors::white};
     };
 
+    // Widths of a NineSlice's borders, in texels.
+    struct Borders {
+        float left{0.f};
+        float top{0.f};
+        float right{0.f};
+        float bottom{0.f};
+    };
+
+    // A part of a texture cut in nine by its borders, for UI frames that
+    // stretch: corners keep their size, edges stretch along, the middle both
+    // ways. Zero top and bottom (or left and right) cut it in three.
+    //
+    //     canvas.nine_slice(frame, {.position = pos, .size = {200, 80}, .borders = {4, 4, 4, 4}});
+    struct NineSlice {
+        // Where origin is placed. By default origin is the top-left corner.
+        Vec2 position{};
+        // Size on the canvas. Empty: the size of src.
+        Vec2 size{};
+        // Part of the texture, in texels. Empty: the whole texture. Not
+        // mirrored.
+        Rect src{};
+        // Together no wider or taller than src.
+        Borders borders{};
+        // Size of a border texel on the canvas: 4 for pixel art drawn 4 times
+        // as big. Borders that do not fit in size shrink to fit.
+        float border_scale{1.f};
+        // As in Sprite.
+        Vec2 origin{};
+        float rotation{0.f};
+        Color tint{colors::white};
+    };
+
     // Simple 2D drawing, one call per shape. Shapes are batched and drawn in
     // call order.
     //
@@ -247,6 +279,9 @@ namespace tgx {
         // it draws the waiting shapes first. It must not be the texture of the
         // canvas's own target.
         auto sprite(const Texture &texture, const Sprite &sprite) noexcept -> void;
+
+        // The texture is read as in sprite().
+        auto nine_slice(const Texture &texture, const NineSlice &slice) noexcept -> void;
 
         // Line height of the built-in font. At this size, or a whole multiple,
         // at whole positions, its pixels stay square.
