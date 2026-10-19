@@ -301,10 +301,10 @@ namespace {
     }
 
     // Border widths on the canvas: scaled, then shrunk together when they do
-    // not fit in space.
-    [[nodiscard]] auto fit_borders(float first, float second, float scale, float space) noexcept -> std::array<float, 2> {
+    // not fit in room.
+    [[nodiscard]] auto fit_borders(float first, float second, float scale, float room) noexcept -> std::array<float, 2> {
         const float total = (first + second) * scale;
-        const float shrink = total > space ? space / total : 1.f;
+        const float shrink = total > room ? room / total : 1.f;
         return {first * scale * shrink, second * scale * shrink};
     }
 }
