@@ -170,6 +170,14 @@ namespace {
         return src;
     }
 
+    // A point in texels, as uv. The only place that knows a render target's
+    // rows go bottom to top.
+    [[nodiscard]] auto uv_of(const tgx::Texture &texture, tgx::Vec2 texel) noexcept -> tgx::Vec2 {
+        const auto [width, height] = texture.size();
+        const float v = texel.y / static_cast<float>(height);
+        return {texel.x / static_cast<float>(width), texture.bottom_up() ? 1.f - v : v};
+    }
+
     // Border widths on the canvas: scaled, then shrunk together when they do
     // not fit in room.
     [[nodiscard]] auto fit_borders(float first, float second, float scale, float room) noexcept -> std::array<float, 2> {
@@ -584,33 +592,25 @@ namespace tgx {
             "a sprite of the render target the canvas draws into"
         );
 
-        const Size texture_size = texture.size();
-        const Rect src = src_or_whole(sprite.src, texture_size);
+        const Rect src = src_or_whole(sprite.src, texture.size());
 
         const bool natural = sprite.size == Vec2{};
         const float width = natural ? std::abs(src.width) : sprite.size.x;
         const float height = natural ? std::abs(src.height) : sprite.size.y;
 
         // A negative size reverses the texels, mirroring them.
-        float u0 = src.x / static_cast<float>(texture_size.width);
-        float v0 = src.y / static_cast<float>(texture_size.height);
-        float u1 = (src.x + std::abs(src.width)) / static_cast<float>(texture_size.width);
-        float v1 = (src.y + std::abs(src.height)) / static_cast<float>(texture_size.height);
+        Vec2 first{src.x, src.y};
+        Vec2 last{src.x + std::abs(src.width), src.y + std::abs(src.height)};
         if (src.width < 0.f) {
-            std::swap(u0, u1);
+            std::swap(first.x, last.x);
         }
         if (src.height < 0.f) {
-            std::swap(v0, v1);
-        }
-        // A render target's rows go bottom to top.
-        if (texture.bottom_up()) {
-            v0 = 1.f - v0;
-            v1 = 1.f - v1;
+            std::swap(first.y, last.y);
         }
         push_quad(
             state_for(texture.id()),
             detail::placed_corners({width, height}, sprite.origin, sprite.position, sprite.rotation),
-            detail::corners({u0, v0}, {u1, v1}),
+            detail::corners(uv_of(texture, first), uv_of(texture, last)),
             {sprite.tint, sprite.tint, sprite.tint, sprite.tint}
         );
     }
@@ -621,8 +621,7 @@ namespace tgx {
             "a nine-slice of the render target the canvas draws into"
         );
 
-        const Size texture_size = texture.size();
-        const Rect src = src_or_whole(slice.src, texture_size);
+        const Rect src = src_or_whole(slice.src, texture.size());
         const Borders &borders = slice.borders;
         TGX_ASSERT_MSG(src.width >= 0.f && src.height >= 0.f, "a mirrored nine-slice src, {}x{}", src.width, src.height);
         TGX_ASSERT_MSG(
@@ -641,20 +640,8 @@ namespace tgx {
         // The cuts, from the top-left corner: on the canvas and in the texture.
         const std::array xs{0.f, left, size.x - right, size.x};
         const std::array ys{0.f, top, size.y - bottom, size.y};
-        const auto width = static_cast<float>(texture_size.width);
-        const auto height = static_cast<float>(texture_size.height);
-        std::array us{src.x, src.x + borders.left, src.x + src.width - borders.right, src.x + src.width};
-        std::array vs{src.y, src.y + borders.top, src.y + src.height - borders.bottom, src.y + src.height};
-        for (float &u: us) {
-            u /= width;
-        }
-        for (float &v: vs) {
-            v /= height;
-            // A render target's rows go bottom to top.
-            if (texture.bottom_up()) {
-                v = 1.f - v;
-            }
-        }
+        const std::array texel_xs{src.x, src.x + borders.left, src.right() - borders.right, src.right()};
+        const std::array texel_ys{src.y, src.y + borders.top, src.bottom() - borders.bottom, src.bottom()};
 
         // Where the cuts cross, placed and turned as a sprite.
         const float c = std::cos(slice.rotation);
@@ -679,7 +666,10 @@ namespace tgx {
                 push_quad(
                     state,
                     {points[i], points[i + 1], points[i + 5], points[i + 4]},
-                    detail::corners({us[column], vs[row]}, {us[column + 1], vs[row + 1]}),
+                    detail::corners(
+                        uv_of(texture, {texel_xs[column], texel_ys[row]}),
+                        uv_of(texture, {texel_xs[column + 1], texel_ys[row + 1]})
+                    ),
                     {tint, tint, tint, tint}
                 );
             }
