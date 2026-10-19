@@ -4,11 +4,40 @@
 #include "tgx/core/input.hpp"
 #include "tgx/core/math.hpp"
 
+#include <cstdint>
 #include <utility>
 
 struct GLFWwindow;
 
 namespace tgx {
+    // How the mouse cursor behaves over the window.
+    enum class CursorMode : std::int32_t {
+        normal,
+        // Invisible over the window, free to leave it.
+        hidden,
+        // Hidden and held in the window, for mouse look: mouse_delta() is the
+        // movement, unaccelerated where the system can; mouse() keeps counting
+        // past the edges. Let go while the window is not focused.
+        captured,
+    };
+
+    // The standard cursor images. Where the system lacks one, the arrow.
+    enum class CursorShape : std::int32_t {
+        arrow,
+        // An I-beam, over text to type in.
+        text,
+        // A pointing hand, over something to click.
+        hand,
+        crosshair,
+        // Resizing left-right, up-down, or any way.
+        resize_ew,
+        resize_ns,
+        resize_all,
+        not_allowed,
+    };
+
+    inline constexpr int cursor_shape_count = static_cast<int>(CursorShape::not_allowed) + 1;
+
     struct WindowParams {
         // In screen coordinates, as Window::size().
         Size size{.width = 1280, .height = 720};
@@ -91,6 +120,19 @@ namespace tgx {
         auto set_fullscreen(bool fullscreen) noexcept -> void;
 
         [[nodiscard]] auto fullscreen() const noexcept -> bool;
+
+        // The cursor is moved by the change (into the middle on capture, back
+        // on release), but mouse_delta() does not jump: it counts no movement
+        // in the next poll_events().
+        auto set_cursor_mode(CursorMode mode) noexcept -> void;
+
+        [[nodiscard]] auto cursor_mode() const noexcept -> CursorMode;
+
+        // Shown while the cursor is over the window, in the normal mode.
+        // Cheap to set every frame, e.g. by what the mouse is over.
+        auto set_cursor_shape(CursorShape shape) noexcept -> void;
+
+        [[nodiscard]] auto cursor_shape() const noexcept -> CursorShape;
 
         // In screen coordinates: the OS layout units the Canvas draws in.
         // Equals framebuffer_size() unless the display scales, e.g. half of it

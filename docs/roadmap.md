@@ -17,7 +17,6 @@ Infrastructure:
 
 Features:
 
-- Cursor modes (hidden, captured for mouse look, shape).
 - Clipping to a rectangle without changing coordinates (raylib's scissor
   mode).
 - Nine-slice sprites, for UI frames that stretch.

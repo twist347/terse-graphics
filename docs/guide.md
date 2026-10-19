@@ -53,7 +53,11 @@ In `tgx`:
   axis from two keys (`axis(Key::w, Key::s)`, -1, 0 or 1), a direction
   from WASD or the arrows (`direction()`, length 1, or 0 with nothing
   held), the mouse in window coordinates (and through
-  `Canvas::to_world` in the world), the wheel, typed text in UTF-8.
+  `Canvas::to_world` in the world), the wheel, typed text in UTF-8. The
+  cursor hidden or captured for mouse look
+  (`window().set_cursor_mode(CursorMode::captured)`, then `mouse_delta()`),
+  and its shape: arrow, text, hand, crosshair, resize, not allowed
+  (`window().set_cursor_shape(...)`).
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles,
   circles (also with gradients) and turned ellipses, lines and joined strips of them, outlines,
   sprites (parts of textures, mirrored, turned, tinted) and text in a
@@ -575,7 +579,7 @@ asserts on, tgx stops at the call instead; the main cases:
   volume below 0, a pan outside -1 to 1, a seek before the start;
 - a canvas shader without `u_projection`, or with a sampler other than
   `u_texture`; a camera with zoom 0, or an infinite zoom or rotation;
-- a `Key` or `MouseButton` cast from outside its values;
+- a `Key`, `MouseButton` or `CursorShape` cast from outside its values;
 - `move_towards` with a negative step;
 - a texture made without pixels that is not dynamic;
 - a window of no size;

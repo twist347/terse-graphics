@@ -21,7 +21,7 @@ light and a scanline shader, all made in code.*
 - **Window and loop**: one call to start, a GLFW-shaped loop, fullscreen,
   focus, a frame clock, antialiasing (MSAA), the program's folder and one for
   saves.
-- **Input**: keys, mouse buttons, the wheel, typed text.
+- **Input**: keys, mouse buttons, the wheel, typed text; the cursor hidden, captured for mouse look, or in another shape.
 - **Canvas**: shapes, gradients, sprites and text in a built-in pixel font,
   under a 2D camera, batched into as few draws as the GPU allows.
 - **Render targets**: pixel art scaled up crisp, post effects, screenshots.
@@ -85,6 +85,7 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `11_collision`  | Collision checks: a point in a shape, shapes overlapping, the part rects share. |
 | `12_pixel_art`  | A render target: the world at 320x180, scaled up into sharp square pixels. |
 | `13_audio`      | Notes made in code, played at five pitches and panned; a long note paused and stopped on its own; music streamed from a file. |
+| `14_cursor`     | The cursor's shapes, hidden, and captured for mouse look.          |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|

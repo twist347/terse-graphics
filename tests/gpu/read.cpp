@@ -113,3 +113,25 @@ TEST_CASE("Window::set_fps_limit paces present, and 0 lifts it") {
     app.device().present();
     CHECK(app.clock().delta() < 0.015f);
 }
+
+TEST_CASE("Window cursor mode and shape read back as set") {
+    tgx::App &app = tgx_test::app();
+    tgx::Window &window = app.window();
+    CHECK(window.cursor_mode() == tgx::CursorMode::normal);
+    CHECK(window.cursor_shape() == tgx::CursorShape::arrow);
+
+    // No movement comes of a change: the mouse is where it was.
+    for (const tgx::CursorMode mode: {tgx::CursorMode::hidden, tgx::CursorMode::captured, tgx::CursorMode::normal}) {
+        window.set_cursor_mode(mode);
+        CHECK(window.cursor_mode() == mode);
+        window.poll_events();
+        CHECK(app.input().mouse_delta() == tgx::Vec2{});
+    }
+
+    // Each made or found missing without an error; the arrow again at the end.
+    for (int i = tgx::cursor_shape_count - 1; i >= 0; --i) {
+        const auto shape = static_cast<tgx::CursorShape>(i);
+        window.set_cursor_shape(shape);
+        CHECK(window.cursor_shape() == shape);
+    }
+}

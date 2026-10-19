@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <filesystem>
@@ -57,6 +58,10 @@ namespace {
         int windowed_x{0};
         int windowed_y{0};
         tgx::Size windowed_size{};
+        tgx::CursorShape cursor_shape{tgx::CursorShape::arrow};
+        // Made on first use, by shape. The arrow is GLFW's default and stays
+        // null, as does a shape the system lacks.
+        std::array<GLFWcursor *, tgx::cursor_shape_count> cursors{};
     };
 
     WindowState s_window{};
@@ -132,6 +137,46 @@ namespace {
             std::this_thread::yield();
         }
         s_window.next_frame += s_window.frame_period;
+    }
+
+    [[nodiscard]] constexpr auto to_glfw(tgx::CursorMode mode) noexcept -> int {
+        using enum tgx::CursorMode;
+        switch (mode) {
+            case hidden: return GLFW_CURSOR_HIDDEN;
+            case captured: return GLFW_CURSOR_DISABLED;
+            default: return GLFW_CURSOR_NORMAL;
+        }
+    }
+
+    [[nodiscard]] constexpr auto to_glfw(tgx::CursorShape shape) noexcept -> int {
+        using enum tgx::CursorShape;
+        switch (shape) {
+            case text: return GLFW_IBEAM_CURSOR;
+            case hand: return GLFW_POINTING_HAND_CURSOR;
+            case crosshair: return GLFW_CROSSHAIR_CURSOR;
+            case resize_ew: return GLFW_RESIZE_EW_CURSOR;
+            case resize_ns: return GLFW_RESIZE_NS_CURSOR;
+            case resize_all: return GLFW_RESIZE_ALL_CURSOR;
+            case not_allowed: return GLFW_NOT_ALLOWED_CURSOR;
+            default: return GLFW_ARROW_CURSOR;
+        }
+    }
+
+    // Null for the arrow, and for a shape the system lacks: GLFW then
+    // shows the arrow. Lacking one is not an error, so GLFW's report of it
+    // is kept out of the log.
+    [[nodiscard]] auto cursor_for(tgx::CursorShape shape) noexcept -> GLFWcursor * {
+        if (shape == tgx::CursorShape::arrow) {
+            return nullptr;
+        }
+        GLFWcursor *&cursor = s_window.cursors[static_cast<std::size_t>(shape)];
+        if (!cursor) {
+            const GLFWerrorfun logging = glfwSetErrorCallback(nullptr);
+            cursor = glfwCreateStandardCursor(to_glfw(shape));
+            glfwGetError(nullptr);
+            glfwSetErrorCallback(logging);
+        }
+        return cursor;
     }
 
     // Wayland does not let a client get or set its window position; asking
@@ -348,6 +393,7 @@ namespace tgx {
     auto Window::poll_events() noexcept -> void {
         detail::begin_input_frame();
         glfwPollEvents();
+        detail::end_input_frame();
 
         s_window.resized =
             s_window.size != s_window.polled_size || s_window.framebuffer_size != s_window.polled_framebuffer_size;
@@ -425,6 +471,46 @@ namespace tgx {
         return static_cast<bool>(glfwGetWindowMonitor(s_window.handle));
     }
 
+    auto Window::set_cursor_mode(CursorMode mode) noexcept -> void {
+        if (mode == cursor_mode()) {
+            return;
+        }
+        glfwSetInputMode(s_window.handle, GLFW_CURSOR, to_glfw(mode));
+        if (glfwRawMouseMotionSupported() == GLFW_TRUE) {
+            glfwSetInputMode(
+                s_window.handle, GLFW_RAW_MOUSE_MOTION, mode == CursorMode::captured ? GLFW_TRUE : GLFW_FALSE
+            );
+        }
+        detail::settle_mouse(s_window.handle);
+    }
+
+    // Queried, not stored: one source of truth.
+    auto Window::cursor_mode() const noexcept -> CursorMode {
+        switch (glfwGetInputMode(s_window.handle, GLFW_CURSOR)) {
+            case GLFW_CURSOR_HIDDEN: return CursorMode::hidden;
+            case GLFW_CURSOR_DISABLED: return CursorMode::captured;
+            default: return CursorMode::normal;
+        }
+    }
+
+    auto Window::set_cursor_shape(CursorShape shape) noexcept -> void {
+        TGX_ASSERT_MSG(
+            std::to_underlying(shape) >= 0 && std::to_underlying(shape) < cursor_shape_count,
+            "cursor shape {}: not a CursorShape",
+            std::to_underlying(shape)
+        );
+
+        if (shape == s_window.cursor_shape) {
+            return;
+        }
+        s_window.cursor_shape = shape;
+        glfwSetCursor(s_window.handle, cursor_for(shape));
+    }
+
+    auto Window::cursor_shape() const noexcept -> CursorShape {
+        return s_window.cursor_shape;
+    }
+
     auto Window::size() const noexcept -> Size {
         return s_window.size;
     }
@@ -441,6 +527,11 @@ namespace tgx {
         if (owned_) {
             detail::detach_input();
             apply_fps_limit(0);
+            for (GLFWcursor *cursor: s_window.cursors) {
+                if (cursor) {
+                    glfwDestroyCursor(cursor);
+                }
+            }
             glfwDestroyWindow(s_window.handle);
             glfwTerminate();
             s_window = {};

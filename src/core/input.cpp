@@ -30,6 +30,9 @@ namespace {
         std::array<std::uint8_t, tgx::mouse_button_count> buttons{};
         tgx::Vec2 mouse{};
         tgx::Vec2 mouse_delta{};
+        // Through the poll after a cursor mode change: the cursor moves, but
+        // the move is GLFW's, not the player's.
+        bool settling{false};
         tgx::Vec2 wheel{};
         std::string text{};
     };
@@ -153,7 +156,9 @@ namespace {
 
     auto on_cursor(GLFWwindow *, double x, double y) noexcept -> void {
         const tgx::Vec2 mouse{static_cast<float>(x), static_cast<float>(y)};
-        s_input.mouse_delta += mouse - s_input.mouse;
+        if (!s_input.settling) {
+            s_input.mouse_delta += mouse - s_input.mouse;
+        }
         s_input.mouse = mouse;
     }
 
@@ -246,18 +251,25 @@ namespace tgx {
 
     auto detail::attach_input(GLFWwindow *handle) noexcept -> void {
         s_input = {};
-
         // So the first move is not a jump from the corner.
-        double x = 0.0;
-        double y = 0.0;
-        glfwGetCursorPos(handle, &x, &y);
-        s_input.mouse = {static_cast<float>(x), static_cast<float>(y)};
+        reset_mouse(handle);
 
         glfwSetKeyCallback(handle, on_key);
         glfwSetMouseButtonCallback(handle, on_mouse_button);
         glfwSetCursorPosCallback(handle, on_cursor);
         glfwSetScrollCallback(handle, on_scroll);
         glfwSetCharCallback(handle, on_char);
+    }
+
+    auto detail::reset_mouse(GLFWwindow *handle) noexcept -> void {
+        double x = 0.0, y = 0.0;
+        glfwGetCursorPos(handle, &x, &y);
+        s_input.mouse = {static_cast<float>(x), static_cast<float>(y)};
+    }
+
+    auto detail::settle_mouse(GLFWwindow *handle) noexcept -> void {
+        reset_mouse(handle);
+        s_input.settling = true;
     }
 
     auto detail::detach_input() noexcept -> void {
@@ -275,5 +287,9 @@ namespace tgx {
         s_input.mouse_delta = {};
         s_input.wheel = {};
         s_input.text.clear();
+    }
+
+    auto detail::end_input_frame() noexcept -> void {
+        s_input.settling = false;
     }
 }
