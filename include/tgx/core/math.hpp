@@ -3,10 +3,8 @@
 #include "tgx/core/assert.hpp"
 
 #include <array>
-#include <bit>
 #include <cmath>
 #include <concepts>
-#include <cstddef>
 #include <functional>
 #include <numbers>
 #include <type_traits>
@@ -179,27 +177,34 @@ namespace tgx {
     concept Vector = std::same_as<V, Vec2> || std::same_as<V, Vec3> || std::same_as<V, Vec4>;
 
     namespace detail {
-        // The layout is pinned by the static_asserts above.
-        template<Vector V>
-        using Components = std::array<float, sizeof(V) / sizeof(float)>;
-
-        template<Vector V, typename F>
-        constexpr auto map(V v, F f) noexcept -> V {
-            auto c = std::bit_cast<Components<V>>(v);
-            for (float &x : c) {
-                x = f(x);
-            }
-            return std::bit_cast<V>(c);
-        }
+        // Field by field, like the code written out per size: a version with
+        // loops over bit_cast arrays broke rotated shapes in GCC 15 Release.
 
         template<Vector V, typename F>
         constexpr auto zip(V a, V b, F f) noexcept -> V {
-            auto c = std::bit_cast<Components<V>>(a);
-            const auto d = std::bit_cast<Components<V>>(b);
-            for (std::size_t i = 0; i < c.size(); ++i) {
-                c[i] = f(c[i], d[i]);
+            if constexpr (std::same_as<V, Vec2>) {
+                return {f(a.x, b.x), f(a.y, b.y)};
+            } else if constexpr (std::same_as<V, Vec3>) {
+                return {f(a.x, b.x), f(a.y, b.y), f(a.z, b.z)};
+            } else {
+                return {f(a.x, b.x), f(a.y, b.y), f(a.z, b.z), f(a.w, b.w)};
             }
-            return std::bit_cast<V>(c);
+        }
+
+        template<Vector V, typename F>
+        constexpr auto map(V v, F f) noexcept -> V {
+            return zip(v, v, [f](float x, float) { return f(x); });
+        }
+
+        template<Vector V>
+        constexpr auto sum(V v) noexcept -> float {
+            if constexpr (std::same_as<V, Vec2>) {
+                return v.x + v.y;
+            } else if constexpr (std::same_as<V, Vec3>) {
+                return v.x + v.y + v.z;
+            } else {
+                return v.x + v.y + v.z + v.w;
+            }
         }
     }
 
@@ -241,13 +246,7 @@ namespace tgx {
 
     template<Vector V>
     [[nodiscard]] constexpr auto dot(V a, std::type_identity_t<V> b) noexcept -> float {
-        const auto c = std::bit_cast<detail::Components<V>>(a);
-        const auto d = std::bit_cast<detail::Components<V>>(b);
-        float sum = 0.f;
-        for (std::size_t i = 0; i < c.size(); ++i) {
-            sum += c[i] * d[i];
-        }
-        return sum;
+        return detail::sum(detail::zip(a, b, std::multiplies{}));
     }
 
     // Compare with a squared distance to skip the square root.
