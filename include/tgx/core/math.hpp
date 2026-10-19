@@ -3,7 +3,11 @@
 #include "tgx/core/assert.hpp"
 
 #include <array>
+#include <bit>
 #include <cmath>
+#include <concepts>
+#include <cstddef>
+#include <functional>
 #include <numbers>
 #include <type_traits>
 
@@ -169,32 +173,119 @@ namespace tgx {
         return degrees * (std::numbers::pi_v<float> / 180.f);
     }
 
+    // Vec2, Vec3, Vec4: what is the same for every size is written once
+
+    template<typename V>
+    concept Vector = std::same_as<V, Vec2> || std::same_as<V, Vec3> || std::same_as<V, Vec4>;
+
+    namespace detail {
+        // The layout is pinned by the static_asserts above.
+        template<Vector V>
+        using Components = std::array<float, sizeof(V) / sizeof(float)>;
+
+        template<Vector V, typename F>
+        constexpr auto map(V v, F f) noexcept -> V {
+            auto c = std::bit_cast<Components<V>>(v);
+            for (float &x : c) {
+                x = f(x);
+            }
+            return std::bit_cast<V>(c);
+        }
+
+        template<Vector V, typename F>
+        constexpr auto zip(V a, V b, F f) noexcept -> V {
+            auto c = std::bit_cast<Components<V>>(a);
+            const auto d = std::bit_cast<Components<V>>(b);
+            for (std::size_t i = 0; i < c.size(); ++i) {
+                c[i] = f(c[i], d[i]);
+            }
+            return std::bit_cast<V>(c);
+        }
+    }
+
+    template<Vector V>
+    [[nodiscard]] constexpr auto operator+(V a, V b) noexcept -> V { return detail::zip(a, b, std::plus{}); }
+
+    template<Vector V>
+    [[nodiscard]] constexpr auto operator-(V a, V b) noexcept -> V { return detail::zip(a, b, std::minus{}); }
+
+    template<Vector V>
+    [[nodiscard]] constexpr auto operator-(V v) noexcept -> V { return detail::map(v, std::negate{}); }
+
+    template<Vector V>
+    [[nodiscard]] constexpr auto operator*(V v, float s) noexcept -> V {
+        return detail::map(v, [s](float x) { return x * s; });
+    }
+
+    template<Vector V>
+    [[nodiscard]] constexpr auto operator*(float s, V v) noexcept -> V { return v * s; }
+
+    template<Vector V>
+    [[nodiscard]] constexpr auto operator/(V v, float s) noexcept -> V {
+        return detail::map(v, [s](float x) { return x / s; });
+    }
+
+    template<Vector V>
+    constexpr auto operator+=(V &a, V b) noexcept -> V & { return a = a + b; }
+
+    template<Vector V>
+    constexpr auto operator-=(V &a, V b) noexcept -> V & { return a = a - b; }
+
+    template<Vector V>
+    constexpr auto operator*=(V &v, float s) noexcept -> V & { return v = v * s; }
+
+    template<Vector V>
+    constexpr auto operator/=(V &v, float s) noexcept -> V & { return v = v / s; }
+
+    // The second vector of a pair is not deduced, so lerp(a, {1, 2}, t) works.
+
+    template<Vector V>
+    [[nodiscard]] constexpr auto dot(V a, std::type_identity_t<V> b) noexcept -> float {
+        const auto c = std::bit_cast<detail::Components<V>>(a);
+        const auto d = std::bit_cast<detail::Components<V>>(b);
+        float sum = 0.f;
+        for (std::size_t i = 0; i < c.size(); ++i) {
+            sum += c[i] * d[i];
+        }
+        return sum;
+    }
+
+    // Compare with a squared distance to skip the square root.
+    template<Vector V>
+    [[nodiscard]] constexpr auto length_squared(V v) noexcept -> float { return dot(v, v); }
+
+    template<Vector V>
+    [[nodiscard]] auto length(V v) noexcept -> float { return std::sqrt(length_squared(v)); }
+
+    // NaNs for a zero vector.
+    template<Vector V>
+    [[nodiscard]] auto normalize(V v) noexcept -> V { return v / length(v); }
+
+    template<Vector V>
+    [[nodiscard]] auto distance(V a, std::type_identity_t<V> b) noexcept -> float { return length(b - a); }
+
+    // Not clamped: t outside [0, 1] goes past a or b.
+    template<Vector V>
+    [[nodiscard]] constexpr auto lerp(V a, std::type_identity_t<V> b, float t) noexcept -> V {
+        return a + (b - a) * t;
+    }
+
+    // At most max_step closer, never past to. For chasing at a speed:
+    // from = move_towards(from, to, speed * dt).
+    template<Vector V>
+    [[nodiscard]] auto move_towards(V from, std::type_identity_t<V> to, float max_step) noexcept -> V {
+        TGX_ASSERT_MSG(max_step >= 0.f, "move_towards by {}: a step backwards", max_step);
+
+        const V d = to - from;
+        const float dist = length(d);
+        return dist <= max_step || dist == 0.f ? to : from + d * (max_step / dist);
+    }
+
     // Vec2
 
-    [[nodiscard]] constexpr auto operator+(Vec2 a, Vec2 b) noexcept -> Vec2 { return {a.x + b.x, a.y + b.y}; }
-    [[nodiscard]] constexpr auto operator-(Vec2 a, Vec2 b) noexcept -> Vec2 { return {a.x - b.x, a.y - b.y}; }
-    [[nodiscard]] constexpr auto operator-(Vec2 v) noexcept -> Vec2 { return {-v.x, -v.y}; }
-    [[nodiscard]] constexpr auto operator*(Vec2 v, float s) noexcept -> Vec2 { return {v.x * s, v.y * s}; }
-    [[nodiscard]] constexpr auto operator*(float s, Vec2 v) noexcept -> Vec2 { return v * s; }
-    [[nodiscard]] constexpr auto operator/(Vec2 v, float s) noexcept -> Vec2 { return {v.x / s, v.y / s}; }
-
-    constexpr auto operator+=(Vec2 &a, Vec2 b) noexcept -> Vec2 & { return a = a + b; }
-    constexpr auto operator-=(Vec2 &a, Vec2 b) noexcept -> Vec2 & { return a = a - b; }
-    constexpr auto operator*=(Vec2 &v, float s) noexcept -> Vec2 & { return v = v * s; }
-    constexpr auto operator/=(Vec2 &v, float s) noexcept -> Vec2 & { return v = v / s; }
-
-    [[nodiscard]] constexpr auto dot(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.x + a.y * b.y; }
     // The z of the 3D cross product. Positive when b turns clockwise from a on
     // screen (y down), negative counter-clockwise, zero when parallel.
     [[nodiscard]] constexpr auto cross(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.y - a.y * b.x; }
-    // Compare with a squared distance to skip the square root.
-    [[nodiscard]] constexpr auto length_squared(Vec2 v) noexcept -> float { return dot(v, v); }
-
-    [[nodiscard]] inline auto length(Vec2 v) noexcept -> float { return std::sqrt(length_squared(v)); }
-    // NaNs for a zero vector.
-    [[nodiscard]] inline auto normalize(Vec2 v) noexcept -> Vec2 { return v / length(v); }
-
-    [[nodiscard]] inline auto distance(Vec2 a, Vec2 b) noexcept -> float { return length(b - a); }
 
     // 2D angles are radians from +x, clockwise on screen (y down), like Canvas
     // and Camera2D rotations.
@@ -219,98 +310,12 @@ namespace tgx {
     // rotate(v, -pi / 2) but exact.
     [[nodiscard]] constexpr auto perpendicular(Vec2 v) noexcept -> Vec2 { return {v.y, -v.x}; }
 
-    // Not clamped: t outside [0, 1] goes past a or b.
-    [[nodiscard]] constexpr auto lerp(Vec2 a, Vec2 b, float t) noexcept -> Vec2 { return a + (b - a) * t; }
-
-    // At most max_step closer, never past to. For chasing at a speed:
-    // from = move_towards(from, to, speed * dt).
-    [[nodiscard]] inline auto move_towards(Vec2 from, Vec2 to, float max_step) noexcept -> Vec2 {
-        TGX_ASSERT_MSG(max_step >= 0.f, "move_towards by {}: a step backwards", max_step);
-
-        const Vec2 d = to - from;
-        const float dist = length(d);
-        return dist <= max_step || dist == 0.f ? to : from + d * (max_step / dist);
-    }
-
     // Vec3
-
-    [[nodiscard]] constexpr auto operator+(Vec3 a, Vec3 b) noexcept -> Vec3 {
-        return {a.x + b.x, a.y + b.y, a.z + b.z};
-    }
-
-    [[nodiscard]] constexpr auto operator-(Vec3 a, Vec3 b) noexcept -> Vec3 {
-        return {a.x - b.x, a.y - b.y, a.z - b.z};
-    }
-
-    [[nodiscard]] constexpr auto operator-(Vec3 v) noexcept -> Vec3 { return {-v.x, -v.y, -v.z}; }
-    [[nodiscard]] constexpr auto operator*(Vec3 v, float s) noexcept -> Vec3 { return {v.x * s, v.y * s, v.z * s}; }
-    [[nodiscard]] constexpr auto operator*(float s, Vec3 v) noexcept -> Vec3 { return v * s; }
-    [[nodiscard]] constexpr auto operator/(Vec3 v, float s) noexcept -> Vec3 { return {v.x / s, v.y / s, v.z / s}; }
-
-    constexpr auto operator+=(Vec3 &a, Vec3 b) noexcept -> Vec3 & { return a = a + b; }
-    constexpr auto operator-=(Vec3 &a, Vec3 b) noexcept -> Vec3 & { return a = a - b; }
-    constexpr auto operator*=(Vec3 &v, float s) noexcept -> Vec3 & { return v = v * s; }
-    constexpr auto operator/=(Vec3 &v, float s) noexcept -> Vec3 & { return v = v / s; }
-
-    [[nodiscard]] constexpr auto dot(Vec3 a, Vec3 b) noexcept -> float { return a.x * b.x + a.y * b.y + a.z * b.z; }
 
     // Perpendicular to both, by the right-hand rule: cross(x, y) is z.
     [[nodiscard]] constexpr auto cross(Vec3 a, Vec3 b) noexcept -> Vec3 {
         return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
     }
-
-    [[nodiscard]] constexpr auto length_squared(Vec3 v) noexcept -> float { return dot(v, v); }
-
-    [[nodiscard]] inline auto length(Vec3 v) noexcept -> float { return std::sqrt(length_squared(v)); }
-    // NaNs for a zero vector.
-    [[nodiscard]] inline auto normalize(Vec3 v) noexcept -> Vec3 { return v / length(v); }
-
-    [[nodiscard]] inline auto distance(Vec3 a, Vec3 b) noexcept -> float { return length(b - a); }
-
-    // Not clamped: t outside [0, 1] goes past a or b.
-    [[nodiscard]] constexpr auto lerp(Vec3 a, Vec3 b, float t) noexcept -> Vec3 { return a + (b - a) * t; }
-
-    // At most max_step closer, never past to.
-    [[nodiscard]] inline auto move_towards(Vec3 from, Vec3 to, float max_step) noexcept -> Vec3 {
-        TGX_ASSERT_MSG(max_step >= 0.f, "move_towards by {}: a step backwards", max_step);
-
-        const Vec3 d = to - from;
-        const float dist = length(d);
-        return dist <= max_step || dist == 0.f ? to : from + d * (max_step / dist);
-    }
-
-    // Vec4
-
-    [[nodiscard]] constexpr auto operator+(Vec4 a, Vec4 b) noexcept -> Vec4 {
-        return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
-    }
-
-    [[nodiscard]] constexpr auto operator-(Vec4 a, Vec4 b) noexcept -> Vec4 {
-        return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
-    }
-
-    [[nodiscard]] constexpr auto operator-(Vec4 v) noexcept -> Vec4 { return {-v.x, -v.y, -v.z, -v.w}; }
-
-    [[nodiscard]] constexpr auto operator*(Vec4 v, float s) noexcept -> Vec4 {
-        return {v.x * s, v.y * s, v.z * s, v.w * s};
-    }
-
-    [[nodiscard]] constexpr auto operator*(float s, Vec4 v) noexcept -> Vec4 { return v * s; }
-
-    [[nodiscard]] constexpr auto operator/(Vec4 v, float s) noexcept -> Vec4 {
-        return {v.x / s, v.y / s, v.z / s, v.w / s};
-    }
-
-    constexpr auto operator+=(Vec4 &a, Vec4 b) noexcept -> Vec4 & { return a = a + b; }
-    constexpr auto operator-=(Vec4 &a, Vec4 b) noexcept -> Vec4 & { return a = a - b; }
-    constexpr auto operator*=(Vec4 &v, float s) noexcept -> Vec4 & { return v = v * s; }
-    constexpr auto operator/=(Vec4 &v, float s) noexcept -> Vec4 & { return v = v / s; }
-
-    [[nodiscard]] constexpr auto dot(Vec4 a, Vec4 b) noexcept -> float {
-        return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-    }
-
-    [[nodiscard]] constexpr auto lerp(Vec4 a, Vec4 b, float t) noexcept -> Vec4 { return a + (b - a) * t; }
 
     // Mat4
 
