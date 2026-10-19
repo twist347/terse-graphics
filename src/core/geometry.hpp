@@ -174,33 +174,6 @@ namespace tgx::detail {
         return arc_segments({0.f, whole_turn / 4.f}, n) + 1;
     }
 
-    // content as large as fits in area, keeping its shape, centered: bars on
-    // two sides. Empty when either is empty. tgx::fit, into a rect anywhere.
-    [[nodiscard]] constexpr auto fit_into(Size content, Rect area) noexcept -> Rect {
-        if (content.empty() || area.empty()) {
-            return {};
-        }
-        const float scale = std::min(
-            area.width / static_cast<float>(content.width),
-            area.height / static_cast<float>(content.height)
-        );
-        const float w = static_cast<float>(content.width) * scale;
-        const float h = static_cast<float>(content.height) * scale;
-        return {area.x + (area.width - w) / 2.f, area.y + (area.height - h) / 2.f, w, h};
-    }
-
-    // A canvas's coordinate space: its size if set, else its viewport's, else
-    // units.
-    [[nodiscard]] inline auto span_of(Size size, Rect viewport, Size units) noexcept -> Size {
-        if (!size.empty()) {
-            return size;
-        }
-        if (!viewport.empty()) {
-            return {static_cast<int>(std::lround(viewport.width)), static_cast<int>(std::lround(viewport.height))};
-        }
-        return units;
-    }
-
     // Where two lines of a strip meet: the points both share, plus along the
     // first line's perpendicular and minus the other way.
     struct Joint {

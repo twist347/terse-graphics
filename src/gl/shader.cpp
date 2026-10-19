@@ -4,6 +4,7 @@
 
 #include "core/context.hpp"
 #include "gl/shader_internal.hpp"
+#include "gl/shader_reflection.hpp"
 
 #include <glad/gl.h>
 
@@ -21,8 +22,6 @@
 #include <vector>
 
 namespace {
-    using tgx::gl::detail::ComponentKind;
-    using tgx::gl::detail::ShaderSampler;
     using tgx::gl::detail::ShaderUniform;
     using tgx::gl::detail::VertexInput;
 
@@ -104,143 +103,6 @@ namespace {
         return shader;
     }
 
-    [[nodiscard]] constexpr auto to_component_kind(GLenum type) noexcept -> ComponentKind {
-        switch (type) {
-            case GL_INT:
-            case GL_INT_VEC2:
-            case GL_INT_VEC3:
-            case GL_INT_VEC4: return ComponentKind::sint;
-            case GL_UNSIGNED_INT:
-            case GL_UNSIGNED_INT_VEC2:
-            case GL_UNSIGNED_INT_VEC3:
-            case GL_UNSIGNED_INT_VEC4: return ComponentKind::uint;
-            default: return ComponentKind::floating;
-        }
-    }
-
-    // A matCxR input uses one location per column.
-    [[nodiscard]] constexpr auto slots_of(GLenum type) noexcept -> std::uint32_t {
-        switch (type) {
-            case GL_FLOAT_MAT2:
-            case GL_FLOAT_MAT2x3:
-            case GL_FLOAT_MAT2x4: return 2;
-            case GL_FLOAT_MAT3:
-            case GL_FLOAT_MAT3x2:
-            case GL_FLOAT_MAT3x4: return 3;
-            case GL_FLOAT_MAT4:
-            case GL_FLOAT_MAT4x2:
-            case GL_FLOAT_MAT4x3: return 4;
-            default: return 1;
-        }
-    }
-
-    [[nodiscard]] auto collect_uniforms(GLuint program) -> std::vector<ShaderUniform> {
-        GLint count = 0;
-        GLint max_length = 0;
-        glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
-        glGetProgramiv(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_length);
-
-        std::vector<ShaderUniform> uniforms{};
-        // Longest name plus GL's terminator, which the location query needs.
-        std::string name(static_cast<std::size_t>(max_length), '\0');
-        for (GLint i = 0; i < count; ++i) {
-            GLsizei length = 0;
-            GLint size = 0;
-            GLenum type = 0;
-            glGetActiveUniform(program, static_cast<GLuint>(i), max_length, &length, &size, &type, name.data());
-
-            // Uniform block members have no location; the block's buffer sets
-            // them.
-            const GLint location = glGetUniformLocation(program, name.c_str());
-            if (location < 0) {
-                continue;
-            }
-
-            // An array is reported by its first element, at the array's
-            // location.
-            std::string_view base{name.data(), static_cast<std::size_t>(length)};
-            if (base.ends_with("[0]")) {
-                base.remove_suffix(3);
-            }
-            uniforms.push_back({std::string{base}, location, type, size});
-        }
-        return uniforms;
-    }
-
-    [[nodiscard]] auto collect_samplers(std::span<const ShaderUniform> uniforms) -> std::vector<ShaderSampler> {
-        std::vector<ShaderSampler> samplers{};
-        for (const auto &uniform: uniforms) {
-            if (uniform.gl_type == GL_SAMPLER_2D) {
-                samplers.push_back({uniform.name, uniform.location});
-            }
-        }
-        return samplers;
-    }
-
-    // Only for the vertex input assert in Device::draw.
-    [[maybe_unused, nodiscard]] auto collect_vertex_inputs(GLuint program) -> std::vector<VertexInput> {
-        GLint count = 0;
-        GLint max_length = 0;
-        glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
-        glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &max_length);
-
-        std::vector<VertexInput> inputs{};
-        std::string name(static_cast<std::size_t>(max_length), '\0');
-        for (GLint i = 0; i < count; ++i) {
-            GLsizei length = 0;
-            GLint size = 0;
-            GLenum type = 0;
-            glGetActiveAttrib(program, static_cast<GLuint>(i), max_length, &length, &size, &type, name.data());
-
-            // Skips built-ins such as gl_VertexID.
-            const GLint location = glGetAttribLocation(program, name.c_str());
-            if (location < 0) {
-                continue;
-            }
-
-            inputs.push_back({
-                std::string{name.data(), static_cast<std::size_t>(length)},
-                static_cast<std::uint32_t>(location),
-                slots_of(type) * static_cast<std::uint32_t>(size),
-                to_component_kind(type),
-            });
-        }
-        return inputs;
-    }
-
-    // For assert messages.
-    [[maybe_unused, nodiscard]] constexpr auto glsl_name(GLenum type) noexcept -> const char * {
-        switch (type) {
-            case GL_FLOAT: return "float";
-            case GL_FLOAT_VEC2: return "vec2";
-            case GL_FLOAT_VEC3: return "vec3";
-            case GL_FLOAT_VEC4: return "vec4";
-            case GL_INT: return "int";
-            case GL_INT_VEC2: return "ivec2";
-            case GL_INT_VEC3: return "ivec3";
-            case GL_INT_VEC4: return "ivec4";
-            case GL_UNSIGNED_INT: return "uint";
-            case GL_UNSIGNED_INT_VEC2: return "uvec2";
-            case GL_UNSIGNED_INT_VEC3: return "uvec3";
-            case GL_UNSIGNED_INT_VEC4: return "uvec4";
-            case GL_BOOL: return "bool";
-            case GL_BOOL_VEC2: return "bvec2";
-            case GL_BOOL_VEC3: return "bvec3";
-            case GL_BOOL_VEC4: return "bvec4";
-            case GL_FLOAT_MAT2: return "mat2";
-            case GL_FLOAT_MAT3: return "mat3";
-            case GL_FLOAT_MAT4: return "mat4";
-            case GL_FLOAT_MAT2x3: return "mat2x3";
-            case GL_FLOAT_MAT2x4: return "mat2x4";
-            case GL_FLOAT_MAT3x2: return "mat3x2";
-            case GL_FLOAT_MAT3x4: return "mat3x4";
-            case GL_FLOAT_MAT4x2: return "mat4x2";
-            case GL_FLOAT_MAT4x3: return "mat4x3";
-            case GL_SAMPLER_2D: return "sampler2D";
-            default: return "another type";
-        }
-    }
-
     // -1 if there is no such uniform.
     [[nodiscard]] auto find_location(
         std::span<const ShaderUniform> uniforms,
@@ -261,8 +123,8 @@ namespace {
             std::ranges::contains(accepted, uniform->gl_type),
             "uniform '{}' is {}, not {}",
             name,
-            glsl_name(uniform->gl_type),
-            glsl_name(accepted.front())
+            tgx::gl::detail::glsl_name(uniform->gl_type),
+            tgx::gl::detail::glsl_name(accepted.front())
         );
         TGX_ASSERT_MSG(
             uniform->count == 1,
@@ -410,11 +272,11 @@ namespace tgx::gl {
         }
 
         // Read before the handle moves. Vertex inputs are only for an assert.
-        auto uniforms = collect_uniforms(program.get());
-        auto samplers = collect_samplers(uniforms);
+        auto uniforms = detail::collect_uniforms(program.get());
+        auto samplers = detail::collect_samplers(uniforms);
         std::vector<VertexInput> inputs{};
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
-            inputs = collect_vertex_inputs(program.get());
+            inputs = detail::collect_vertex_inputs(program.get());
         }
         return Shader{std::move(program), std::move(uniforms), std::move(inputs), std::move(samplers)};
     }

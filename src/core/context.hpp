@@ -12,6 +12,7 @@
 #include "tgx/gl/vertex_array.hpp"
 
 #include "core/clock_internal.hpp"
+#include "core/viewport.hpp"
 
 #include <array>
 #include <cstddef>
@@ -21,21 +22,6 @@
 
 namespace tgx::detail {
     class Batch;
-
-    // Sizes of the window or render target being drawn into. The only place
-    // that tells the window from a render target.
-    struct Surface {
-        // Viewports are measured in pixels.
-        Size pixels{};
-        // In the coordinates of a canvas covering all of it. Differs from
-        // pixels on a scaling display.
-        Size units{};
-
-        // The whole surface.
-        [[nodiscard]] constexpr auto viewport() const noexcept -> gl::Viewport {
-            return {0, 0, pixels.width, pixels.height};
-        }
-    };
 
     [[nodiscard]] auto surface_of(const Target &target) noexcept -> Surface;
 

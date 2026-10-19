@@ -5,6 +5,7 @@
 
 #include "tgx/gl/version.hpp"
 
+#include "core/frame_pacer.hpp"
 #include "core/input_internal.hpp"
 #include "core/log_internal.hpp"
 #include "core/window_internal.hpp"
@@ -13,7 +14,6 @@
 
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <format>
@@ -21,19 +21,9 @@
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <thread>
 #include <utility>
 
-#if defined(_WIN32)
-// From winmm, declared here as raylib does: <windows.h> brings macros such
-// as min and max along.
-extern "C" __declspec(dllimport) unsigned int __stdcall timeBeginPeriod(unsigned int period);
-extern "C" __declspec(dllimport) unsigned int __stdcall timeEndPeriod(unsigned int period);
-#endif
-
 namespace {
-    using SteadyClock = std::chrono::steady_clock;
-
     // Sizes are stored by callbacks, not queried on every use.
     struct WindowState {
         GLFWwindow *handle{nullptr};
@@ -49,11 +39,7 @@ namespace {
         // Reapplied after fullscreen changes: some drivers reset the swap
         // interval when the window changes monitor.
         bool vsync{true};
-        int fps_limit{0};
-        // Zero without a limit.
-        SteadyClock::duration frame_period{};
-        // When the next frame may be shown.
-        SteadyClock::time_point next_frame{};
+        tgx::detail::FramePacer pacer{};
         // Restored when leaving fullscreen.
         int windowed_x{0};
         int windowed_y{0};
@@ -88,55 +74,6 @@ namespace {
 
     auto set_swap_interval(bool vsync) noexcept -> void {
         glfwSwapInterval(vsync ? 1 : 0);
-    }
-
-    // Windows wakes a sleeping thread on a 15.6 ms tick unless asked for
-    // 1 ms. That speeds the tick for the whole system, so only while a limit
-    // is set.
-    auto set_fine_timer([[maybe_unused]] bool fine) noexcept -> void {
-#if defined(_WIN32)
-        if (fine) {
-            timeBeginPeriod(1);
-        } else {
-            timeEndPeriod(1);
-        }
-#endif
-    }
-
-    auto apply_fps_limit(int fps) noexcept -> void {
-        if ((fps > 0) != (s_window.fps_limit > 0)) {
-            set_fine_timer(fps > 0);
-        }
-        s_window.fps_limit = fps;
-        s_window.frame_period = fps > 0
-            ? std::chrono::duration_cast<SteadyClock::duration>(std::chrono::duration<double>(1.0 / fps))
-            : SteadyClock::duration{};
-        s_window.next_frame = {};
-    }
-
-    // Waits for the next frame's time. Each frame's time is a period after
-    // the last one's, not after its end, so oversleeping does not add up.
-    // The OS wakes a thread up to a millisecond or two late, so the last part
-    // is spun.
-    auto wait_for_frame() noexcept -> void {
-        if (s_window.frame_period == SteadyClock::duration{}) {
-            return;
-        }
-        const auto now = SteadyClock::now();
-        // First frame, or one late by more than a period: start over from
-        // now rather than rush to catch up.
-        if (s_window.next_frame == SteadyClock::time_point{} || now - s_window.next_frame > s_window.frame_period) {
-            s_window.next_frame = now + s_window.frame_period;
-            return;
-        }
-        constexpr auto spin = std::chrono::milliseconds{2};
-        if (s_window.next_frame - now > spin) {
-            std::this_thread::sleep_until(s_window.next_frame - spin);
-        }
-        while (SteadyClock::now() < s_window.next_frame) {
-            std::this_thread::yield();
-        }
-        s_window.next_frame += s_window.frame_period;
     }
 
     [[nodiscard]] constexpr auto to_glfw(tgx::CursorMode mode) noexcept -> int {
@@ -297,7 +234,7 @@ namespace {
             s_window.size.width, s_window.size.height,
             s_window.framebuffer_size.width, s_window.framebuffer_size.height,
             s_window.vsync ? "on" : "off",
-            s_window.fps_limit > 0 ? std::format(", fps limit {}", s_window.fps_limit) : std::string{}
+            s_window.pacer.fps > 0 ? std::format(", fps limit {}", s_window.pacer.fps) : std::string{}
         );
         if (GLFWmonitor *monitor = glfwGetPrimaryMonitor()) {
             if (const GLFWvidmode *mode = glfwGetVideoMode(monitor)) {
@@ -359,7 +296,7 @@ namespace tgx {
 
         s_window.handle = handle;
         s_window.vsync = params.vsync;
-        apply_fps_limit(std::max(params.fps_limit, 0));
+        s_window.pacer.set_fps(std::max(params.fps_limit, 0));
         refresh_sizes();
         // Starting sizes are not a resize.
         s_window.polled_size = s_window.size;
@@ -444,11 +381,11 @@ namespace tgx {
     auto Window::set_fps_limit(int fps) noexcept -> void {
         TGX_ASSERT_MSG(fps >= 0, "fps limit {}", fps);
 
-        apply_fps_limit(std::max(fps, 0));
+        s_window.pacer.set_fps(std::max(fps, 0));
     }
 
     auto Window::fps_limit() const noexcept -> int {
-        return s_window.fps_limit;
+        return s_window.pacer.fps;
     }
 
     auto Window::set_fullscreen(bool fullscreen) noexcept -> void {
@@ -526,7 +463,7 @@ namespace tgx {
     auto Window::release() noexcept -> void {
         if (owned_) {
             detail::detach_input();
-            apply_fps_limit(0);
+            s_window.pacer.set_fps(0);
             for (GLFWcursor *cursor: s_window.cursors) {
                 if (cursor) {
                     glfwDestroyCursor(cursor);
@@ -545,7 +482,7 @@ namespace tgx {
 
     auto detail::swap_buffers() noexcept -> void {
         glfwSwapBuffers(s_window.handle);
-        wait_for_frame();
+        s_window.pacer.wait();
     }
 
     auto detail::window_size() noexcept -> Size {

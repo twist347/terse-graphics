@@ -12,10 +12,11 @@
 #include "core/context.hpp"
 #include "core/default_font.hpp"
 #include "core/geometry.hpp"
+#include "core/text.hpp"
+#include "core/viewport.hpp"
 
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -29,7 +30,6 @@
 namespace {
     using tgx::detail::Batch;
     using tgx::detail::BatchState;
-    using tgx::detail::Surface;
 
     static_assert(
         tgx::detail::max_segments * 2 <= tgx::detail::batch_max_vertices
@@ -46,136 +46,6 @@ namespace {
 
     // Glyphs are one row filling the atlas height, so v goes from 0 to 1.
     static_assert(font::atlas_height == font::line_height);
-
-    // Glyph index for a line break.
-    constexpr std::size_t newline = font::glyphs.size();
-
-    // Moves the pen, draws nothing.
-    constexpr std::size_t space = static_cast<std::size_t>(' ' - font::first);
-
-    // Leading one bits. 1 for ASCII, a stray continuation or an invalid lead.
-    [[nodiscard]] constexpr auto sequence_length(unsigned char lead) noexcept -> std::size_t {
-        const int ones = std::countl_one(lead);
-        return ones >= 2 && ones <= 4 ? static_cast<std::size_t>(ones) : 1;
-    }
-
-    // Columns between tab stops.
-    constexpr std::size_t tab_columns = 4;
-
-    // Calls f with each character's glyph index, or newline. One UTF-8
-    // sequence is one character, '?' without a glyph. '\t' pads to the next
-    // tab stop (monospaced font). '\r' is skipped, so "\r\n" ends a line once.
-    template<typename F>
-    auto for_each_glyph(std::string_view text, F f) noexcept -> void {
-        // Since the start of the line.
-        std::size_t column = 0;
-        for (std::size_t i = 0; i < text.size();) {
-            const auto c = static_cast<unsigned char>(text[i]);
-            // Only continuation bytes are taken, so a cut-off sequence does
-            // not swallow the next character.
-            const std::size_t length = sequence_length(c);
-            ++i;
-            for (std::size_t taken = 1; taken < length && i < text.size(); ++taken, ++i) {
-                if ((static_cast<unsigned char>(text[i]) & 0xc0) != 0x80) {
-                    break;
-                }
-            }
-
-            if (c == '\r') {
-                continue;
-            }
-            if (c == '\n') {
-                f(newline);
-                column = 0;
-                continue;
-            }
-            if (c == '\t') {
-                do {
-                    f(space);
-                    ++column;
-                } while (column % tab_columns != 0);
-                continue;
-            }
-            const bool printable = c >= static_cast<unsigned char>(font::first)
-                && c <= static_cast<unsigned char>(font::last);
-            f(static_cast<std::size_t>((printable ? static_cast<char>(c) : '?') - font::first));
-            ++column;
-        }
-    }
-
-    // y down, (0, 0) at the top-left. An empty size (minimized window) would
-    // divide by zero; nothing shows anyway.
-    [[nodiscard]] constexpr auto projection_for(tgx::Size size) noexcept -> tgx::Mat4 {
-        if (size.empty()) {
-            return {};
-        }
-        return tgx::ortho(0.f, static_cast<float>(size.width), static_cast<float>(size.height), 0.f);
-    }
-
-    // Part of the surface covered, in surface units.
-    [[nodiscard]] auto covered(tgx::Rect viewport, const Surface &surface) noexcept -> tgx::Rect {
-        if (!viewport.empty()) {
-            return viewport;
-        }
-        return {0.f, 0.f, static_cast<float>(surface.units.width), static_cast<float>(surface.units.height)};
-    }
-
-    // Part of the surface drawn on, in surface units: a size of its own as
-    // large as fits in what is covered, centered; else the viewport as set.
-    [[nodiscard]] auto shown(tgx::Size size, tgx::Rect viewport, const Surface &surface) noexcept -> tgx::Rect {
-        if (size.empty()) {
-            return viewport;
-        }
-        return tgx::detail::fit_into(size, covered(viewport, surface));
-    }
-
-    // Part of the surface covered, in pixels.
-    [[nodiscard]] auto pixel_viewport(tgx::Rect rect, const Surface &surface) noexcept -> tgx::gl::Viewport {
-        if (rect.empty() || surface.units.empty()) {
-            return surface.viewport();
-        }
-
-        // Rounds the edges, not the sizes, so canvases side by side meet
-        // without a gap or an overlap.
-        const float sx = static_cast<float>(surface.pixels.width) / static_cast<float>(surface.units.width);
-        const float sy = static_cast<float>(surface.pixels.height) / static_cast<float>(surface.units.height);
-        const auto left = static_cast<int>(std::lround(rect.x * sx));
-        const auto top = static_cast<int>(std::lround(rect.y * sy));
-        const auto right = static_cast<int>(std::lround(rect.right() * sx));
-        const auto bottom = static_cast<int>(std::lround(rect.bottom() * sy));
-        return {left, top, right - left, bottom - top};
-    }
-
-    // canvas = (screen - offset) * scale, per axis. None for a minimized
-    // window.
-    struct ScreenMapping {
-        tgx::Vec2 offset{};
-        tgx::Vec2 scale{};
-
-        [[nodiscard]] auto to_canvas(tgx::Vec2 screen) const noexcept -> tgx::Vec2 {
-            return {(screen.x - offset.x) * scale.x, (screen.y - offset.y) * scale.y};
-        }
-
-        [[nodiscard]] auto to_screen(tgx::Vec2 canvas) const noexcept -> tgx::Vec2 {
-            return {canvas.x / scale.x + offset.x, canvas.y / scale.y + offset.y};
-        }
-    };
-
-    [[nodiscard]] auto screen_mapping(
-        tgx::Size size,
-        tgx::Rect viewport,
-        const Surface &surface
-    ) noexcept -> std::optional<ScreenMapping> {
-        const tgx::Rect area = covered(shown(size, viewport, surface), surface);
-        const tgx::Size span = tgx::detail::span_of(size, viewport, surface.units);
-        if (area.empty() || span.empty()) {
-            return std::nullopt;
-        }
-        return ScreenMapping{
-            {area.x, area.y},
-            {static_cast<float>(span.width) / area.width, static_cast<float>(span.height) / area.height},
-        };
-    }
 
     // The Device's batch, with room for this many more vertices and indices
     // with the state, and the index of the first new vertex.
@@ -357,12 +227,12 @@ namespace tgx {
     }
 
     auto Canvas::to_world(Vec2 point) const noexcept -> Vec2 {
-        const auto mapping = screen_mapping(size_, viewport_, surface());
+        const auto mapping = detail::screen_mapping(size_, viewport_, surface());
         return camera_.to_world(mapping ? mapping->to_canvas(point) : point);
     }
 
     auto Canvas::to_screen(Vec2 world) const noexcept -> Vec2 {
-        const auto mapping = screen_mapping(size_, viewport_, surface());
+        const auto mapping = detail::screen_mapping(size_, viewport_, surface());
         const Vec2 point = camera_.to_screen(world);
         return mapping ? mapping->to_screen(point) : point;
     }
@@ -838,15 +708,15 @@ namespace tgx {
         const BatchState state = state_for(0);
 
         Vec2 pen = position;
-        for_each_glyph(text, [&](std::size_t glyph_index) noexcept {
-            if (glyph_index == newline) {
+        detail::for_each_glyph(text, [&](std::size_t glyph_index) noexcept {
+            if (glyph_index == detail::newline_glyph) {
                 pen = {position.x, pen.y + size};
                 return;
             }
 
             const font::Glyph glyph = font::glyphs[glyph_index];
             const float width = static_cast<float>(glyph.width) * scale;
-            if (glyph_index != space) {
+            if (glyph_index != detail::space_glyph) {
                 const float u0 = static_cast<float>(glyph.x) / font::atlas_width;
                 const float u1 = static_cast<float>(glyph.x + glyph.width) / font::atlas_width;
                 push_quad(
@@ -865,8 +735,8 @@ namespace tgx {
         float widest = 0.f;
         float line = 0.f;
         float lines = 1.f;
-        for_each_glyph(text, [&](std::size_t glyph_index) noexcept {
-            if (glyph_index == newline) {
+        detail::for_each_glyph(text, [&](std::size_t glyph_index) noexcept {
+            if (glyph_index == detail::newline_glyph) {
                 line = 0.f;
                 lines += 1.f;
             } else {
@@ -896,7 +766,7 @@ namespace tgx {
 
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {
         // A canvas that follows the window notices a resize here.
-        const Surface surface = this->surface();
+        const detail::Surface surface = this->surface();
         if (const Size span = detail::span_of(size_, viewport_, surface.units);
             transform_stale_ || span != transform_size_) {
             refit(span);
@@ -909,7 +779,7 @@ namespace tgx {
             .u_projection = u_projection_,
             .u_texture = u_texture_,
             .transform = transform_,
-            .viewport = pixel_viewport(shown(size_, viewport_, surface), surface),
+            .viewport = detail::pixel_viewport(detail::shown(size_, viewport_, surface), surface),
         };
     }
 
@@ -1047,7 +917,7 @@ namespace tgx {
 
     auto Canvas::refit(Size span) noexcept -> void {
         transform_size_ = span;
-        transform_ = projection_for(span) * camera_.matrix();
+        transform_ = detail::projection_for(span) * camera_.matrix();
         transform_stale_ = false;
     }
 }

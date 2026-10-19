@@ -57,6 +57,8 @@ set(TGX_CORE_SOURCES
         src/core/context.cpp
         src/core/device.cpp
         src/core/file.cpp
+        src/core/frame_pacer.cpp
+        src/core/gl_debug.cpp
         src/core/image.cpp
         src/core/input.cpp
         src/core/log.cpp
@@ -69,6 +71,7 @@ set(TGX_CORE_SOURCES
 set(TGX_GL_SOURCES
         src/gl/buffer.cpp
         src/gl/shader.cpp
+        src/gl/shader_reflection.cpp
         src/gl/vertex_array.cpp
 )
 

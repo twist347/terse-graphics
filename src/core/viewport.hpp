@@ -1,0 +1,129 @@
+#pragma once
+
+#include "tgx/core/math.hpp"
+
+#include "tgx/gl/draw.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <optional>
+
+// Where a canvas lands on the window or render target it draws into: the
+// part it covers in pixels, its coordinate space, screen points into it.
+namespace tgx::detail {
+    // Sizes of the window or render target being drawn into. The only place
+    // that tells the window from a render target.
+    struct Surface {
+        // Viewports are measured in pixels.
+        Size pixels{};
+        // In the coordinates of a canvas covering all of it. Differs from
+        // pixels on a scaling display.
+        Size units{};
+
+        // The whole surface.
+        [[nodiscard]] constexpr auto viewport() const noexcept -> gl::Viewport {
+            return {0, 0, pixels.width, pixels.height};
+        }
+    };
+
+    // content as large as fits in area, keeping its shape, centered: bars on
+    // two sides. Empty when either is empty. tgx::fit, into a rect anywhere.
+    [[nodiscard]] constexpr auto fit_into(Size content, Rect area) noexcept -> Rect {
+        if (content.empty() || area.empty()) {
+            return {};
+        }
+        const float scale = std::min(
+            area.width / static_cast<float>(content.width),
+            area.height / static_cast<float>(content.height)
+        );
+        const float w = static_cast<float>(content.width) * scale;
+        const float h = static_cast<float>(content.height) * scale;
+        return {area.x + (area.width - w) / 2.f, area.y + (area.height - h) / 2.f, w, h};
+    }
+
+    // A canvas's coordinate space: its size if set, else its viewport's, else
+    // units.
+    [[nodiscard]] inline auto span_of(Size size, Rect viewport, Size units) noexcept -> Size {
+        if (!size.empty()) {
+            return size;
+        }
+        if (!viewport.empty()) {
+            return {static_cast<int>(std::lround(viewport.width)), static_cast<int>(std::lround(viewport.height))};
+        }
+        return units;
+    }
+
+    // y down, (0, 0) at the top-left. An empty size (minimized window) would
+    // divide by zero; nothing shows anyway.
+    [[nodiscard]] constexpr auto projection_for(Size size) noexcept -> Mat4 {
+        if (size.empty()) {
+            return {};
+        }
+        return ortho(0.f, static_cast<float>(size.width), static_cast<float>(size.height), 0.f);
+    }
+
+    // Part of the surface covered, in surface units.
+    [[nodiscard]] inline auto covered(Rect viewport, const Surface &surface) noexcept -> Rect {
+        if (!viewport.empty()) {
+            return viewport;
+        }
+        return {0.f, 0.f, static_cast<float>(surface.units.width), static_cast<float>(surface.units.height)};
+    }
+
+    // Part of the surface drawn on, in surface units: a size of its own as
+    // large as fits in what is covered, centered; else the viewport as set.
+    [[nodiscard]] inline auto shown(Size size, Rect viewport, const Surface &surface) noexcept -> Rect {
+        if (size.empty()) {
+            return viewport;
+        }
+        return fit_into(size, covered(viewport, surface));
+    }
+
+    // Part of the surface covered, in pixels.
+    [[nodiscard]] inline auto pixel_viewport(Rect rect, const Surface &surface) noexcept -> gl::Viewport {
+        if (rect.empty() || surface.units.empty()) {
+            return surface.viewport();
+        }
+
+        // Rounds the edges, not the sizes, so canvases side by side meet
+        // without a gap or an overlap.
+        const float sx = static_cast<float>(surface.pixels.width) / static_cast<float>(surface.units.width);
+        const float sy = static_cast<float>(surface.pixels.height) / static_cast<float>(surface.units.height);
+        const auto left = static_cast<int>(std::lround(rect.x * sx));
+        const auto top = static_cast<int>(std::lround(rect.y * sy));
+        const auto right = static_cast<int>(std::lround(rect.right() * sx));
+        const auto bottom = static_cast<int>(std::lround(rect.bottom() * sy));
+        return {left, top, right - left, bottom - top};
+    }
+
+    // canvas = (screen - offset) * scale, per axis. None for a minimized
+    // window.
+    struct ScreenMapping {
+        Vec2 offset{};
+        Vec2 scale{};
+
+        [[nodiscard]] auto to_canvas(Vec2 screen) const noexcept -> Vec2 {
+            return {(screen.x - offset.x) * scale.x, (screen.y - offset.y) * scale.y};
+        }
+
+        [[nodiscard]] auto to_screen(Vec2 canvas) const noexcept -> Vec2 {
+            return {canvas.x / scale.x + offset.x, canvas.y / scale.y + offset.y};
+        }
+    };
+
+    [[nodiscard]] inline auto screen_mapping(
+        Size size,
+        Rect viewport,
+        const Surface &surface
+    ) noexcept -> std::optional<ScreenMapping> {
+        const Rect area = covered(shown(size, viewport, surface), surface);
+        const Size span = span_of(size, viewport, surface.units);
+        if (area.empty() || span.empty()) {
+            return std::nullopt;
+        }
+        return ScreenMapping{
+            {area.x, area.y},
+            {static_cast<float>(span.width) / area.width, static_cast<float>(span.height) / area.height},
+        };
+    }
+}

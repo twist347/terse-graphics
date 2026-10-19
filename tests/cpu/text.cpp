@@ -1,8 +1,71 @@
 #include "tgx/core/canvas.hpp"
 
+#include "core/text.hpp"
+
 #include "support.hpp"
 
 #include <doctest/doctest.h>
+
+#include <cstddef>
+#include <string_view>
+#include <vector>
+
+namespace {
+    // The glyphs for_each_glyph gives, as indices.
+    [[nodiscard]] auto glyphs_of(std::string_view text) -> std::vector<std::size_t> {
+        std::vector<std::size_t> glyphs;
+        tgx::detail::for_each_glyph(text, [&](std::size_t index) noexcept { glyphs.push_back(index); });
+        return glyphs;
+    }
+
+    [[nodiscard]] constexpr auto glyph(char c) noexcept -> std::size_t {
+        return static_cast<std::size_t>(c - ' ');
+    }
+
+    constexpr std::size_t newline = tgx::detail::newline_glyph;
+    constexpr std::size_t space = tgx::detail::space_glyph;
+    constexpr std::size_t unknown = glyph('?');
+}
+
+TEST_CASE("UTF-8 sequence lengths from the lead byte") {
+    using tgx::detail::sequence_length;
+    CHECK(sequence_length('a') == 1);
+    CHECK(sequence_length(0xc3) == 2);
+    CHECK(sequence_length(0xe2) == 3);
+    CHECK(sequence_length(0xf0) == 4);
+    // A stray continuation byte and leads of 5 and more stand alone.
+    CHECK(sequence_length(0x80) == 1);
+    CHECK(sequence_length(0xf8) == 1);
+    CHECK(sequence_length(0xff) == 1);
+}
+
+TEST_CASE("for_each_glyph: one glyph a character") {
+    using V = std::vector<std::size_t>;
+    CHECK(glyphs_of("") == V{});
+    CHECK(glyphs_of("a~ ") == V{glyph('a'), glyph('~'), space});
+    // Line breaks: "\r\n" is one, a lone '\r' none.
+    CHECK(glyphs_of("a\nb") == V{glyph('a'), newline, glyph('b')});
+    CHECK(glyphs_of("a\r\nb") == V{glyph('a'), newline, glyph('b')});
+    CHECK(glyphs_of("a\rb") == V{glyph('a'), glyph('b')});
+    // Missing from the font: a control character, two-, three- and four-byte
+    // characters, each one '?'.
+    CHECK(glyphs_of("\x01") == V{unknown});
+    CHECK(glyphs_of("\xc3\xa9\xe2\x82\xac\xf0\x9f\x98\x80") == V{unknown, unknown, unknown});
+    // A cut-off sequence does not swallow what follows; a stray
+    // continuation is a '?' of its own.
+    CHECK(glyphs_of("\xe2\x82" "a") == V{unknown, glyph('a')});
+    CHECK(glyphs_of("\x80" "a") == V{unknown, glyph('a')});
+}
+
+TEST_CASE("for_each_glyph: a tab pads to the next stop of four") {
+    using V = std::vector<std::size_t>;
+    CHECK(glyphs_of("\t") == V{space, space, space, space});
+    CHECK(glyphs_of("abc\td") == V{glyph('a'), glyph('b'), glyph('c'), space, glyph('d')});
+    // A wide character is one column.
+    CHECK(glyphs_of("\xc3\xa9\t") == V{unknown, space, space, space});
+    // Columns count from the line's start.
+    CHECK(glyphs_of("ab\n\t") == V{glyph('a'), glyph('b'), newline, space, space, space, space});
+}
 
 // Measuring needs only the built-in font's widths: no window, no GL.
 TEST_CASE("Canvas::measure_text") {
