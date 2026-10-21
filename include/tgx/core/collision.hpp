@@ -91,6 +91,16 @@ namespace tgx {
         return inside;
     }
 
+    // The point of the rect, edges included, nearest to point: point itself
+    // when inside. point minus it is the way out of the rect, e.g. to tell
+    // which side a ball hit.
+    [[nodiscard]] constexpr auto closest_point(Rect rect, Vec2 point) noexcept -> Vec2 {
+        // A negative size would put the clamp bounds in the wrong order.
+        TGX_ASSERT_MSG(detail::valid(rect), "rect of size {}x{}", rect.width, rect.height);
+
+        return {std::clamp(point.x, rect.x, rect.right()), std::clamp(point.y, rect.y, rect.bottom())};
+    }
+
     // Touching is not overlapping: two tiles side by side do not overlap.
     [[nodiscard]] constexpr auto overlaps(Rect a, Rect b) noexcept -> bool {
         TGX_ASSERT_MSG(detail::valid(a), "rect of size {}x{}", a.width, a.height);
@@ -118,11 +128,7 @@ namespace tgx {
         if (rect.empty()) {
             return false;
         }
-        const Vec2 nearest{
-            std::clamp(circle.center.x, rect.x, rect.right()),
-            std::clamp(circle.center.y, rect.y, rect.bottom()),
-        };
-        const Vec2 d = circle.center - nearest;
+        const Vec2 d = circle.center - closest_point(rect, circle.center);
         return length_squared(d) < circle.radius * circle.radius;
     }
 

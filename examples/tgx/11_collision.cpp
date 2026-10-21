@@ -1,6 +1,7 @@
 // Collision checks. A circle follows the mouse and turns red on what it
 // overlaps; a click marks the rect under the mouse; the part of the circle's
-// square that is inside the big rect shows filled.
+// square that is inside the big rect shows filled; a line runs from the mouse
+// to the nearest point of each rect.
 
 #include "tgx/tgx.hpp"
 
@@ -67,6 +68,14 @@ int main() {
         // square around the cursor.
         const tgx::Rect square = tgx::Rect::from_center(cursor.center, {cursor.radius * 2, cursor.radius * 2});
         canvas.rect(tgx::intersection(rects[0], square), tgx::colors::cyan.with_alpha(160));
+
+        // closest_point: the point of a shape nearest to another, here of each
+        // rect to the mouse. Inside a rect it is the mouse itself.
+        for (const tgx::Rect &rect: rects) {
+            const tgx::Vec2 nearest = tgx::closest_point(rect, input.mouse());
+            canvas.line(input.mouse(), nearest, tgx::colors::light_gray);
+            canvas.circle(nearest, 4, tgx::colors::white);
+        }
 
         canvas.circle_lines(cursor.center, cursor.radius, tgx::colors::white, 2);
         canvas.text({20, 40}, "Move the mouse over the shapes; click a rect to mark it.", tgx::colors::white);

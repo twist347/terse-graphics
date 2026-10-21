@@ -256,7 +256,7 @@ int main() {
     const std::array ridges{make_ridge(0.26f), make_ridge(0.17f)};
     std::array<tgx::Vec2, 160> stars{};
     for (tgx::Vec2 &star: stars) {
-        star = {rng.next_float(-0.1f, 1.1f), rng.next_float(0.f, 1.f)};
+        star = rng.point_in({-0.1f, 0.f, 1.2f, 1.f});
     }
     float travel = 0.f;
     float speed = 3.f;

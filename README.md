@@ -82,7 +82,7 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `08_blend`      | Alpha and additive blending side by side.                          |
 | `09_input`      | Keyboard and mouse: held keys, presses, the wheel, the mouse in the world. |
 | `10_text`       | Text in the built-in font: sizes, lines, centering, a field to type in. |
-| `11_collision`  | Collision checks: a point in a shape, shapes overlapping, the part rects share. |
+| `11_collision`  | Collision checks: a point in a shape, shapes overlapping, the part rects share, the nearest point of a rect. |
 | `12_pixel_art`  | A render target: the world at 320x180, scaled up into sharp square pixels. |
 | `13_audio`      | Notes made in code, played at five pitches and panned; a long note paused and stopped on its own; music streamed from a file. |
 | `14_cursor`     | The cursor's shapes, hidden, and captured for mouse look.          |

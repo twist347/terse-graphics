@@ -74,6 +74,15 @@ TEST_CASE("overlaps") {
     CHECK_FALSE(tgx::overlaps(none, tgx::Circle{{0, 0}, 5}));
 }
 
+TEST_CASE("closest_point on a rect") {
+    constexpr tgx::Rect r{0, 0, 10, 4};
+    CHECK(tgx::closest_point(r, {5, 2}) == tgx::Vec2{5, 2});     // inside: itself
+    CHECK(tgx::closest_point(r, {5, -3}) == tgx::Vec2{5, 0});    // above: the top edge
+    CHECK(tgx::closest_point(r, {12, 2}) == tgx::Vec2{10, 2});   // right: the right edge
+    CHECK(tgx::closest_point(r, {-2, 9}) == tgx::Vec2{0, 4});    // beyond a corner: the corner
+    CHECK(tgx::closest_point(tgx::Rect{3, 3, 0, 0}, {7, 9}) == tgx::Vec2{3, 3});
+}
+
 TEST_CASE("closest_point on a segment") {
     CHECK(tgx::closest_point({0, 0}, {10, 0}, {5, 5}) == tgx::Vec2{5, 0});
     // Past either end: the end.

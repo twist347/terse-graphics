@@ -278,6 +278,7 @@ namespace tgx {
         // macOS requires it for any core context. Ignored elsewhere.
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, params.debug_context ? GLFW_TRUE : GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, params.resizable ? GLFW_TRUE : GLFW_FALSE);
         // GLFW_AUTO_ICONIFY stays on. GLFW keeps a fullscreen window on top
         // (Windows, macOS) until it minimizes; otherwise alt-tab would leave
         // it covering the monitor.

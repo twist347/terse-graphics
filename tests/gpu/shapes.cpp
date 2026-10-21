@@ -375,7 +375,7 @@ TEST_CASE("poly: a square with a corner up, and its frame") {
 
     // Corners at right, bottom, left, top: a diamond.
     canvas.clear(tgx::colors::black);
-    canvas.poly({64, 64}, 4, 50, 0.f, tgx::colors::white);
+    canvas.poly({64, 64}, 4, 50, tgx::colors::white);
     tgx::Image image = target.read();
     CHECK(image[64, 16] == tgx::colors::white);
     CHECK(image[110, 64] == tgx::colors::white);
@@ -384,7 +384,7 @@ TEST_CASE("poly: a square with a corner up, and its frame") {
     // Turned an eighth, an upright square of side 50 * sqrt(2), its frame
     // 5 wide inside the edges.
     canvas.clear(tgx::colors::black);
-    canvas.poly_lines({64, 64}, 4, 50, pi / 4.f, tgx::colors::white, 5);
+    canvas.poly_lines({64, 64}, 4, 50, tgx::colors::white, 5, pi / 4.f);
     image = target.read();
     constexpr int edge = 64 - 35;
     CHECK(image[64, edge + 2] == tgx::colors::white);

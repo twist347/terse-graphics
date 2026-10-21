@@ -277,17 +277,17 @@ namespace tgx {
         ) noexcept -> void;
 
         // 3 to 1024 sides, corners on a circle of the radius. rotation is the
-        // first corner's angle, as in circle_sector().
-        auto poly(Vec2 center, int sides, float radius, float rotation, Color color) noexcept -> void;
+        // first corner's angle, as in circle_sector(): 0 puts one on the right.
+        auto poly(Vec2 center, int sides, float radius, Color color, float rotation = 0.f) noexcept -> void;
 
         // Outline, drawn inside the edges.
         auto poly_lines(
             Vec2 center,
             int sides,
             float radius,
-            float rotation,
             Color color,
-            float thickness = 1.f
+            float thickness = 1.f,
+            float rotation = 0.f
         ) noexcept -> void;
 
         // The texture is read when the batch is drawn; updating or destroying

@@ -198,7 +198,7 @@ int main() {
         // Stars and clouds come from the same seed every frame: no storage.
         tgx::Random sky_random{7};
         for (int i = 0; i < 160; ++i) {
-            const Vec2 at{sky_random.next_float(0.f, 1.f), sky_random.next_float(0.f, 0.62f)};
+            const Vec2 at = sky_random.point_in({0.f, 0.f, 1.f, 0.62f});
             const float twinkle = 0.65f + 0.35f * std::sin(time * 2.3f + sky_random.next_float(0.f, 40.f));
             const float radius = sky_random.next_float(0.5f, 1.6f) * s;
             glow.circle({at.x * size.x, at.y * size.y}, radius, Color::rgb(0xfff6e0).fade(dark * twinkle * (1.f - at.y)));

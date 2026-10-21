@@ -42,14 +42,14 @@ int main() {
         canvas.triangle({540, 190}, {640, 60}, {740, 190}, tgx::colors::green);
         canvas.rect_rounded({796, 60, 200, 130}, 24, tgx::colors::blue);
         // A regular polygon: center, sides, radius, the first corner's angle.
-        canvas.poly({1152, 125}, 6, 70, 0, tgx::colors::purple);
+        canvas.poly({1152, 125}, 6, 70, tgx::colors::purple);
 
         // Outlines take a thickness and keep inside the shape's edges.
         canvas.rect_lines({28, 230, 200, 130}, tgx::colors::cyan, 3);
         canvas.circle_lines({384, 295}, 65, tgx::colors::magenta, 3);
         canvas.triangle_lines({540, 360}, {640, 230}, {740, 360}, tgx::colors::green, 3);
         canvas.rect_rounded_lines({796, 230, 200, 130}, 24, tgx::colors::light_gray, 3);
-        canvas.poly_lines({1152, 295}, 5, 70, -pi / 2, tgx::colors::pink, 3);
+        canvas.poly_lines({1152, 295}, 5, 70, tgx::colors::pink, 3, -pi / 2);
 
         // Turned around a point of its own: here its middle.
         canvas.rect({128, 465, 160, 40}, {80, 20}, time, tgx::colors::orange);

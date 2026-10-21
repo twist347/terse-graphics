@@ -42,6 +42,9 @@ namespace tgx {
         // In screen coordinates, as Window::size().
         Size size{.width = 1280, .height = 720};
         const char *title{"tgx"};
+        // Whether the player can drag its edges. Off, the size still changes
+        // with set_fullscreen() and the display's scale.
+        bool resizable{true};
         bool vsync{true};
         int fps_limit{0};
         // Samples per pixel, for smooth edges of turned and round shapes: 0

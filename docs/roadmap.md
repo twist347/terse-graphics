@@ -4,17 +4,19 @@ Where tgx is going, one line per item. Designs are worked out when an item is
 taken up; what is done leaves this file (the [guide](guide.md) and the history
 show it). Back to the [README](../README.md).
 
-## Before 1.0
+## Before 0.1.0
 
-- The bunnymark against raylib, re-measured: one line in the README, the
-  numbers and their scope in the guide.
-- A final pass over the whole API.
 - The first release: tag 0.1.0 and start `CHANGELOG.md` with it (added,
   changed, fixed per version, as in terse-dsa), bumping `tgx/core/version.hpp`
   from then on.
 
-## After 1.0
+## After 0.1.0
 
+- The bunnymark against raylib, re-measured: one line in the README, the
+  numbers and their scope in the guide.
+- HiDPI the same everywhere: canvas units are logical on macOS and Wayland
+  but pixels on Windows and X11 (GLFW's scale hints, Window::size, the
+  mouse).
 - Input and window: gamepads, the clipboard, files dropped on the window,
   monitors, the window's position, icon and size limits.
 - Text: TTF fonts, letter spacing, wrapping to a width.
@@ -46,7 +48,7 @@ Looked at and left until there is a need:
 
 Decided against:
 
-- 3D on the simple level before 1.0: 3D stays on the OpenGL level.
+- 3D on the simple level: 3D stays on the OpenGL level.
 - Exclusive fullscreen: impossible on Wayland; borderless at the desktop
   resolution covers the use.
 - Threads inside tgx: GL and the window belong to the main thread; loading on
@@ -54,3 +56,5 @@ Decided against:
 - Event bus, ECS, scenes: engine level, not a library's.
 - Touch, gestures, VR: not the platforms tgx targets.
 - Begin/end pairs in the API: every call stands on its own.
+- Guarding the headers against `<windows.h>`'s `min` and `max` macros:
+  define `NOMINMAX`, as for any C++ library.

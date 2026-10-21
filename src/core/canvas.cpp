@@ -561,7 +561,7 @@ namespace tgx {
         push_band(state, n, outer, inner, color, true);
     }
 
-    auto Canvas::poly(Vec2 center, int sides, float radius, float rotation, Color color) noexcept -> void {
+    auto Canvas::poly(Vec2 center, int sides, float radius, Color color, float rotation) noexcept -> void {
         TGX_ASSERT_MSG(detail::valid_radius(radius), "polygon of radius {}", radius);
 
         const std::size_t n = poly_sides(sides);
@@ -576,9 +576,9 @@ namespace tgx {
         Vec2 center,
         int sides,
         float radius,
-        float rotation,
         Color color,
-        float thickness
+        float thickness,
+        float rotation
     ) noexcept -> void {
         TGX_ASSERT_MSG(detail::valid_radius(radius), "polygon of radius {}", radius);
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
@@ -590,7 +590,7 @@ namespace tgx {
         // Thick enough, the outline fills the polygon.
         const float inradius = radius * std::cos(std::numbers::pi_v<float> / static_cast<float>(n));
         if (thickness >= inradius) {
-            poly(center, sides, radius, rotation, color);
+            poly(center, sides, radius, color, rotation);
             return;
         }
 

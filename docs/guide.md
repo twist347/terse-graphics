@@ -43,7 +43,8 @@ In `tgx`:
   presented (`clock()`: delta, elapsed, fps), and `canvas.fps(pos)` to show
   them; vsync, and a frame rate limit for without it
   (`window().set_fps_limit(60)`); smooth edges with multisampling
-  (`WindowParams::msaa = 4`, the window only, not render targets).
+  (`WindowParams::msaa = 4`, the window only, not render targets); a window
+  the player cannot resize (`WindowParams::resizable = false`).
 - **Folders**: `app_directory()`, where the program is, for files shipped
   next to it whatever the working directory; `save_directory("me", "game")`,
   the user's folder for saves and settings (`%APPDATA%`, `~/Library/Application
@@ -67,7 +68,7 @@ In `tgx`:
 - **Collisions**: `contains` (a point in a rect, circle, triangle or polygon),
   `overlaps` (rects and circles in any pair, a circle and a segment),
   `intersection` (the part two rects share, the point two segments cross at),
-  `closest_point` (of a segment).
+  `closest_point` (of a segment or a rect).
 - **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
   JPEG, BMP, TGA or GIF, or made in code, saved as PNG) and `Texture` made
   from it, with nearest or linear filtering, wrapping, optional mipmaps and
@@ -196,8 +197,8 @@ canvas.rect_rounded({40, 40, 200, 100}, 12.f, tgx::colors::blue);     // corner 
 canvas.rect_rounded_lines({40, 40, 200, 100}, 12.f, tgx::colors::white, 2.f);
 canvas.triangle_lines(a, b, c, tgx::colors::green, 2.f);
 canvas.line_loop(points, tgx::colors::white, 3.f);                     // back to the first point
-canvas.poly({600, 100}, 6, 50.f, 0.f, tgx::colors::purple);           // sides, radius, rotation
-canvas.poly_lines({600, 100}, 6, 50.f, 0.f, tgx::colors::white, 2.f);
+canvas.poly({600, 100}, 6, 50.f, tgx::colors::purple);                // sides, radius; rotation last, optional
+canvas.poly_lines({600, 100}, 6, 50.f, tgx::colors::white, 2.f);
 canvas.circle_sector({800, 100}, 50.f, start, end, tgx::colors::yellow);
 canvas.ring({1000, 100}, 40.f, 50.f, start, end, tgx::colors::green);  // an arc, a progress ring
 ```
