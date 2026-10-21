@@ -30,7 +30,7 @@ namespace {
 
 TEST_CASE("Device::read: the window's framebuffer, opaque, rows top to bottom") {
     auto &app = tgx_test::app();
-    tgx::Canvas screen = tgx::Canvas::create();
+    auto screen = tgx::Canvas::create();
     CHECK(screen.size() == app.window().size());
 
     screen.clear(tgx::colors::black);
@@ -54,8 +54,8 @@ TEST_CASE("a Device draw with a viewport counts it from the window's top-left") 
     cover.draw({.viewport = tgx::gl::Viewport{0, 0, pixels.width / 2, pixels.height / 2}});
 
     const tgx::Image image = app.device().read();
-    const float w = static_cast<float>(size.width);
-    const float h = static_cast<float>(size.height);
+    const auto w = static_cast<float>(size.width);
+    const auto h = static_cast<float>(size.height);
     CHECK(at(image, {5, 5}) == tgx::colors::green);
     CHECK(at(image, {w - 5, 5}) == tgx::colors::black);
     CHECK(at(image, {5, h - 5}) == tgx::colors::black);
@@ -63,7 +63,7 @@ TEST_CASE("a Device draw with a viewport counts it from the window's top-left") 
 
 TEST_CASE("a screenshot saved and loaded back is the same picture") {
     auto &app = tgx_test::app();
-    tgx::Canvas screen = tgx::Canvas::create();
+    auto screen = tgx::Canvas::create();
     screen.clear(tgx::colors::black);
     screen.rect({0, 0, 20, 20}, tgx::colors::green);
     const tgx::Image shot = app.device().read();

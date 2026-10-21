@@ -178,7 +178,7 @@ int main() {
         speed = static_cast<std::size_t>(std::clamp(static_cast<int>(speed) + step, 0, static_cast<int>(speeds.size()) - 1));
         paused = paused != input.pressed(tgx::Key::space);
         rate += ((paused ? 0.f : speeds[speed] * base_rate) - rate) * std::min(1.f, dt * 3.f);
-        hour = std::fmod(hour + rate * dt + 24.f, 24.f);
+        hour = tgx::wrap(hour + rate * dt, 24.f);
 
         const Vec2 size = tgx::to_vec2(canvas.size());
         const float s = size.y / 720.f;
@@ -209,7 +209,7 @@ int main() {
             glow.circle_gradient(sun, 60.f * s, warm.fade(0.5f), clear);
             canvas.circle(sun, 30.f * s, lerp(Color::rgb(0xffb070), Color::rgb(0xfffbea), high));
         }
-        if (const float up = std::fmod(hour + 6.6f, 24.f); up < 14.f) {
+        if (const float up = tgx::wrap(hour + 6.6f, 24.f); up < 14.f) {
             const Vec2 moon = on_arc(up, size);
             const float pale = 1.f - 0.6f * day;
             glow.circle_gradient(moon, 160.f * s, Color::rgb(0xb4c2ff).fade(0.2f * dark), clear);
@@ -223,7 +223,7 @@ int main() {
         for (int i = 0; i < 6; ++i) {
             const float k = sky_random.next_float(0.7f, 1.5f) * s;
             const float span = size.x + 300.f * s;
-            const float x = std::fmod(sky_random.next_float(0.f, span) + time * sky_random.next_float(6.f, 14.f) * s, span);
+            const float x = tgx::wrap(sky_random.next_float(0.f, span) + time * sky_random.next_float(6.f, 14.f) * s, span);
             const Vec2 c{x - 150.f * s, sky_random.next_float(0.12f, 0.4f) * size.y};
             for (const float lift : {0.f, 5.f}) {
                 const Color color = lift == 0.f ? lerp(sky.cloud, sky.top, 0.22f) : sky.cloud;

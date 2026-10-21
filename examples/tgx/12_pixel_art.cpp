@@ -20,8 +20,8 @@ int main() {
     }
 
     constexpr tgx::Size resolution{320, 180};
-    constexpr float width = static_cast<float>(resolution.width);
-    constexpr float height = static_cast<float>(resolution.height);
+    constexpr auto width = static_cast<float>(resolution.width);
+    constexpr auto height = static_cast<float>(resolution.height);
     auto pixels = tgx::RenderTarget::create(resolution, {.filter = tgx::TextureFilter::nearest});
     if (!pixels) {
         std::println(stderr, "render target: {}", pixels.error());

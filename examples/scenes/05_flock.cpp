@@ -95,7 +95,7 @@ namespace {
 
     // An orb's center: a slow loop through the window.
     auto orb_center(std::size_t i, float time, tgx::Vec2 area) -> tgx::Vec2 {
-        const float k = static_cast<float>(i);
+        const auto k = static_cast<float>(i);
         const float x = 0.5f + 0.36f * std::sin(time * (0.05f + 0.013f * k) + k * 2.1f);
         const float y = 0.5f + 0.32f * std::cos(time * (0.07f - 0.011f * k) + k * 1.7f);
         return {x * area.x, y * area.y};
@@ -203,7 +203,7 @@ int main() {
 
             tgx::Vec2 push = apart * 90.f;
             if (seen > 0) {
-                const float n = static_cast<float>(std::min(seen, max_neighbors));
+                const auto n = static_cast<float>(std::min(seen, max_neighbors));
                 push += (velocities / n - self.velocity) * 2.4f + offsets / n * 2.f;
             }
             // A slow private wander, so a lone fish still meanders.
@@ -248,8 +248,8 @@ int main() {
             }
             f.position += f.velocity * dt;
             // Left outside by a shrinking window: back in on the other side.
-            f.position.x = std::fmod(f.position.x + area.x, area.x);
-            f.position.y = std::fmod(f.position.y + area.y, area.y);
+            f.position.x = tgx::wrap(f.position.x, area.x);
+            f.position.y = tgx::wrap(f.position.y, area.y);
         }
 
         // Deep water, lighter near the surface.
@@ -260,12 +260,12 @@ int main() {
         // Shafts of light from the surface, swaying.
         constexpr std::size_t shafts = 5;
         for (std::size_t s = 0; s < shafts; ++s) {
-            const float k = static_cast<float>(s);
+            const auto k = static_cast<float>(s);
             const float x = area.x * (0.12f + 0.19f * k) + std::sin(time * 0.15f + k * 1.9f) * 50.f;
             const float half = 30.f + 18.f * std::sin(k * 3.7f);
             const tgx::Vec2 top_left{x - half, 0.f};
             const tgx::Vec2 bottom{x - area.y * 0.35f, area.y * 0.9f};
-            const tgx::Color light = tgx::Color::rgb(0x9fe7ff).fade(0.07f + 0.03f * std::sin(time * 0.4f + k));
+            const auto light = tgx::Color::rgb(0x9fe7ff).fade(0.07f + 0.03f * std::sin(time * 0.4f + k));
             const tgx::Color none = light.fade(0.f);
             canvas.triangle_gradient(top_left, {x + half, 0.f}, bottom + tgx::Vec2{half * 3.f, 0.f}, light, light, none);
             canvas.triangle_gradient(top_left, bottom + tgx::Vec2{half * 3.f, 0.f}, bottom, light, none, none);
@@ -282,7 +282,7 @@ int main() {
         for (std::size_t o = 0; o < orbs.size(); ++o) {
             const float r = orb_radii[o];
             const float breath = 1.f + 0.06f * std::sin(time * 1.3f + static_cast<float>(o) * 2.f);
-            constexpr tgx::Color glow = tgx::Color::rgb(0xb388ff);
+            constexpr auto glow = tgx::Color::rgb(0xb388ff);
             canvas.circle_gradient(orbs[o], r * 2.6f * breath, glow.fade(0.22f), glow.fade(0.f));
             canvas.circle_gradient(orbs[o], r * breath, tgx::Color::rgb(0xf0e6ff).fade(0.3f), glow.fade(0.08f));
             canvas.circle_lines(orbs[o], r * breath, tgx::Color::rgb(0xe0d0ff).fade(0.5f), 1.5f);
@@ -317,14 +317,14 @@ int main() {
         }
         if (lure_power > 0.f) {
             const float r = 80.f + 8.f * pulse;
-            constexpr tgx::Color cyan = tgx::Color::rgb(0x6fe7ff);
+            constexpr auto cyan = tgx::Color::rgb(0x6fe7ff);
             canvas.circle_lines(mouse, r, cyan.fade(0.08f * lure_power), 10.f);
             canvas.circle_lines(mouse, r + 1.5f, cyan.fade(0.6f * lure_power), 3.f);
         }
         if (scare_power > 0.f) {
-            constexpr tgx::Color coral = tgx::Color::rgb(0xffc2b0);
+            constexpr auto coral = tgx::Color::rgb(0xffc2b0);
             for (std::size_t w = 0; w < 3; ++w) {
-                const float t = std::fmod(time * 0.9f + static_cast<float>(w) / 3.f, 1.f);
+                const float t = tgx::wrap(time * 0.9f + static_cast<float>(w) / 3.f, 1.f);
                 const float r = 20.f + 200.f * tgx::ease::out_cubic(t);
                 canvas.circle_lines(mouse, r + 2.f, coral.fade(0.7f * (1.f - t) * scare_power), 4.f);
             }

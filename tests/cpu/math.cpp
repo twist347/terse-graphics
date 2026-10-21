@@ -83,6 +83,19 @@ TEST_CASE("smoothstep") {
     CHECK(tgx::smoothstep(10, 0, 10) == 0.f);
 }
 
+TEST_CASE("wrap goes round, below 0 too") {
+    CHECK(tgx::wrap(3, 10) == 3.f);
+    CHECK(tgx::wrap(10, 10) == 0.f);
+    CHECK(tgx::wrap(23, 10) == 3.f);
+    CHECK(tgx::wrap(-1, 10) == 9.f);
+    // More than one span below: std::fmod would keep it negative.
+    CHECK(tgx::wrap(-23, 10) == 7.f);
+    // Too small to add to the span without rounding to it.
+    const float tiny = tgx::wrap(-1e-9f, 360);
+    CHECK(tiny >= 0.f);
+    CHECK(tiny < 360.f);
+}
+
 TEST_CASE("Vec3") {
     CHECK(tgx::cross(tgx::Vec3{1, 0, 0}, tgx::Vec3{0, 1, 0}) == tgx::Vec3{0, 0, 1});
     CHECK(tgx::dot(tgx::Vec3{1, 2, 3}, tgx::Vec3{4, 5, 6}) == 32.f);

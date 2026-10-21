@@ -204,6 +204,20 @@ namespace tgx {
         return u * u * (3.f - 2.f * u);
     }
 
+    // In [0, span), going round: span comes back as 0, -1 as span - 1. span
+    // must be positive. For whatever goes around, unlike std::fmod, which
+    // keeps the sign.
+    //
+    //     ship.x = tgx::wrap(ship.x, screen_width);   // out at one edge, in at the other
+    [[nodiscard]] inline auto wrap(float value, float span) noexcept -> float {
+        float v = std::fmod(value, span);
+        if (v < 0.f) {
+            v += span;
+        }
+        // A tiny negative v plus span can round to span itself.
+        return v < span ? v : 0.f;
+    }
+
     // Vec2, Vec3, Vec4: what is the same for every size is written once
 
     template<typename V>

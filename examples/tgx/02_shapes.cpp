@@ -56,7 +56,7 @@ int main() {
         // Slices and arcs go from one angle to another.
         canvas.circle_sector({384, 465}, 65, pi / 4, 7 * pi / 4, tgx::colors::yellow);
         canvas.ring({640, 465}, 45, 65, 0, 2 * pi, tgx::colors::gray);
-        canvas.ring({640, 465}, 45, 65, -pi / 2, -pi / 2 + std::fmod(time, 2 * pi), tgx::colors::green);
+        canvas.ring({640, 465}, 45, 65, -pi / 2, -pi / 2 + tgx::wrap(time, 2 * pi), tgx::colors::green);
 
         // Joined lines: corners without gaps. line_loop closes the shape.
         constexpr std::array zigzag{

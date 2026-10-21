@@ -3,6 +3,8 @@
 
 #include "gpu.hpp"
 
+#include "support.hpp"
+
 #include <doctest/doctest.h>
 
 #include <array>
@@ -202,4 +204,68 @@ TEST_CASE("a texture updated while a sprite of it waits") {
     const tgx::Image image = target.read();
     CHECK(image[10, 10] == tgx::colors::red);
     CHECK(image[30, 10] == tgx::colors::blue);
+}
+
+TEST_CASE("Texture::load: a file drawn as saved, a missing one an io error") {
+    const tgx_test::TempFile file{"texture.png"};
+    REQUIRE(tgx::Image::from_pixels({2, 2}, std::array{
+        tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white,
+    }).save(file.path).has_value());
+    const auto loaded = tgx::Texture::load(file.path, {.filter = tgx::TextureFilter::nearest});
+    REQUIRE(loaded.has_value());
+    CHECK(loaded->size() == tgx::Size{2, 2});
+    CHECK(loaded->params().filter == tgx::TextureFilter::nearest);
+
+    const tgx::RenderTarget target = tgx_test::target({16, 16});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    canvas.sprite(*loaded, {.size = {16, 16}});
+    const tgx::Image image = target.read();
+    CHECK(image[4, 4] == tgx::colors::red);
+    CHECK(image[12, 4] == tgx::colors::green);
+    CHECK(image[4, 12] == tgx::colors::blue);
+    CHECK(image[12, 12] == tgx::colors::white);
+
+    const auto missing = tgx::Texture::load(tgx_test::temp_path("no_such_texture.png"));
+    REQUIRE_FALSE(missing.has_value());
+    CHECK(missing.error() == tgx::Error::io);
+}
+
+TEST_CASE("wrap: a src twice the texture's width, clamped, tiled, mirrored") {
+    // Red, green; drawn 8 pixels a texel.
+    constexpr std::array two{tgx::colors::red, tgx::colors::green};
+    const tgx::RenderTarget target = tgx_test::target({32, 8});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    const auto across = [&](tgx::TextureWrap wrap) {
+        const tgx::Texture strip = texture(
+            tgx::Image::from_pixels({2, 1}, two), {.filter = tgx::TextureFilter::nearest, .wrap = wrap}
+        );
+        canvas.sprite(strip, {.size = {32, 8}, .src = {0, 0, 4, 1}});
+        const tgx::Image image = target.read();
+        return std::array{image[4, 4], image[12, 4], image[20, 4], image[28, 4]};
+    };
+    using tgx::colors::red, tgx::colors::green;
+
+    CHECK(across(tgx::TextureWrap::clamp) == std::array{red, green, green, green});
+    CHECK(across(tgx::TextureWrap::repeat) == std::array{red, green, red, green});
+    CHECK(across(tgx::TextureWrap::mirror) == std::array{red, green, green, red});
+}
+
+TEST_CASE("linear blends neighboring texels, nearest does not") {
+    constexpr std::array two{tgx::colors::black, tgx::colors::white};
+    const tgx::RenderTarget target = tgx_test::target({64, 16});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    // Texel centers at x = 16 and 48.
+    const tgx::Texture smooth = texture(tgx::Image::from_pixels({2, 1}, two));
+    canvas.sprite(smooth, {.size = {64, 8}});
+    const tgx::Texture sharp = texture(tgx::Image::from_pixels({2, 1}, two), {.filter = tgx::TextureFilter::nearest});
+    canvas.sprite(sharp, {.position = {0, 8}, .size = {64, 8}});
+
+    const tgx::Image image = target.read();
+    CHECK(image[4, 4] == tgx::colors::black);
+    CHECK(tgx_test::near(image[31, 4], {124, 124, 124, 255}, 3));
+    CHECK(tgx_test::near(image[40, 4], {195, 195, 195, 255}, 3));
+    CHECK(image[60, 4] == tgx::colors::white);
+    CHECK(image[31, 12] == tgx::colors::black);
+    CHECK(image[32, 12] == tgx::colors::white);
 }

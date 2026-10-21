@@ -141,7 +141,7 @@ namespace {
             if (!tgx::overlaps(brick.body, body)) {
                 return false;
             }
-            const tgx::Rect box = tgx::Rect::from_center(body.center, {body.radius * 2, body.radius * 2});
+            const auto box = tgx::Rect::from_center(body.center, {body.radius * 2, body.radius * 2});
             const tgx::Rect overlap = tgx::intersection(brick.body, box);
             const tgx::Vec2 away = body.center - brick.body.center();
             float &speed = overlap.width < overlap.height ? vel.x : vel.y;

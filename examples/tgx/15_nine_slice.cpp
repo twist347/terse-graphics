@@ -87,7 +87,7 @@ int main() {
         canvas.text(panel.center(), "stretches", tgx::colors::white, label_size, {0.5f, 0.5f});
 
         // Each button as wide as its label; the one under the mouse lights up.
-        tgx::CursorShape shape = tgx::CursorShape::arrow;
+        auto shape = tgx::CursorShape::arrow;
         float x = 40;
         for (const char *label: labels) {
             const tgx::Vec2 extent = tgx::Canvas::measure_text(label, label_size);
@@ -120,7 +120,7 @@ int main() {
         };
         canvas.nine_slice(*atlas, track);
         tgx::NineSlice fill = track;
-        fill.size.x *= std::fmod(time / 4.f, 1.f);
+        fill.size.x *= tgx::wrap(time / 4.f, 1.f);
         fill.tint = tgx::colors::green;
         canvas.nine_slice(*atlas, fill);
         canvas.text({40, 470}, "shorter than its two ends, they shrink to fit", tgx::colors::light_gray);

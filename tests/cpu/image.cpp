@@ -31,7 +31,7 @@ namespace {
 TEST_CASE("Image made in code") {
     CHECK(tgx::Image{}.empty());
 
-    tgx::Image image = tgx::Image::create({3, 2}, tgx::colors::blue);
+    auto image = tgx::Image::create({3, 2}, tgx::colors::blue);
     CHECK(image.size() == tgx::Size{3, 2});
     CHECK(image.pixels().size() == 6);
     CHECK(image[2, 1] == tgx::colors::blue);
@@ -41,7 +41,7 @@ TEST_CASE("Image made in code") {
     CHECK(image.pixels()[5] == tgx::colors::red);
 
     constexpr std::array pixels{tgx::colors::red, tgx::colors::green};
-    const tgx::Image copy = tgx::Image::from_pixels({2, 1}, pixels);
+    const auto copy = tgx::Image::from_pixels({2, 1}, pixels);
     CHECK(copy[1, 0] == tgx::colors::green);
 }
 
@@ -71,7 +71,7 @@ TEST_CASE("Image::load failures") {
 }
 
 TEST_CASE("Image::save writes what Image::load reads back") {
-    tgx::Image image = tgx::Image::create({3, 2}, tgx::colors::transparent);
+    auto image = tgx::Image::create({3, 2}, tgx::colors::transparent);
     image[0, 0] = tgx::colors::red;
     image[2, 1] = tgx::Color{10, 20, 30, 128};
 

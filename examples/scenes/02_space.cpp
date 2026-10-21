@@ -46,11 +46,6 @@ namespace {
         Band{2.27f, 2.33f, tgx::Color::rgb(0x8c7c70), 0.45f},
     };
 
-    auto wrap(float value, float span) -> float {
-        const float v = std::fmod(value, span);
-        return v < 0.f ? v + span : v;
-    }
-
     // Darker by k in [0, 1].
     auto shade(tgx::Color color, float k) -> tgx::Color { return tgx::lerp(tgx::colors::black, color, k); }
 
@@ -110,7 +105,7 @@ int main() {
         for (int i = 0; i < count; ++i) {
             const tgx::Vec2 uv = rng.point_in({0.f, 0.f, 1.f, 1.f});
             const float size = depth * rng.next_float(1.2f, 2.4f) + rng.next_float(0.3f, 0.6f);
-            const tgx::Color tint = tgx::Color::hsv(rng.next_float(20.f, 240.f), rng.next_float(0.f, 0.25f), 1.f);
+            const auto tint = tgx::Color::hsv(rng.next_float(20.f, 240.f), rng.next_float(0.f, 0.25f), 1.f);
             stars.push_back({uv, depth, size, rng.next_float(0.f, 2.f * pi), rng.next_float(0.6f, 2.5f), tint});
         }
     }
@@ -121,7 +116,7 @@ int main() {
     for (int i = 0; i < 22; ++i) {
         const tgx::Vec2 along = tgx::lerp(tgx::Vec2{0.05f, 0.95f}, tgx::Vec2{0.75f, -0.05f}, rng.next_float());
         const tgx::Vec2 uv = along + tgx::Vec2{0.7f, 0.5f} * rng.next_float(-0.18f, 0.18f);
-        const tgx::Color hue = tgx::Color::hsv(hues[static_cast<std::size_t>(i) % hues.size()], 0.75f, 0.62f);
+        const auto hue = tgx::Color::hsv(hues[static_cast<std::size_t>(i) % hues.size()], 0.75f, 0.62f);
         nebula.push_back({uv, rng.next_float(0.18f, 0.36f), rng.next_float(0.f, 2.f * pi), hue});
     }
 
@@ -188,7 +183,7 @@ int main() {
         // Rocks drift left, the near ones faster, around the window's edges.
         for (Rock &rock : rocks) {
             const float m = rock.radius * 1.5f;
-            rock.pos.x = wrap(rock.pos.x - (8.f + 40.f * rock.depth) * dt + m, w + 2.f * m) - m;
+            rock.pos.x = tgx::wrap(rock.pos.x - (8.f + 40.f * rock.depth) * dt + m, w + 2.f * m) - m;
             rock.angle += rock.spin * dt;
         }
 
@@ -198,19 +193,19 @@ int main() {
         canvas.rect_gradient({0.f, 0.f, w, h}, tgx::Color::rgb(0x0b0d22), tgx::Color::rgb(0x0a0615));
         canvas.set_blend(tgx::Blend::additive);
         const float diagonal = std::hypot(w, h);
-        constexpr tgx::Color glare = tgx::Color::rgb(0xffcf9a);
+        constexpr auto glare = tgx::Color::rgb(0xffcf9a);
         canvas.circle_gradient({-0.05f * w, -0.1f * h}, 0.75f * diagonal, glare.fade(0.22f), glare.fade(0.f));
         const tgx::Vec2 lean = (ship - tgx::Vec2{w / 2.f, h / 2.f}) * -0.02f;
         for (const Blob &blob : nebula) {
             const tgx::Vec2 sway = tgx::from_angle(time * 0.05f + blob.phase) * 12.f;
-            const tgx::Vec2 at = tgx::Vec2{blob.uv.x * w, blob.uv.y * h} + lean + sway;
+            const auto at = tgx::Vec2{blob.uv.x * w, blob.uv.y * h} + lean + sway;
             const float glow = 0.1f + 0.03f * std::sin(time * 0.3f + blob.phase);
             canvas.circle_gradient(at, blob.radius * diagonal, blob.color.fade(glow), blob.color.fade(0.f));
         }
-        const tgx::Vec2 pan = tgx::Vec2{-14.f, -3.f} * time + lean * 4.f;
+        const auto pan = tgx::Vec2{-14.f, -3.f} * time + lean * 4.f;
         for (const Star &star : stars) {
             const tgx::Vec2 shift = pan * star.depth;
-            const tgx::Vec2 at{wrap(star.uv.x * w + shift.x, w), wrap(star.uv.y * h + shift.y, h)};
+            const tgx::Vec2 at{tgx::wrap(star.uv.x * w + shift.x, w), tgx::wrap(star.uv.y * h + shift.y, h)};
             const float shine = 0.65f + 0.35f * std::sin(time * star.rate + star.phase);
             canvas.circle(at, star.size * 0.5f, star.tint.fade(shine * (0.4f + 0.6f * star.depth)));
             if (star.size > 1.6f) {
@@ -256,7 +251,7 @@ int main() {
         draw_moon(true);
         draw_rings(true);
         canvas.set_blend(tgx::Blend::additive);
-        constexpr tgx::Color haze = tgx::Color::rgb(0xffb070);
+        constexpr auto haze = tgx::Color::rgb(0xffb070);
         canvas.circle_gradient(center + sun_2d * (radius * 0.08f), radius * 1.3f, haze.fade(0.3f), haze.fade(0.f));
         // Bands by latitude, the poles duller; the night side keeps a little blue.
         canvas.set_blend(tgx::Blend::alpha);
@@ -273,7 +268,7 @@ int main() {
         const float to_sun = tgx::angle(sun_2d);
         for (int i = 0; i < 3; ++i) {
             const float span = 1.7f - 0.5f * static_cast<float>(i);
-            const tgx::Color warm = tgx::Color::rgb(0xffe2b8).fade(0.14f), cool = tgx::Color::rgb(0x6f8cff).fade(0.08f);
+            const auto warm = tgx::Color::rgb(0xffe2b8).fade(0.14f), cool = tgx::Color::rgb(0x6f8cff).fade(0.08f);
             canvas.ring(center, radius * 0.975f, radius * 1.003f, to_sun - span, to_sun + span, warm);
             const float night = to_sun + pi;
             canvas.ring(center, radius * 0.985f, radius * 1.003f, night - span * 0.6f, night + span * 0.6f, cool);
@@ -300,7 +295,7 @@ int main() {
 
         // Light: sparks, shockwaves, the engine's flame.
         canvas.set_blend(tgx::Blend::additive);
-        constexpr tgx::Color ice = tgx::Color::rgb(0x6cc4ff), white = tgx::colors::white;
+        constexpr auto ice = tgx::Color::rgb(0x6cc4ff), white = tgx::colors::white;
         for (const Spark &spark : sparks) {
             const float age = time - spark.born, t = age / spark.life;
             const tgx::Color color = tgx::lerp(spark.hot, spark.cool, t).fade((1.f - t) * (1.f - t) * 0.8f);
@@ -314,7 +309,7 @@ int main() {
             canvas.circle_gradient(wave.pos, 60.f * (1.f + t), white.fade(0.7f - 2.f * t), white.fade(0.f));
         }
         const float flame = (10.f + 22.f * thrust) * (0.85f + 0.15f * std::sin(time * 40.f) * std::sin(time * 23.f));
-        constexpr tgx::Color fire = tgx::Color::rgb(0xffcf7a), ember = tgx::Color::rgb(0xff9d4a);
+        constexpr auto fire = tgx::Color::rgb(0xffcf7a), ember = tgx::Color::rgb(0xff9d4a);
         canvas.circle_gradient(on_ship({-7.f, 0.f}), 20.f + 14.f * thrust, ember.fade(0.45f), ember.fade(0.f));
         const tgx::Vec2 tip = on_ship({-6.f - flame, 0.f}), core = on_ship({-6.f - flame / 2.f, 0.f});
         canvas.triangle_gradient(on_ship({-6.f, -4.f}), on_ship({-6.f, 4.f}), tip, fire, fire, ember.fade(0.f));
@@ -323,7 +318,7 @@ int main() {
         // The ship: two halves, the sunny one lighter.
         canvas.set_blend(tgx::Blend::alpha);
         const bool left_lit = tgx::dot(tgx::perpendicular(forward), sun_2d) > 0.f;
-        const tgx::Color hull = tgx::Color::rgb(0xe9ecf5), left = shade(hull, left_lit ? 1.f : 0.55f);
+        const auto hull = tgx::Color::rgb(0xe9ecf5), left = shade(hull, left_lit ? 1.f : 0.55f);
         const tgx::Color right = shade(hull, left_lit ? 0.55f : 1.f);
         const tgx::Vec2 nose = on_ship({16.f, 0.f}), notch = on_ship({-5.f, 0.f});
         canvas.triangle_gradient(nose, on_ship({-9.f, -11.f}), notch, hull, left, left);

@@ -66,7 +66,7 @@ int main() {
 
         // intersection: the part two rects share, here the big rect and the
         // square around the cursor.
-        const tgx::Rect square = tgx::Rect::from_center(cursor.center, {cursor.radius * 2, cursor.radius * 2});
+        const auto square = tgx::Rect::from_center(cursor.center, {cursor.radius * 2, cursor.radius * 2});
         canvas.rect(tgx::intersection(rects[0], square), tgx::colors::cyan.with_alpha(160));
 
         // closest_point: the point of a shape nearest to another, here of each

@@ -21,8 +21,8 @@
 
 namespace {
     constexpr tgx::Size resolution{320, 180};
-    constexpr float width = static_cast<float>(resolution.width);
-    constexpr float height = static_cast<float>(resolution.height);
+    constexpr auto width = static_cast<float>(resolution.width);
+    constexpr auto height = static_cast<float>(resolution.height);
     // Where the street begins.
     constexpr float road_y = 160.f;
 
@@ -100,8 +100,7 @@ namespace {
     // lit is the share of windows lit at the start.
     [[nodiscard]] auto make_layer(
         float speed,
-        float min_height,
-        float max_height,
+        float min_height, float max_height,
         tgx::Color wall,
         tgx::Color window,
         float lit
@@ -140,7 +139,7 @@ namespace {
 
     // How long a strike lights the sky, in seconds, and the color of its glow.
     constexpr float strike_time = 0.35f;
-    constexpr tgx::Color strike_glow = tgx::Color::rgb(0x9fb4ff);
+    constexpr auto strike_glow = tgx::Color::rgb(0x9fb4ff);
 
     struct Lightning {
         std::vector<tgx::Vec2> bolt{};
@@ -164,7 +163,7 @@ namespace {
     }
 
     auto draw_layer(tgx::Canvas &canvas, const Layer &layer, float scroll, float time) -> void {
-        const float offset = -std::fmod(scroll * layer.speed, layer.span);
+        const float offset = -tgx::wrap(scroll * layer.speed, layer.span);
         for (const float base: {offset, offset + layer.span}) {
             for (const Building &building: layer.buildings) {
                 const tgx::Rect r = building.rect;
@@ -187,8 +186,8 @@ namespace {
     // A pole, a lamp, its cone of light down to the wet road and the
     // light's reflection in it.
     auto draw_lamp(tgx::Canvas &canvas, tgx::Canvas &light, float x) -> void {
-        constexpr tgx::Color warm = tgx::Color::rgb(0xffd27a);
-        constexpr tgx::Color iron = tgx::Color::rgb(0x1a1a24);
+        constexpr auto warm = tgx::Color::rgb(0xffd27a);
+        constexpr auto iron = tgx::Color::rgb(0x1a1a24);
         canvas.rect({x, road_y - 28.f, 1.f, 28.f}, iron);
         canvas.rect({x - 3.f, road_y - 29.f, 7.f, 2.f}, iron);
         canvas.rect({x - 2.f, road_y - 27.f, 5.f, 1.f}, warm);
@@ -200,8 +199,8 @@ namespace {
 
     auto draw_car(tgx::Canvas &canvas, tgx::Canvas &light, float x) -> void {
         constexpr float y = road_y + 6.f;
-        constexpr tgx::Color glass = tgx::Color::rgb(0x2b3a55);
-        constexpr tgx::Color beam = tgx::Color::rgb(0xfff4c2);
+        constexpr auto glass = tgx::Color::rgb(0x2b3a55);
+        constexpr auto beam = tgx::Color::rgb(0xfff4c2);
         canvas.rect({x, y - 6.f, 26.f, 6.f}, tgx::Color::rgb(0xb8323f));
         canvas.rect({x + 6.f, y - 10.f, 13.f, 4.f}, tgx::Color::rgb(0x8f2632));
         canvas.rect({x + 8.f, y - 9.f, 4.f, 3.f}, glass);
@@ -273,7 +272,7 @@ int main() {
     const tgx::Vec2 rain_direction = tgx::normalize(tgx::Vec2{-0.25f, 1.f});
 
     Lightning lightning{};
-    tgx::Timer next_strike = tgx::Timer::once(rng.next_float(4.f, 9.f));
+    auto next_strike = tgx::Timer::once(rng.next_float(4.f, 9.f));
     float car_x = width + 40.f;
     float scroll = 0.f;
     float time = 0.f;
@@ -346,7 +345,7 @@ int main() {
             const float twinkle = 0.5f + 0.5f * std::sin(time * 2.f + static_cast<float>(i) * 1.7f);
             world.rect({stars[i].x, stars[i].y, 1.f, 1.f}, tgx::colors::white.fade(0.3f + 0.5f * twinkle));
         }
-        constexpr tgx::Color moonlight = tgx::Color::rgb(0xf3ecd2);
+        constexpr auto moonlight = tgx::Color::rgb(0xf3ecd2);
         world.circle({262.f, 34.f}, 11.f, moonlight);
         world.circle({257.f, 31.f}, 10.f, sky_at(31.f, flash * 0.6f));
         light.circle_gradient({262.f, 34.f}, 26.f, moonlight.fade(0.12f), moonlight.fade(0.f));
@@ -363,10 +362,10 @@ int main() {
         // The street, its edge lit by the city.
         world.rect({0.f, road_y, width, height - road_y}, tgx::Color::rgb(0x0d0c16));
         world.rect({0.f, road_y, width, 1.f}, tgx::Color::rgb(0x2a2840));
-        for (float x = -std::fmod(scroll, 24.f); x < width; x += 24.f) {
+        for (float x = -tgx::wrap(scroll, 24.f); x < width; x += 24.f) {
             world.rect({x, road_y + 11.f, 10.f, 1.f}, tgx::Color::rgb(0x3a3850));
         }
-        const float lamp_offset = -std::fmod(scroll, 80.f);
+        const float lamp_offset = -tgx::wrap(scroll, 80.f);
         for (float x = lamp_offset; x < width + 80.f; x += 80.f) {
             draw_lamp(world, light, std::round(x + 40.f));
         }
@@ -381,7 +380,7 @@ int main() {
         }
 
         // The lantern: a warm glow, brighter towards the middle.
-        constexpr tgx::Color lantern = tgx::Color::rgb(0xffb35c);
+        constexpr auto lantern = tgx::Color::rgb(0xffb35c);
         light.circle_gradient(mouse, 28.f, lantern.fade(0.28f), lantern.fade(0.f));
         if (flash > 0.f) {
             light.rect({0.f, 0.f, width, height}, strike_glow.fade(0.25f * flash));

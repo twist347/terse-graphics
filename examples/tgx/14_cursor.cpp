@@ -74,7 +74,7 @@ int main() {
         canvas.clear(tgx::colors::dark_gray);
 
         // The shape of the box under the mouse, the arrow elsewhere.
-        tgx::CursorShape shape = tgx::CursorShape::arrow;
+        auto shape = tgx::CursorShape::arrow;
         for (std::size_t i = 0; i < boxes.size(); ++i) {
             const tgx::Rect box{40.f + 170.f * static_cast<float>(i), 120, 160, 80};
             const bool over = tgx::contains(box, input.mouse());

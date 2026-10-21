@@ -37,14 +37,14 @@ namespace {
         tgx::Color::rgb(0xe6eeff), tgx::Color::rgb(0xff3b3b),
     };
     constexpr tgx::Color silver = palette[6];
-    constexpr tgx::Color gold = tgx::Color::rgb(0xffb347);
+    constexpr auto gold = tgx::Color::rgb(0xffb347);
     // Top, middle, horizon: purple low down, from the city's lights.
     constexpr std::array sky{tgx::Color::rgb(0x03040b), tgx::Color::rgb(0x0b0d2a), tgx::Color::rgb(0x2a1f4d)};
-    constexpr tgx::Color hills = tgx::Color::rgb(0x12122b);
-    constexpr tgx::Color city = tgx::Color::rgb(0x06060e);
-    constexpr tgx::Color water_top = tgx::Color::rgb(0x0e0f28);
-    constexpr tgx::Color water_bottom = tgx::Color::rgb(0x020309);
-    constexpr tgx::Color lamp = tgx::Color::rgb(0xffcf7a);
+    constexpr auto hills = tgx::Color::rgb(0x12122b);
+    constexpr auto city = tgx::Color::rgb(0x06060e);
+    constexpr auto water_top = tgx::Color::rgb(0x0e0f28);
+    constexpr auto water_bottom = tgx::Color::rgb(0x020309);
+    constexpr auto lamp = tgx::Color::rgb(0xffcf7a);
 
     // A flash is the sky lit up around a burst: one big, faint glow.
     enum class Kind : std::uint8_t { spark, willow, crackle, ember, flash };

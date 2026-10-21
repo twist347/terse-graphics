@@ -38,9 +38,9 @@ int main(int argc, char **argv) {
 
     auto &audio = app->audio();
     // A plucked note: a sine dying away.
-    const tgx::Sound note = tgx::Sound::tone({.duration = 0.5f, .decay = 6});
+    const auto note = tgx::Sound::tone({.duration = 0.5f, .decay = 6});
     // A low hum that takes its time to fade.
-    const tgx::Sound drone = tgx::Sound::tone({
+    const auto drone = tgx::Sound::tone({
         .waveform = tgx::Waveform::triangle,
         .frequency = 110,
         .duration = 4,

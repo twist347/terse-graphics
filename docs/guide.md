@@ -686,9 +686,11 @@ off with `-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. They run
 with `ctest --test-dir build`, in two parts: `-L cpu` needs no window (math,
 colors, collisions, the camera, random numbers, timers, easing, images,
 sounds, text, viewports, folders, errors), `-L gpu` opens one and checks what
-is drawn by the pixels read back (the Canvas and its clip and viewports,
-textures, shaders, buffers, render targets, raw GL, frame stats). CI runs the GPU
-part on Linux only, on Mesa's software renderer under Xvfb.
+is drawn by the pixels read back (the Canvas, its shapes, blending, clip and
+viewports, textures, shaders, buffers, render targets, Device draws with their
+texture slots, render state, vertex formats and uniforms, raw GL, frame
+stats). CI runs the GPU part on Linux only, on Mesa's software renderer under
+Xvfb.
 `-DTGX_WARNINGS_AS_ERRORS=ON` fails the build on a warning in tgx's own code,
 as CI does on Linux, macOS and Windows.
 Asserts follow the build type (off where CMake defines `NDEBUG`); force them

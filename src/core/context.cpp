@@ -298,7 +298,7 @@ namespace tgx {
         flush();
 
         const Size size = surface_of(target).pixels;
-        Image image = Image::create(size);
+        auto image = Image::create(size);
         if (image.empty()) {
             return image;
         }

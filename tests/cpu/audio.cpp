@@ -39,7 +39,7 @@ namespace {
 
 TEST_CASE("Sound::from_samples") {
     const std::vector<float> samples(44100 * 2, 0.f);
-    const tgx::Sound sound = tgx::Sound::from_samples(samples, 2, 44100);
+    const auto sound = tgx::Sound::from_samples(samples, 2, 44100);
     CHECK(sound.channels() == 2);
     CHECK(sound.sample_rate() == 44100);
     // Frames, not samples: two channels share a second's worth.
@@ -47,7 +47,7 @@ TEST_CASE("Sound::from_samples") {
 }
 
 TEST_CASE("Sound::tone") {
-    const tgx::Sound sound = tgx::Sound::tone({.duration = 0.5f});
+    const auto sound = tgx::Sound::tone({.duration = 0.5f});
     CHECK(sound.channels() == 1);
     CHECK(sound.sample_rate() == tgx::detail::tone_rate);
     CHECK(sound.duration() == doctest::Approx(0.5).epsilon(1e-4));
@@ -153,7 +153,7 @@ TEST_CASE("Sound::load failures") {
 }
 
 TEST_CASE("a moved Sound keeps what it is") {
-    tgx::Sound a = tgx::Sound::decode(wav_bytes()).value();
+    auto a = tgx::Sound::decode(wav_bytes()).value();
     const tgx::Sound b = std::move(a);
     CHECK(b.duration() == doctest::Approx(8.0 / 8000.0));
 }
@@ -192,7 +192,7 @@ TEST_CASE("a Playback stops or pauses its own play") {
     none.stop();
     CHECK_FALSE(none.playing());
 
-    tgx::Audio audio = tgx::Audio::create();
+    auto audio = tgx::Audio::create();
     if (!audio.active()) {
         MESSAGE("no output device: plays not checked");
         return;
@@ -200,7 +200,7 @@ TEST_CASE("a Playback stops or pauses its own play") {
 
     // A second of silence: long enough to stay playing through the checks.
     const std::vector<float> silence(44100, 0.f);
-    const tgx::Sound sound = tgx::Sound::from_samples(silence, 1, 44100);
+    const auto sound = tgx::Sound::from_samples(silence, 1, 44100);
 
     tgx::Playback a = audio.play(sound);
     const tgx::Playback b = audio.play(sound);
@@ -229,7 +229,7 @@ TEST_CASE("a Playback stops or pauses its own play") {
 
     // Ended: resume() does not start it over.
     const std::vector<float> blip(441, 0.f);
-    const tgx::Sound short_sound = tgx::Sound::from_samples(blip, 1, 44100);
+    const auto short_sound = tgx::Sound::from_samples(blip, 1, 44100);
     tgx::Playback ended = audio.play(short_sound);
     std::this_thread::sleep_for(std::chrono::milliseconds{300});
     CHECK_FALSE(ended.playing());

@@ -80,16 +80,16 @@ namespace {
         tgx::Color::rgb(0x06021a), tgx::Color::rgb(0x170636), tgx::Color::rgb(0x380c58),
         tgx::Color::rgb(0x6c1872), tgx::Color::rgb(0xb02e70), tgx::Color::rgb(0xec5a68),
     };
-    constexpr tgx::Color sun_top = tgx::Color::rgb(0xffe27a);
-    constexpr tgx::Color sun_bottom = tgx::Color::rgb(0xff3a8c);
-    constexpr tgx::Color floor_far = tgx::Color::rgb(0x2a0838);
-    constexpr tgx::Color floor_near = tgx::Color::rgb(0x05010c);
-    constexpr tgx::Color grid_color = tgx::Color::rgb(0xff38d2);
-    constexpr tgx::Color neon_cyan = tgx::Color::rgb(0x34f0ff);
-    constexpr tgx::Color far_edge = tgx::Color::rgb(0xb05cff);
-    constexpr tgx::Color far_fill = tgx::Color::rgb(0x1c0838);
-    constexpr tgx::Color near_fill = tgx::Color::rgb(0x0c0322);
-    constexpr tgx::Color shade = tgx::Color::rgb(0x0b0218);
+    constexpr auto sun_top = tgx::Color::rgb(0xffe27a);
+    constexpr auto sun_bottom = tgx::Color::rgb(0xff3a8c);
+    constexpr auto floor_far = tgx::Color::rgb(0x2a0838);
+    constexpr auto floor_near = tgx::Color::rgb(0x05010c);
+    constexpr auto grid_color = tgx::Color::rgb(0xff38d2);
+    constexpr auto neon_cyan = tgx::Color::rgb(0x34f0ff);
+    constexpr auto far_edge = tgx::Color::rgb(0xb05cff);
+    constexpr auto far_fill = tgx::Color::rgb(0x1c0838);
+    constexpr auto near_fill = tgx::Color::rgb(0x0c0322);
+    constexpr auto shade = tgx::Color::rgb(0x0b0218);
 
     tgx::Random rng{19860707};
 
@@ -183,7 +183,7 @@ namespace {
         constexpr int gaps = 7;
         float y = center.y - r;
         for (int i = 0; i <= gaps; ++i) {
-            const float v = (static_cast<float>(i) + std::fmod(time * 0.18f, 1.f)) / gaps;
+            const float v = (static_cast<float>(i) + tgx::wrap(time * 0.18f, 1.f)) / gaps;
             const float gap = i < gaps ? center.y - r * 0.1f + v * (horizon - center.y + r * 0.1f) : horizon;
             const float thick = r * (0.015f + 0.11f * v * v) * std::min(v * 6.f, 1.f);
             // One too thin to see would only flicker.
@@ -198,7 +198,7 @@ namespace {
     // the horizon. lateral is the sideways position, in columns.
     auto draw_grid(tgx::Canvas &glow, tgx::Vec2 view, float horizon, float travel, float lateral) -> void {
         const float focal = (view.y - horizon) * 0.55f;
-        const float offset = std::fmod(travel, 1.f);
+        const float offset = tgx::wrap(travel, 1.f);
         for (float z = 1.f - offset; z < grid_far; z += 1.f) {
             const float y = horizon + focal / z;
             const float fade = tgx::ease::in_quad(1.f - z / grid_far);
@@ -282,7 +282,7 @@ int main() {
         blur.set_target(&*bloom);
 
         const float dt = std::min(app->clock().delta(), 0.1f);
-        const float time = static_cast<float>(app->clock().elapsed());
+        const auto time = static_cast<float>(app->clock().elapsed());
         // Keys turn the wheel, the mouse sets it; the view follows and banks.
         const float steer_keys = input.axis(tgx::Key::left, tgx::Key::right);
         const float speed_keys = input.axis(tgx::Key::up, tgx::Key::down);
@@ -305,7 +305,7 @@ int main() {
         glow.set_camera(camera);
 
         // Wider and taller than the picture, so the bank shows no edges.
-        const tgx::Rect wide = tgx::Rect::from_center(view / 2.f, {view.x * 1.2f, view.y * 1.4f});
+        const auto wide = tgx::Rect::from_center(view / 2.f, {view.x * 1.2f, view.y * 1.4f});
         const float step = horizon / static_cast<float>(sky.size() - 1);
         world.rect({wide.x, wide.y, wide.width, -wide.y}, sky[0]);
         for (std::size_t i = 0; i + 1 < sky.size(); ++i) {

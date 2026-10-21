@@ -73,6 +73,89 @@ TEST_CASE("additive blending adds up") {
     CHECK(target.read()[10, 10] == tgx::colors::yellow);
 }
 
+TEST_CASE("Blend::none writes the color as is, alpha too") {
+    const tgx::RenderTarget target = tgx_test::target({8, 8});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    canvas.clear(tgx::colors::white);
+    canvas.set_blend(tgx::Blend::none);
+    canvas.rect({0, 0, 8, 8}, tgx::colors::red.with_alpha(128));
+
+    CHECK(target.read()[4, 4] == tgx::colors::red.with_alpha(128));
+}
+
+TEST_CASE("Blend::multiply darkens, and fades to what is under as alpha drops") {
+    const tgx::RenderTarget target = tgx_test::target({16, 8});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    constexpr tgx::Color under{200, 100, 50, 255};
+
+    canvas.clear(under);
+    canvas.set_blend(tgx::Blend::multiply);
+    canvas.rect({0, 0, 8, 8}, tgx::colors::white.with_alpha(128).premultiplied());
+    canvas.rect({8, 0, 8, 8}, tgx::Color{128, 128, 128, 255});
+
+    const tgx::Image image = target.read();
+    CHECK(tgx_test::near(image[4, 4], under, 1));
+    CHECK(tgx_test::near(image[12, 4], {100, 50, 25, 255}, 1));
+}
+
+TEST_CASE("rect_lines: inside the edges, the corners filled, the middle left") {
+    const tgx::RenderTarget target = tgx_test::target({64, 64});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    canvas.clear(tgx::colors::black);
+    canvas.rect_lines({10, 10, 40, 30}, tgx::colors::white, 4);
+
+    const tgx::Image image = target.read();
+    CHECK(image[11, 25] == tgx::colors::white);
+    CHECK(image[48, 25] == tgx::colors::white);
+    CHECK(image[30, 11] == tgx::colors::white);
+    CHECK(image[30, 38] == tgx::colors::white);
+    CHECK(image[10, 10] == tgx::colors::white);
+    CHECK(image[49, 39] == tgx::colors::white);
+    CHECK(image[30, 25] == tgx::colors::black);
+    CHECK(image[30, 14] == tgx::colors::black);
+    CHECK(image[9, 25] == tgx::colors::black);
+    CHECK(image[50, 39] == tgx::colors::black);
+}
+
+TEST_CASE("circle_lines: a ring inside the radius") {
+    const tgx::RenderTarget target = tgx_test::target({64, 64});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    canvas.clear(tgx::colors::black);
+    canvas.circle_lines({32, 32}, 20, tgx::colors::white, 4);
+
+    const tgx::Image image = target.read();
+    CHECK(image[50, 32] == tgx::colors::white);
+    CHECK(image[13, 32] == tgx::colors::white);
+    CHECK(image[32, 13] == tgx::colors::white);
+    CHECK(image[32, 32] == tgx::colors::black);
+    CHECK(image[45, 32] == tgx::colors::black);
+    CHECK(image[53, 32] == tgx::colors::black);
+}
+
+TEST_CASE("line: centered on a to b, square ends exactly there") {
+    const tgx::RenderTarget target = tgx_test::target({64, 64});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    canvas.clear(tgx::colors::black);
+    canvas.line({10, 20}, {50, 20}, tgx::colors::white, 4);
+    canvas.line({20.5f, 30}, {20.5f, 60}, tgx::colors::white);
+
+    const tgx::Image image = target.read();
+    CHECK(image[10, 18] == tgx::colors::white);
+    CHECK(image[49, 21] == tgx::colors::white);
+    CHECK(image[9, 20] == tgx::colors::black);
+    CHECK(image[50, 20] == tgx::colors::black);
+    CHECK(image[30, 17] == tgx::colors::black);
+    CHECK(image[30, 22] == tgx::colors::black);
+    // One pixel wide: the column it covers, not its neighbors.
+    CHECK(image[20, 45] == tgx::colors::white);
+    CHECK(image[19, 45] == tgx::colors::black);
+    CHECK(image[21, 45] == tgx::colors::black);
+}
+
 TEST_CASE("line_strip: a mitered corner") {
     const tgx::RenderTarget target = tgx_test::target({256, 256});
     tgx::Canvas canvas = tgx_test::canvas_on(target);

@@ -26,13 +26,26 @@ namespace tgx_test {
 
     // A fresh canvas drawing into the target, spanning its pixels.
     [[nodiscard]] inline auto canvas_on(const tgx::RenderTarget &target) -> tgx::Canvas {
-        tgx::Canvas canvas = tgx::Canvas::create();
+        auto canvas = tgx::Canvas::create();
         canvas.set_target(&target);
         return canvas;
     }
 
+    // A shader for Cover's vertices, with a fragment source of its own.
+    [[nodiscard]] inline auto cover_shader(const char *fragment_source) -> tgx::gl::Shader {
+        auto shader = tgx::gl::Shader::from_source(
+            TGX_GLSL_VERSION R"(
+                layout(location = 0) in vec2 in_position;
+                void main() { gl_Position = vec4(in_position, 0.0, 1.0); }
+            )",
+            fragment_source
+        );
+        REQUIRE(shader.has_value());
+        return std::move(*shader);
+    }
+
     // One triangle over all of clip space, green: a Device::draw that covers
-    // what it is drawn into, or the viewport it is given.
+    // what it is drawn into, or the viewport it is given. Counter-clockwise.
     struct Cover {
         struct Vertex {
             tgx::Vec2 position{};
@@ -43,17 +56,10 @@ namespace tgx_test {
         tgx::gl::VertexArray vertices;
 
         [[nodiscard]] static auto create() -> Cover {
-            auto shader = tgx::gl::Shader::from_source(
-                TGX_GLSL_VERSION R"(
-                    layout(location = 0) in vec2 in_position;
-                    void main() { gl_Position = vec4(in_position, 0.0, 1.0); }
-                )",
-                TGX_GLSL_VERSION R"(
-                    out vec4 out_color;
-                    void main() { out_color = vec4(0.0, 1.0, 0.0, 1.0); }
-                )"
-            );
-            REQUIRE(shader.has_value());
+            tgx::gl::Shader shader = cover_shader(TGX_GLSL_VERSION R"(
+                out vec4 out_color;
+                void main() { out_color = vec4(0.0, 1.0, 0.0, 1.0); }
+            )");
             constexpr std::array corners{Vertex{{-1, -1}}, Vertex{{3, -1}}, Vertex{{-1, 3}}};
             auto buffer = tgx::gl::Buffer<Vertex>::create(corners);
             REQUIRE(buffer.has_value());
@@ -61,7 +67,7 @@ namespace tgx_test {
                 std::array{tgx::gl::VertexAttribute::of(0, &Vertex::position)}
             );
             vertices.set_vertex_buffer(*buffer);
-            return {std::move(*shader), std::move(*buffer), std::move(vertices)};
+            return {std::move(shader), std::move(*buffer), std::move(vertices)};
         }
 
         auto draw(const tgx::gl::DrawParams &params = {}) const noexcept -> void {
