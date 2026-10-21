@@ -694,9 +694,8 @@ accessors), `-L gpu` opens one and checks what
 is drawn by the pixels read back (the Canvas, its shapes, blending, clip and
 viewports, textures, shaders, buffers, render targets, Device draws with their
 texture slots, render state, vertex formats and uniforms, raw GL, frame
-stats). CI runs the GPU part on Linux, on Mesa's software renderer under
-Xvfb, and on macOS; on Linux it also runs both parts under AddressSanitizer and
-UBSan.
+stats). CI runs the GPU part on Linux only, on Mesa's software renderer under
+Xvfb, and there also runs both parts under AddressSanitizer and UBSan.
 `-DTGX_WARNINGS_AS_ERRORS=ON` fails the build on a warning in tgx, its examples
 or tests (not the vendored libraries), as CI does on Linux, macOS and Windows.
 Asserts follow the build type (off where CMake defines `NDEBUG`); force them

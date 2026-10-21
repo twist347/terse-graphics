@@ -1,7 +1,8 @@
 # macOS: builds the library, examples and tests, warnings as errors, runs
-# them all (the GPU ones in the runner's own desktop session) and builds a project against the installed package and with tgx
-# inside it. One workflow per platform, so each has a
-# badge of its own in the README.
+# the tests that need no display or sound card (GLFW asks for a hardware GL
+# renderer, which the runners lack), and builds a project against the
+# installed package and with tgx inside it. One workflow per platform, so
+# each has a badge of its own in the README.
 name: macOS
 
 on:
@@ -32,10 +33,6 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build -L cpu --output-on-failure
-
-      # The strictest core profile tgx runs on.
-      - name: Test on the GPU
-        run: ctest --test-dir build -L gpu --output-on-failure
 
       # A project of its own finds the installed package, as a game would.
       - name: Install and build against it
