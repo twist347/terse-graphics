@@ -48,6 +48,9 @@ namespace tgx::detail {
         // From the top-left. Flipped for GL at draw time, with the target's
         // size at that moment, as GL itself applies a viewport.
         gl::Viewport viewport{};
+        // Pixels outside it are not drawn. From the top-left, as viewport.
+        // The scissor test is on only for the draw, as raw GL expects it off.
+        std::optional<gl::Viewport> scissor{};
         // 0 leaves the slot unchanged.
         std::array<GlId, gl::max_texture_slots> textures{};
     };

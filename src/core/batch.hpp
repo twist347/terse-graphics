@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace tgx::detail {
@@ -45,6 +46,8 @@ namespace tgx::detail {
         Mat4 transform{};
         // In pixels from the top-left.
         gl::Viewport viewport{};
+        // In pixels from the top-left. None: not clipped.
+        std::optional<gl::Viewport> clip{};
 
         [[nodiscard]] auto operator==(const BatchState &) const noexcept -> bool = default;
     };

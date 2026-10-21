@@ -163,6 +163,7 @@ namespace tgx::detail {
             .count = indices_.size(),
             .state = {.blend = state_.blend},
             .viewport = state_.viewport,
+            .scissor = state_.clip,
             .textures = {state_.texture != 0 ? state_.texture : builtin_.id()},
         });
 

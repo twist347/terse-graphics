@@ -234,6 +234,19 @@ namespace tgx {
         transform_stale_ = true;
     }
 
+    auto Canvas::set_clip(std::optional<Rect> rect) noexcept -> void {
+        // A negative size would silently count as empty.
+        TGX_ASSERT_MSG(
+            !rect
+                || (std::isfinite(rect->x) && std::isfinite(rect->y) && rect->width >= 0.f && rect->height >= 0.f
+                    && std::isfinite(rect->width) && std::isfinite(rect->height)),
+            "clip {} {} {}x{}",
+            rect->x, rect->y, rect->width, rect->height
+        );
+
+        clip_ = rect;
+    }
+
     auto Canvas::to_world(Vec2 point) const noexcept -> Vec2 {
         const auto mapping = detail::screen_mapping(size_, viewport_, surface());
         return camera_.to_world(mapping ? mapping->to_canvas(point) : point);
@@ -761,6 +774,11 @@ namespace tgx {
             transform_stale_ || span != transform_size_) {
             refit(span);
         }
+        const gl::Viewport viewport = detail::pixel_viewport(detail::shown(size_, viewport_, surface), surface);
+        std::optional<gl::Viewport> clip{};
+        if (clip_) {
+            clip = detail::pixel_clip(*clip_, transform_size_, viewport);
+        }
         return {
             .target = target_,
             .texture = texture,
@@ -769,7 +787,8 @@ namespace tgx {
             .u_projection = u_projection_,
             .u_texture = u_texture_,
             .transform = transform_,
-            .viewport = detail::pixel_viewport(detail::shown(size_, viewport_, surface), surface),
+            .viewport = viewport,
+            .clip = clip,
         };
     }
 

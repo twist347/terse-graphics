@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string_view>
 
@@ -87,7 +88,7 @@ namespace tgx {
     //
     // The Device draws the batch before its own draws and clears, and at
     // present(). Consecutive shapes with the same target, viewport, size,
-    // camera, texture, blend and shader become one draw.
+    // camera, clip, texture, blend and shader become one draw.
     //
     // A Canvas owns no GPU resources, only settings. Copy it for each set of
     // settings instead of switching back and forth; all copies share one batch:
@@ -146,6 +147,19 @@ namespace tgx {
         // The reverse of to_world.
         [[nodiscard]] auto to_screen(Vec2 world) const noexcept -> Vec2;
 
+        // The shapes after it are drawn only inside rect, e.g. a list scrolled
+        // inside a panel. In canvas coordinates without the camera, so it
+        // stays put and upright as the camera moves. Edges fall on whole
+        // pixels. An empty rect shows nothing; std::nullopt (default) clips
+        // nothing.
+        //
+        //     canvas.set_clip(panel);
+        //     canvas.text({panel.x, panel.y - scroll}, log, colors::white);   // cut at the panel's edges
+        //     canvas.set_clip({});                                            // nothing clipped
+        auto set_clip(std::optional<Rect> rect) noexcept -> void;
+
+        [[nodiscard]] auto clip() const noexcept -> std::optional<Rect> { return clip_; }
+
         // For the shapes after it. Default: Blend::alpha.
         auto set_blend(Blend blend) noexcept -> void { blend_ = blend; }
 
@@ -167,7 +181,8 @@ namespace tgx {
         // shapes with the old values.
         auto set_shader(const gl::Shader *shader) noexcept -> void;
 
-        // Fills the whole window or target, ignoring the viewport.
+        // Fills the whole window or target, ignoring the viewport and the
+        // clip.
         auto clear(Color color) noexcept -> void;
 
         auto rect(Rect rect, Color color) noexcept -> void;
@@ -344,6 +359,7 @@ namespace tgx {
         Rect viewport_{};
         detail::Target target_{};
         Camera2D camera_{};
+        std::optional<Rect> clip_{};
         Blend blend_{Blend::alpha};
         // 0: the built-in shader.
         GlId program_{0};

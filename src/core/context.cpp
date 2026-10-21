@@ -34,6 +34,12 @@ namespace {
         glClearDepth(static_cast<GLdouble>(depth));
     }
 
+    // A rect from the top-left as GL takes it: from the bottom-left of a
+    // framebuffer that tall.
+    [[nodiscard]] constexpr auto from_bottom(tgx::gl::Viewport rect, int height) noexcept -> tgx::gl::Viewport {
+        return {rect.x, height - rect.y - rect.height, rect.width, rect.height};
+    }
+
     [[nodiscard]] constexpr auto to_gl(tgx::gl::Primitive primitive) noexcept -> GLenum {
         using enum tgx::gl::Primitive;
         switch (primitive) {
@@ -245,16 +251,17 @@ namespace tgx {
 
         // Flipped with the target's size now, not when the draw was asked
         // for, so the top-left stays the top-left across a resize.
-        const gl::Viewport flipped{
-            call.viewport.x,
-            surface_of(call.target).pixels.height - call.viewport.y - call.viewport.height,
-            call.viewport.width,
-            call.viewport.height,
-        };
+        const int height = surface_of(call.target).pixels.height;
+        const gl::Viewport flipped = from_bottom(call.viewport, height);
         bind_framebuffer(call.target.framebuffer);
         if (flipped != gl_viewport) {
             glViewport(flipped.x, flipped.y, flipped.width, flipped.height);
             gl_viewport = flipped;
+        }
+        if (call.scissor) {
+            const gl::Viewport scissor = from_bottom(*call.scissor, height);
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(scissor.x, scissor.y, scissor.width, scissor.height);
         }
         apply_state(state, call.state);
         use_program(call.program);
@@ -271,17 +278,20 @@ namespace tgx {
         ++frame.draws;
         if (!call.index_type) {
             glDrawArrays(mode, static_cast<GLint>(call.first), count);
-            return;
+        } else {
+            const std::size_t index_size = *call.index_type == gl::IndexType::uint32
+                                               ? sizeof(std::uint32_t)
+                                               : sizeof(std::uint16_t);
+
+            // GL takes the start as a byte offset into the index buffer,
+            // passed as a pointer.
+            const auto *start = reinterpret_cast<const void *>(call.first * index_size);
+            glDrawElements(mode, count, to_gl(*call.index_type), start);
         }
 
-        const std::size_t index_size = *call.index_type == gl::IndexType::uint32
-                                           ? sizeof(std::uint32_t)
-                                           : sizeof(std::uint16_t);
-
-        // GL takes the start as a byte offset into the index buffer, passed
-        // as a pointer.
-        const auto *start = reinterpret_cast<const void *>(call.first * index_size);
-        glDrawElements(mode, count, to_gl(*call.index_type), start);
+        if (call.scissor) {
+            glDisable(GL_SCISSOR_TEST);
+        }
     }
 
     auto detail::Context::read(const Target &target) -> Image {

@@ -119,7 +119,7 @@ Not yet: fonts of your own (TTF).
 | `App`         | The simple way in: creates the `Window`, `Device`, `Canvas` and `Audio` in the right order as one call that fails as one (the audio never fails it), owns them, tears them down in reverse, and gives the frame loop in three words (`should_close`, `poll_events`, `swap_buffers`). |
 | `Window`      | `glfwInit`/`glfwTerminate`, the OS window and its GL context: version hints, making it current, logging what it runs on, polling events, size (kept up to date as GLFW reports it) and whether it changed, focus, being minimized, title, vsync and a frame rate limit (waited out at the swap), fullscreen, closing; keyboard and mouse state, shown by `Input`. Knows nothing else about GL. |
 | `Device`      | Loads GL functions, checks the version, installs the debug callback (where `KHR_debug` exists), logs what context the driver gave. Then everything that changes global GL state or draws: clear, render state, draw calls (`draw` is the one part of the `gl` level), presenting frames and timing them (`Clock`), and the batch of 2D vertices the `Canvas` fills, drawn before anything else of its own. |
-| `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how and where to draw (size, viewport, target, camera, blend, shader): a plain value to copy. |
+| `Canvas`      | Simple 2D drawing: turns shapes and sprites into vertices for the `Device` to draw in as few draws as it can. Holds no GPU resources, only how and where to draw (size, viewport, target, camera, clip, blend, shader): a plain value to copy. |
 | `Texture`     | An image on the GPU, for the `Canvas` and `Device::draw` alike. Nothing GL-specific to configure; `id()` is the way out to raw GL. Editing binds it through the `Device`'s cache, so the next draw still finds what it asks for. |
 | `RenderTarget`| A texture to draw into instead of the window, with the GL framebuffer that makes it one and an optional depth buffer. The `Canvas` (`set_target`) and `Device::draw`/`clear` (`target`) draw into it; `read()` brings it back as an `Image`. |
 | `Audio`       | The sound output (miniaudio's engine on the system's default device): plays `Sound`s, mixes them with `Music`, the overall volume. Silent, and saying so in the log, when there is no device. |
@@ -225,6 +225,19 @@ tgx::Canvas minimap = app->canvas();
 minimap.set_viewport({16, 16, 200, 150});   // screen coordinates of the window
 ```
 
+A clip cuts the shapes after it to a rect without changing coordinates, as a
+list scrolled inside a panel needs (raylib's scissor mode). It is in the
+canvas's own coordinates, the camera aside: it stays put and upright as the
+camera moves. Its edges fall on whole pixels; `clear()` ignores it.
+
+```cpp
+canvas.set_clip(panel);           // empty: shows nothing, as a bar filled 0 %
+for (const Row &row: rows) {
+    canvas.text({panel.x, row.y - scroll}, row.name, tgx::colors::white);
+}
+canvas.set_clip({});              // nothing clipped
+```
+
 Or it can draw into a render target instead of the window; its coordinates
 are then the target's pixels. For pixel art, draw the world into a small one
 and scale it up by a whole factor with nearest filtering: every pixel stays a
@@ -284,7 +297,7 @@ they found it (see [Rules](#rules)).
 `device().stats()` counts the last frame's GL work: draws (and how many were
 the canvas's batches), clears, and switches of shader, texture and target. Many
 canvas draws for few shapes mean the batch keeps breaking: on a change of
-target, viewport, size, camera, texture, blend or shader.
+target, viewport, size, camera, clip, texture, blend or shader.
 
 Textures load from image files in one call; `Image` is for pixels made in code
 or read on the CPU, rows top to bottom. A sprite needs only a position: by
@@ -360,8 +373,8 @@ The font shares its texture with the shapes, so text and shapes drawn in a row
 are one draw. It is baked into the library by `tools/bake_font.py` from
 `thirdparty/unscii/`.
 
-Shapes in a row with the same target, viewport, size, camera, texture, blend
-and shader go out as one draw; a change of any of them starts the next. So many
+Shapes in a row with the same target, viewport, size, camera, clip, texture,
+blend and shader go out as one draw; a change of any of them starts the next. So many
 sprites from one texture (an atlas) cost one draw. A texture updated or
 destroyed while its sprites wait has them drawn first; moving one changes
 nothing.
@@ -581,8 +594,8 @@ asserts on, tgx stops at the call instead; the main cases:
   range;
 - a draw or a sprite reading the texture of the render target it draws into;
 - a depth test, or a clear of depth, on a render target made without one;
-- a viewport of negative size, for a draw or a canvas; a canvas of negative
-  size;
+- a viewport or clip of negative size, for a draw or a canvas; a canvas of
+  negative size;
 - a rect of negative size or a circle of negative radius, for a collision
   check or a canvas shape; a negative or NaN thickness;
 - a vertex layout that does not fit its stride, or uses a location twice;

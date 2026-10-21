@@ -96,6 +96,27 @@ namespace tgx::detail {
         return {left, top, right - left, bottom - top};
     }
 
+    // A clip rect in the coordinates of a canvas spanning span, in pixels from
+    // the top-left, within the part shown. Edges rounded, as pixel_viewport's.
+    // Empty when nothing of it is shown.
+    [[nodiscard]] inline auto pixel_clip(Rect clip, Size span, gl::Viewport shown) noexcept -> gl::Viewport {
+        if (span.empty()) {
+            return {shown.x, shown.y, 0, 0};
+        }
+
+        // Clamped before rounding: lround of a huge float is unspecified.
+        const auto edge = [](float units, float pixels_per_unit, int extent) {
+            return static_cast<int>(std::lround(std::clamp(units * pixels_per_unit, 0.f, static_cast<float>(extent))));
+        };
+        const float sx = static_cast<float>(shown.width) / static_cast<float>(span.width);
+        const float sy = static_cast<float>(shown.height) / static_cast<float>(span.height);
+        const int left = edge(clip.x, sx, shown.width);
+        const int top = edge(clip.y, sy, shown.height);
+        const int right = std::max(left, edge(clip.right(), sx, shown.width));
+        const int bottom = std::max(top, edge(clip.bottom(), sy, shown.height));
+        return {shown.x + left, shown.y + top, right - left, bottom - top};
+    }
+
     // canvas = (screen - offset) * scale, per axis. None for a minimized
     // window.
     struct ScreenMapping {

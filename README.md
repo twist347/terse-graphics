@@ -23,7 +23,7 @@ light and a scanline shader, all made in code.*
   saves.
 - **Input**: keys, mouse buttons, the wheel, typed text; the cursor hidden, captured for mouse look, or in another shape.
 - **Canvas**: shapes, gradients, sprites, nine-slice frames and text in a built-in pixel font,
-  under a 2D camera, batched into as few draws as the GPU allows.
+  under a 2D camera, clipped to a rect, batched into as few draws as the GPU allows.
 - **Render targets**: pixel art scaled up crisp, post effects, screenshots.
 - **Audio**: sounds and streamed music, WAV, OGG, MP3 or FLAC.
 - **Images and textures**: PNG, JPEG, BMP, TGA, GIF in, PNG out.
@@ -87,6 +87,7 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `13_audio`      | Notes made in code, played at five pitches and panned; a long note paused and stopped on its own; music streamed from a file. |
 | `14_cursor`     | The cursor's shapes, hidden, and captured for mouse look.          |
 | `15_nine_slice` | One small frame at any size: a panel, buttons, a bar cut in three. |
+| `16_clip`       | Shapes cut to a rect: a list scrolled in a panel, a world turning behind a window, a bar filling up. |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|
