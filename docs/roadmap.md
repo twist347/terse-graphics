@@ -1,16 +1,10 @@
 # tgx roadmap
 
 Where tgx is going, one line per item. Designs are worked out when an item is
-taken up; what is done leaves this file (the [guide](guide.md) and the history
-show it). Back to the [README](../README.md).
+taken up; what is done leaves this file (the [guide](guide.md) and the
+[changelog](../CHANGELOG.md) show it). Back to the [README](../README.md).
 
-## Before 0.1.0
-
-- The first release: tag 0.1.0 and start `CHANGELOG.md` with it (added,
-  changed, fixed per version, as in terse-dsa), bumping `tgx/core/version.hpp`
-  from then on.
-
-## After 0.1.0
+## Next
 
 - The bunnymark against raylib, re-measured: one line in the README, the
   numbers and their scope in the guide.
