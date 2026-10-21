@@ -16,9 +16,11 @@ namespace tgx {
     // one for the level layout and one for effects, so the layout replays the
     // same whatever the effects do.
     //
-    // The same seed gives the same numbers on every platform and compiler:
-    // the generator (PCG32) and the distributions are tgx's own, unlike
-    // <random>'s. Not for anything secret.
+    // The same seed gives the same numbers on every run. The integers
+    // (next_u32, next_int, pick) are the same on every platform and compiler
+    // too: the generator (PCG32) and the distributions are tgx's own, unlike
+    // <random>'s. Floats may differ between platforms in the last bits. Not
+    // for anything secret.
     //
     //     tgx::Random random{42};
     //     const float x = random.next_float(0, 320);

@@ -34,6 +34,13 @@ namespace tgx::detail {
         return std::max(static_cast<std::size_t>(std::ceil(n)), min_segments);
     }
 
+    // Whether normalize(v) is a direction: its squared length neither
+    // underflows to 0 (a line of 1e-30) nor overflows to infinity.
+    [[nodiscard]] inline auto has_direction(Vec2 v) noexcept -> bool {
+        const float squared = length_squared(v);
+        return squared > 0.f && std::isfinite(squared);
+    }
+
     // Radians.
     inline constexpr float whole_turn = 2.f * std::numbers::pi_v<float>;
 

@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <span>
 #include <thread>
@@ -121,6 +122,28 @@ TEST_CASE("Sound::decode") {
     const auto bad = tgx::Sound::decode(garbage);
     REQUIRE_FALSE(bad.has_value());
     CHECK(bad.error() == tgx::Error::decode);
+}
+
+TEST_CASE("Sound::decode of a header claiming terabytes fails without reserving them") {
+    // FLAC: a STREAMINFO of 8 channels and 2^36 - 1 frames, then junk.
+    std::vector<std::byte> flac{};
+    const auto put = [&](unsigned value) { flac.push_back(static_cast<std::byte>(value)); };
+    for (const char c: {'f', 'L', 'a', 'C'}) {
+        put(static_cast<unsigned char>(c));
+    }
+    for (const unsigned value: {0x80u, 0u, 0u, 34u, 0x10u, 0u, 0x10u, 0u, 0u, 0u, 0u, 0u, 0u, 0u}) {
+        put(value);
+    }
+    constexpr std::uint64_t info = 44100ull << 44 | 7ull << 41 | 15ull << 36 | 0xfffffffffull;
+    for (int shift = 56; shift >= 0; shift -= 8) {
+        put(static_cast<unsigned>(info >> shift) & 0xffu);
+    }
+    flac.resize(flac.size() + 16);   // the MD5
+    flac.resize(flac.size() + 64, std::byte{0xff});
+
+    const auto sound = tgx::Sound::decode(flac);
+    REQUIRE_FALSE(sound.has_value());
+    CHECK(sound.error() == tgx::Error::decode);
 }
 
 TEST_CASE("Sound::load failures") {

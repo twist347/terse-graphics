@@ -41,6 +41,13 @@ namespace tgx::detail {
         return {area.x + (area.width - w) / 2.f, area.y + (area.height - h) / 2.f, w, h};
     }
 
+    // Rounded, within int: lround of a huge float is unspecified, and a
+    // viewport may be set that large.
+    [[nodiscard]] inline auto round_to_int(float x) noexcept -> int {
+        constexpr float limit = 1e9f;
+        return static_cast<int>(std::lround(std::clamp(x, -limit, limit)));
+    }
+
     // A canvas's coordinate space: its size if set, else its viewport's, else
     // units.
     [[nodiscard]] inline auto span_of(Size size, Rect viewport, Size units) noexcept -> Size {
@@ -48,7 +55,7 @@ namespace tgx::detail {
             return size;
         }
         if (!viewport.empty()) {
-            return {static_cast<int>(std::lround(viewport.width)), static_cast<int>(std::lround(viewport.height))};
+            return {round_to_int(viewport.width), round_to_int(viewport.height)};
         }
         return units;
     }
@@ -89,10 +96,10 @@ namespace tgx::detail {
         // without a gap or an overlap.
         const float sx = static_cast<float>(surface.pixels.width) / static_cast<float>(surface.units.width);
         const float sy = static_cast<float>(surface.pixels.height) / static_cast<float>(surface.units.height);
-        const auto left = static_cast<int>(std::lround(rect.x * sx));
-        const auto top = static_cast<int>(std::lround(rect.y * sy));
-        const auto right = static_cast<int>(std::lround(rect.right() * sx));
-        const auto bottom = static_cast<int>(std::lround(rect.bottom() * sy));
+        const int left = round_to_int(rect.x * sx);
+        const int top = round_to_int(rect.y * sy);
+        const int right = round_to_int(rect.right() * sx);
+        const int bottom = round_to_int(rect.bottom() * sy);
         return {left, top, right - left, bottom - top};
     }
 
@@ -104,9 +111,8 @@ namespace tgx::detail {
             return {shown.x, shown.y, 0, 0};
         }
 
-        // Clamped before rounding: lround of a huge float is unspecified.
         const auto edge = [](float units, float pixels_per_unit, int extent) {
-            return static_cast<int>(std::lround(std::clamp(units * pixels_per_unit, 0.f, static_cast<float>(extent))));
+            return round_to_int(std::clamp(units * pixels_per_unit, 0.f, static_cast<float>(extent)));
         };
         const float sx = static_cast<float>(shown.width) / static_cast<float>(span.width);
         const float sy = static_cast<float>(shown.height) / static_cast<float>(span.height);

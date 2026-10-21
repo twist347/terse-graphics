@@ -4,6 +4,8 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
+
 TEST_CASE("Device::stats: draws, batches, clears and switches of the last frame") {
     auto &device = tgx_test::app().device();
     const tgx::RenderTarget target = tgx_test::target({8, 8});
@@ -51,4 +53,23 @@ TEST_CASE("Device::stats: a frame of nothing counts nothing") {
     CHECK(stats.shader_switches == 0);
     CHECK(stats.texture_switches == 0);
     CHECK(stats.target_switches == 0);
+}
+
+TEST_CASE("Device::stats: lines too short to have a direction draw nothing") {
+    auto &device = tgx_test::app().device();
+    const tgx::RenderTarget target = tgx_test::target({8, 8});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    // 1e-30 apart: squared, the distance underflows to 0.
+    constexpr std::array close{tgx::Vec2{0, 0}, tgx::Vec2{1e-30f, 0}};
+
+    const auto frame = [&] {
+        canvas.line(close[0], close[1], tgx::colors::white, 2);
+        canvas.line_strip(close, tgx::colors::white, 2);
+        canvas.line_loop(close, tgx::colors::white, 2);
+        device.present();
+    };
+    frame();
+    frame();
+
+    CHECK(device.stats().canvas_draws == 0);
 }

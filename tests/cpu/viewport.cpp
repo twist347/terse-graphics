@@ -16,6 +16,20 @@ TEST_CASE("a canvas spans its own size, else its viewport, else the surface") {
     CHECK(span_of({320, 180}, {0, 0, 100, 100}, {1280, 720}) == tgx::Size{320, 180});
     CHECK(span_of({}, {10, 10, 199.6f, 150.2f}, {1280, 720}) == tgx::Size{200, 150});
     CHECK(span_of({}, {}, {1280, 720}) == tgx::Size{1280, 720});
+    // Too large for an int: kept within one.
+    CHECK(span_of({}, {0, 0, 1e30f, 1e30f}, {1280, 720}).width > 0);
+}
+
+TEST_CASE("a viewport in pixels: edges rounded, a huge one kept within int") {
+    using tgx::detail::pixel_viewport;
+    using V = tgx::gl::Viewport;
+    const tgx::detail::Surface hidpi{.pixels = {200, 100}, .units = {100, 50}};
+    CHECK(pixel_viewport({10.2f, 5, 30, 20}, hidpi) == V{20, 10, 60, 40});   // edges 20.4 and 80.4
+    CHECK(pixel_viewport({}, hidpi) == V{0, 0, 200, 100});
+    const V huge = pixel_viewport({0, 0, 1e30f, 1e30f}, hidpi);
+    CHECK(huge.x == 0);
+    CHECK(huge.width > 0);
+    CHECK(huge.height > 0);
 }
 
 TEST_CASE("a clip rect in pixels: scaled, rounded, kept within what is shown") {

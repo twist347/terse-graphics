@@ -427,9 +427,9 @@ namespace tgx {
     auto Canvas::line(Vec2 a, Vec2 b, Color color, float thickness) noexcept -> void {
         TGX_ASSERT_MSG(thickness >= 0.f, "thickness {}", thickness);
 
-        // A zero-length line has no direction to widen across.
+        // A line too short has no direction to widen across.
         const Vec2 along = b - a;
-        if (along == Vec2{} || thickness <= 0.f) {
+        if (!detail::has_direction(along) || thickness <= 0.f) {
             return;
         }
 
@@ -809,13 +809,14 @@ namespace tgx {
             return;
         }
 
-        // A repeated point has no direction and is skipped. In a loop, the
-        // one before the first is the last.
+        // A repeated point, or one too close to the one before, has no
+        // direction and is skipped. In a loop, the one before the first is
+        // the last.
         const auto kept = [&](std::size_t i) noexcept {
             if (i == 0 && !closed) {
                 return true;
             }
-            return points[i] != points[(i + n - 1) % n];
+            return detail::has_direction(points[i] - points[(i + n - 1) % n]);
         };
         // after(i): the next kept point; n at a strip's end, the first kept
         // point in a loop.

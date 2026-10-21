@@ -88,7 +88,8 @@ In `tgx`:
   `frame_of` gives a sprite sheet's frame by index, as `Sprite::src`.
 - **Random**: `tgx::Random`, a seeded value with floats, ints, chances, points
   in a rect, directions and picks; the same seed gives the same numbers on
-  every platform.
+  every run, and the same integers on every platform (floats may differ in
+  the last bits).
 - **Timers**: `tgx::Timer`, a value ticked by `clock().delta()`: `once`
   (a delay), `once_ready` (a cooldown that lets the first use through),
   `every` (waves, animation frames; keeps its rate at any frame rate), with

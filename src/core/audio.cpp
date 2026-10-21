@@ -279,10 +279,15 @@ namespace tgx {
         }
 
         // In chunks: Vorbis cannot report its length up front. When the
-        // length is known, all of it plus one chunk is reserved.
+        // length is known, all of it plus one chunk is reserved, unless it is
+        // more than the bytes could hold: a broken file's header may claim
+        // terabytes.
         std::vector<float> samples{};
         constexpr ma_uint64 chunk = 4096;
-        if (ma_uint64 frames = 0; ma_decoder_get_length_in_pcm_frames(&decoder, &frames) == MA_SUCCESS) {
+        constexpr ma_uint64 samples_per_byte = 1024;
+        const ma_uint64 plausible = encoded.size() * samples_per_byte / channels;
+        if (ma_uint64 frames = 0;
+            ma_decoder_get_length_in_pcm_frames(&decoder, &frames) == MA_SUCCESS && frames <= plausible) {
             samples.reserve(static_cast<std::size_t>((frames + chunk) * channels));
         }
         for (;;) {
@@ -470,19 +475,23 @@ namespace tgx {
         }
         // miniaudio counts a sound's frames at the engine's rate.
         const ma_uint32 rate = ma_engine_get_sample_rate(ma_sound_get_engine(sound));
-        auto frame = static_cast<ma_uint64>(seconds * rate);
 
         // miniaudio wraps a frame past the end around the length, and one two
         // lengths past leaves the sound stuck at its end, so clamp or wrap
         // here. Vorbis reports no length: use the duration measured at load.
+        // In double: a huge time would overflow the frame count.
         ma_uint64 length = 0;
         if (ma_sound_get_length_in_pcm_frames(sound, &length) != MA_SUCCESS || length == 0) {
             length = static_cast<ma_uint64>(stream_->duration * rate);
         }
+        double frame = seconds * rate;
         if (length > 0) {
-            frame = stream_->looping ? frame % length : std::min(frame, length);
+            const auto end = static_cast<double>(length);
+            frame = stream_->looping ? std::fmod(frame, end) : std::min(frame, end);
+        } else {
+            frame = std::min(frame, 0x1p62);
         }
-        ma_sound_seek_to_pcm_frame(sound, frame);
+        ma_sound_seek_to_pcm_frame(sound, static_cast<ma_uint64>(frame));
     }
 
     auto Music::position() const noexcept -> double {

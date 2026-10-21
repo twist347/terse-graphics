@@ -27,8 +27,8 @@ light and a scanline shader, all made in code.*
 - **Render targets**: pixel art scaled up crisp, post effects, screenshots.
 - **Audio**: sounds and streamed music, WAV, OGG, MP3 or FLAC.
 - **Images and textures**: PNG, JPEG, BMP, TGA, GIF in, PNG out.
-- **Utilities**: GPU-ready math with glm's conventions, collisions, `Random`
-  giving the same numbers on every platform.
+- **Utilities**: GPU-ready math with glm's conventions, collisions, a seeded
+  `Random`.
 - **`tgx::gl`**: your own shaders, typed buffers and uniforms, in the same
   frame as the canvas.
 - **Checks**: asserts for the mistakes OpenGL keeps quiet about.
