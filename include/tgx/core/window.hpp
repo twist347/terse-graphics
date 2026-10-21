@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tgx/core/assert.hpp"
 #include "tgx/core/error.hpp"
 #include "tgx/core/input.hpp"
 #include "tgx/core/math.hpp"
@@ -46,6 +47,7 @@ namespace tgx {
         // with set_fullscreen() and the display's scale.
         bool resizable{true};
         bool vsync{true};
+        // Frames a second at most, 0 for none. See Window::set_fps_limit.
         int fps_limit{0};
         // Samples per pixel, for smooth edges of turned and round shapes: 0
         // for none, 4 the usual. The window's only, not render targets'. The

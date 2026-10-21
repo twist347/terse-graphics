@@ -66,7 +66,7 @@ int main() {
     // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
-    auto app = tgx::App::create({.title = "gl - 04 texture"});
+    auto app = tgx::App::create({.title = "tgx - gl 04 texture"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <format>
 #include <source_location>
 #include <utility>
@@ -30,11 +31,11 @@ namespace tgx::detail {
         std::format_string<Ts...> fmt,
         Ts &&... args
     ) noexcept -> void {
-        char buf[512]{};
-        const auto res = std::format_to_n(buf, sizeof(buf) - 1, fmt, std::forward<Ts>(args)...);
+        std::array<char, 512> buf{};
+        const auto res = std::format_to_n(buf.data(), buf.size() - 1, fmt, std::forward<Ts>(args)...);
         *res.out = '\0';
 
-        assert_failed(expr, buf, loc);
+        assert_failed(expr, buf.data(), loc);
     }
 }
 

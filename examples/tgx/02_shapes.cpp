@@ -41,7 +41,7 @@ int main() {
         canvas.circle({384, 125}, 60, tgx::colors::yellow);
         canvas.triangle({540, 190}, {640, 60}, {740, 190}, tgx::colors::green);
         canvas.rect_rounded({796, 60, 200, 130}, 24, tgx::colors::blue);
-        // A regular polygon: center, sides, radius, the first corner's angle.
+        // A regular polygon: center, sides, radius; a turn last, optional.
         canvas.poly({1152, 125}, 6, 70, tgx::colors::purple);
 
         // Outlines take a thickness and keep inside the shape's edges.
@@ -93,10 +93,10 @@ int main() {
         canvas.ellipse({1152, 635}, {45, 12}, tgx::colors::orange, -0.3f);
         canvas.ellipse_lines({1152, 635}, {110, 30}, tgx::colors::light_gray, 6, -0.3f);
 
-        canvas.fps({10, 10});
         // All the shapes above share one texture, shader and blend: one draw.
         const tgx::FrameStats stats = app->device().stats();
         canvas.text({10, 30}, std::format("{} draws", stats.draws), tgx::colors::white);
+        canvas.fps({10, 10});
 
         app->swap_buffers();
     }

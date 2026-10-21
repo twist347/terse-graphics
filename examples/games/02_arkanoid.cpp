@@ -1,6 +1,11 @@
+// Arkanoid: A/D or Left/Right moves the paddle, Space launches the ball. Where
+// the ball lands on the paddle sets its angle. Grey bricks take two hits.
+// Three lives; P pauses, Enter starts again once the game is won or lost.
+
 #include "tgx/tgx.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <format>
@@ -40,11 +45,11 @@ namespace {
     constexpr float bricks_left = (field_width - columns * brick_width - (columns - 1) * brick_gap) / 2;
 
     // Top to bottom; the first row takes two hits.
-    constexpr tgx::Color row_colors[rows]{
+    constexpr std::array<tgx::Color, rows> row_colors{
         tgx::colors::gray, tgx::colors::red, tgx::colors::orange,
         tgx::colors::yellow, tgx::colors::green, tgx::colors::cyan,
     };
-    constexpr int row_points[rows]{50, 40, 30, 20, 10, 10};
+    constexpr std::array<int, rows> row_points{50, 40, 30, 20, 10, 10};
 
     constexpr int start_lives = 3;
 

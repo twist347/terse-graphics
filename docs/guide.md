@@ -103,8 +103,9 @@ In `tgx`:
 In `tgx::gl`:
 
 - **Draws and clears** that state everything they need: what they go into
-  (the window or a render target), render state (blending,
-  depth test, face culling, wireframe), textures by slot, clear values.
+  (the window or a render target), the primitives (triangles, strips, lines,
+  points) and which vertices, render state (blending, depth test, face
+  culling, wireframe), textures by slot, clear values.
 - **Buffers and vertex arrays**: immutable or dynamic `gl::Buffer<T>`s, typed
   by what they hold, so sizes and offsets count elements and the index type
   follows the buffer; `gl::VertexArray` with the attribute layout taken straight
@@ -285,9 +286,6 @@ overlay.sprite(layer->texture(), {});
 draws (`Texture::bottom_up()`): sprites come out the right way up anyway, a
 shader of your own reads `v = 0` as its bottom.
 
-Outlines lie inside the shape they outline, so a frame and a fill of the same
-rectangle cover the same area.
-
 Shapes are collected and drawn together, but the picture always follows the
 order of the calls: the `Device` collects them and draws them before any draw
 or clear of its own and before presenting the frame. Nothing the shapes use is
@@ -336,7 +334,7 @@ canvas.nine_slice(*ui, {
 ```
 
 A camera moves, turns and zooms the world. A canvas is a plain value holding
-how to draw (size, camera, blend, shader), so rather than switching one back
+how to draw (target, viewport, size, camera, clip, blend, shader), so rather than switching one back
 and forth, keep a copy for each way of drawing. Copies share the frame and
 the order of the calls:
 
@@ -599,10 +597,12 @@ asserts on, tgx stops at the call instead; the main cases:
 - a viewport or clip of negative size, for a draw or a canvas; a canvas of
   negative size;
 - a rect of negative size or a circle of negative radius, for a collision
-  check or a canvas shape; a negative or NaN thickness;
+  check or a canvas shape; a negative or NaN thickness; a polygon of fewer
+  than 3 or more than 1024 sides; a nine-slice with a mirrored `src`, or
+  borders below 0 or wider than `src`;
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
-- a pixel outside an `Image`, or saving an empty one;
+- an `Image` of negative size, a pixel outside one, or saving an empty one;
 - `Random::next_int` or `next_float` with an empty range, a pick from no
   items;
 - a sound made of samples that do not split into its channels, or of more
@@ -611,11 +611,15 @@ asserts on, tgx stops at the call instead; the main cases:
 - a canvas shader without `u_projection`, or with a sampler other than
   `u_texture`; a camera with zoom 0, or an infinite zoom or rotation;
 - a `Key`, `MouseButton` or `CursorShape` cast from outside its values;
-- `move_towards` with a negative step;
+- `move_towards` with a negative step; a `Timer` of 0 seconds or less, or
+  ticked by a negative or infinite step; `frame_of` with an empty cell or a
+  frame past the sheet;
+- a tone of no length, not in (0, 22050] Hz, with a volume outside 0 to 1,
+  or a negative attack or decay;
 - a texture made without pixels that is not dynamic;
-- a window of no size;
+- a window of no size, a negative fps limit or msaa;
 - a number that is not one (NaN) where it would go on unnoticed: a color's
-  hue, alpha or mix, a volume, a pan, a seek.
+  hue, alpha or mix, an easing's `t`, a volume, a pan, a seek.
 
 Asserts cost nothing when off: the checks that need extra bookkeeping (such as
 reading the shader's inputs) are skipped altogether.
@@ -680,9 +684,10 @@ cmake --build build
 Examples and tests are built when tgx is the project being built; turn them
 off with `-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. They run
 with `ctest --test-dir build`, in two parts: `-L cpu` needs no window (math,
-colors, collisions, the camera, random numbers, images, sounds, measuring
-text), `-L gpu` opens one and checks what is drawn by the pixels read back
-(the Canvas, textures, shaders, buffers, render targets). CI runs the GPU
+colors, collisions, the camera, random numbers, timers, easing, images,
+sounds, text, viewports, folders, errors), `-L gpu` opens one and checks what
+is drawn by the pixels read back (the Canvas and its clip and viewports,
+textures, shaders, buffers, render targets, raw GL, frame stats). CI runs the GPU
 part on Linux only, on Mesa's software renderer under Xvfb.
 `-DTGX_WARNINGS_AS_ERRORS=ON` fails the build on a warning in tgx's own code,
 as CI does on Linux, macOS and Windows.

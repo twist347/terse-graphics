@@ -3,6 +3,7 @@
 
 #include "tgx/tgx.hpp"
 
+#include <array>
 #include <cstdio>
 #include <print>
 
@@ -19,7 +20,7 @@ int main() {
 
     // Two 8x8 frames side by side: an arrow and a cross. Each character is a
     // pixel, '#' white, ' ' transparent.
-    constexpr const char *art[8]{
+    constexpr std::array<const char *, 8> art{
         "    #      ##   ",
         "    ##     ##   ",
         "#######    ##   ",

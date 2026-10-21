@@ -232,8 +232,8 @@ namespace tgx {
         // instead of spiking. Square ends. line_loop() closes the shape.
         auto line_strip(std::span<const Vec2> points, Color color, float thickness = 1.f) noexcept -> void;
 
-        // A closed line_strip, centered on the edges. Do not repeat the first
-        // point.
+        // A closed line_strip, centered on the edges. The first point
+        // repeated at the end is skipped, so either way works.
         auto line_loop(std::span<const Vec2> points, Color color, float thickness = 1.f) noexcept -> void;
 
         // The edge stays within a quarter pixel of a true circle.

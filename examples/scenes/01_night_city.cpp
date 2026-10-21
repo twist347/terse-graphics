@@ -223,7 +223,7 @@ int main() {
     // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
-    auto app = tgx::App::create({.title = "scenes - 01 night city"});
+    auto app = tgx::App::create({.title = "tgx - scenes 01 night city"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;

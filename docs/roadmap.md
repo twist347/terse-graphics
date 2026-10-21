@@ -27,9 +27,10 @@ show it). Back to the [README](../README.md).
 - Collisions: rays with the distance to the hit, moving rectangles (swept),
   rotated rectangles and convex polygons (SAT).
 - Math: `reflect`, the angle between vectors, `Mat4` inverse and transpose.
-- Build: `BUILD_SHARED_LIBS` (an export macro on the public API, hidden
-  symbols of the bundled libraries, a SOVERSION), clang-cl on Windows, a
-  pkg-config file for builds without CMake.
+- Build: `BUILD_SHARED_LIBS` (an export macro on the public API, stb and
+  miniaudio hidden, glad and GLFW exported, as raw GL and `native_handle()`
+  call them, a SOVERSION), clang-cl on Windows, a pkg-config file for builds
+  without CMake.
 - Loading from memory: `Texture::decode`, `Music::decode`.
 
 ## Deferred

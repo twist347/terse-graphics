@@ -2,6 +2,7 @@
 
 #include "tgx/core/log.hpp"
 
+#include <array>
 #include <format>
 #include <string_view>
 #include <utility>
@@ -19,9 +20,9 @@ namespace tgx::detail {
             return;
         }
 
-        char buf[1024]{};
-        const auto res = std::format_to_n(buf, sizeof(buf), fmt, std::forward<Ts>(args)...);
-        log_write(level, std::string_view{buf, res.out});
+        std::array<char, 1024> buf{};
+        const auto res = std::format_to_n(buf.data(), buf.size(), fmt, std::forward<Ts>(args)...);
+        log_write(level, std::string_view{buf.data(), res.out});
     }
 
     template<typename... Ts>

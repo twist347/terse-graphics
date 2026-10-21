@@ -62,7 +62,7 @@ int main() {
     // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
-    auto app = tgx::App::create({.title = "gl - 02 indexed"});
+    auto app = tgx::App::create({.title = "tgx - gl 02 indexed"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;
