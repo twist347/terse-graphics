@@ -7,7 +7,7 @@
 #include <cmath>
 #include <numbers>
 
-using tgx_test::near;
+using tgx_test::nearly;
 
 TEST_CASE("circles get as many segments as keep them round") {
     using tgx::detail::segments_for;
@@ -37,9 +37,9 @@ TEST_CASE("arcs") {
     }
     SUBCASE("a rim runs clockwise from the start") {
         constexpr tgx::detail::Rim rim{{10, 10}, 2.f, tgx::detail::full_circle, 4};
-        CHECK(near(rim(0), {12, 10}));
-        CHECK(near(rim(1), {10, 12}));
-        CHECK(near(rim(4), rim(0)));
+        CHECK(nearly(rim(0), {12, 10}));
+        CHECK(nearly(rim(1), {10, 12}));
+        CHECK(nearly(rim(4), rim(0)));
     }
 }
 
@@ -49,15 +49,15 @@ TEST_CASE("ellipse rims") {
 
     SUBCASE("points lie on the radii, turned") {
         constexpr EllipseRim rim{center, {40, 10}, {1, 0}, 4};
-        CHECK(near(rim(0), {140, 50}));
-        CHECK(near(rim(1), {100, 60}));
+        CHECK(nearly(rim(0), {140, 50}));
+        CHECK(nearly(rim(1), {100, 60}));
         const EllipseRim turned{center, {40, 10}, tgx::from_angle(std::numbers::pi_v<float> / 2.f), 4};
-        CHECK(near(turned(0), {100, 90}));
+        CHECK(nearly(turned(0), {100, 90}));
     }
     SUBCASE("inset moves the axis points straight in") {
         constexpr EllipseRim rim{center, {40, 10}, {1, 0}, 4, 3.f};
-        CHECK(near(rim(0), {137, 50}));
-        CHECK(near(rim(1), {100, 57}));
+        CHECK(nearly(rim(0), {137, 50}));
+        CHECK(nearly(rim(1), {100, 57}));
     }
     SUBCASE("inset past the end curvature keeps each point on its own side") {
         constexpr std::size_t n = 256;
@@ -84,18 +84,18 @@ TEST_CASE("corners") {
     }
     SUBCASE("placed: origin at position, turned around it") {
         const auto box = tgx::detail::placed_corners({4, 2}, {2, 1}, {10, 10}, std::numbers::pi_v<float> / 2.f);
-        CHECK(near(box[0], {11, 8}));
-        CHECK(near(box[2], {9, 12}));
+        CHECK(nearly(box[0], {11, 8}));
+        CHECK(nearly(box[2], {9, 12}));
     }
     SUBCASE("a rounded rim starts at the left end of the top-left corner") {
         constexpr tgx::Rect rect{0, 0, 100, 50};
         const std::size_t points = tgx::detail::corner_points(32);
         CHECK(points == 9);
-        CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 0.f, points, 0), {0, 10}));
-        CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 0.f, points, points - 1), {10, 0}));
-        CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 4.f, points, 0), {4, 10}));
+        CHECK(nearly(tgx::detail::rounded_rim(rect, 10.f, 0.f, points, 0), {0, 10}));
+        CHECK(nearly(tgx::detail::rounded_rim(rect, 10.f, 0.f, points, points - 1), {10, 0}));
+        CHECK(nearly(tgx::detail::rounded_rim(rect, 10.f, 4.f, points, 0), {4, 10}));
         // Inset past the radius: a square corner.
-        CHECK(near(tgx::detail::rounded_rim(rect, 10.f, 12.f, points, 0), {12, 12}));
+        CHECK(nearly(tgx::detail::rounded_rim(rect, 10.f, 12.f, points, 0), {12, 12}));
     }
 }
 
@@ -107,7 +107,7 @@ TEST_CASE("line joints") {
     SUBCASE("a right angle is mitered, its points the diagonal away") {
         const auto j = joint(at, {1, 0}, {0, 1}, half, 100.f);
         REQUIRE(j);
-        CHECK(near(j->plus + j->minus, at * 2.f));
+        CHECK(nearly(j->plus + j->minus, at * 2.f));
         CHECK(tgx::length(j->plus - at) == doctest::Approx(half * std::numbers::sqrt2_v<float>));
     }
     SUBCASE("straight on, the points are square across the line") {

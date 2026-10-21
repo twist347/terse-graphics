@@ -6,7 +6,7 @@
 
 #include <numbers>
 
-using tgx_test::near;
+using tgx_test::nearly;
 
 namespace {
     constexpr float pi = std::numbers::pi_v<float>;
@@ -35,17 +35,17 @@ TEST_CASE("Vec2 products and lengths") {
     CHECK(tgx::cross(tgx::Vec2{2, 2}, tgx::Vec2{1, 1}) == 0.f);
     CHECK(tgx::length(tgx::Vec2{3, 4}) == 5.f);
     CHECK(tgx::distance(tgx::Vec2{1, 1}, tgx::Vec2{4, 5}) == 5.f);
-    CHECK(near(tgx::normalize(tgx::Vec2{0, 7}), {0, 1}));
+    CHECK(nearly(tgx::normalize(tgx::Vec2{0, 7}), {0, 1}));
 }
 
 TEST_CASE("Vec2 angles") {
     CHECK(tgx::from_angle(0.f) == tgx::Vec2{1, 0});
-    CHECK(near(tgx::from_angle(pi / 2), {0, 1}));
+    CHECK(nearly(tgx::from_angle(pi / 2), {0, 1}));
     CHECK(tgx::angle(tgx::Vec2{0, 1}) == doctest::Approx(pi / 2));
     // A zero vector has no direction, whatever the sign of its zeros.
     CHECK(tgx::angle(tgx::Vec2{}) == 0.f);
     CHECK(tgx::angle(tgx::Vec2{-0.f, 0.f}) == 0.f);
-    CHECK(near(tgx::rotate(tgx::Vec2{1, 0}, pi / 2), {0, 1}));
+    CHECK(nearly(tgx::rotate(tgx::Vec2{1, 0}, pi / 2), {0, 1}));
     CHECK(tgx::perpendicular(tgx::Vec2{1, 0}) == tgx::Vec2{0, -1});
 }
 
@@ -146,15 +146,15 @@ TEST_CASE("Mat4") {
     CHECK(tgx::translate({10, 0, 0}) * p == tgx::Vec4{11, 2, 3, 1});
     // b first, then a: the point is scaled, then moved.
     CHECK(tgx::translate({10, 0, 0}) * tgx::scale({2, 2, 2}) * p == tgx::Vec4{12, 4, 6, 1});
-    CHECK(near(tgx::rotate({0, 0, 1}, pi / 2) * tgx::Vec4{1, 0, 0, 1}, {0, 1, 0, 1}));
+    CHECK(nearly(tgx::rotate({0, 0, 1}, pi / 2) * tgx::Vec4{1, 0, 0, 1}, {0, 1, 0, 1}));
 }
 
 TEST_CASE("ortho as 2D drawing uses it") {
     // The canvas's projection: (0, 0) at the top-left, y down.
     constexpr tgx::Mat4 m = tgx::ortho(0, 320, 180, 0);
-    CHECK(near(m * tgx::Vec4{0, 0, 0, 1}, {-1, 1, 0, 1}));
-    CHECK(near(m * tgx::Vec4{320, 180, 0, 1}, {1, -1, 0, 1}));
-    CHECK(near(m * tgx::Vec4{160, 90, 0, 1}, {0, 0, 0, 1}));
+    CHECK(nearly(m * tgx::Vec4{0, 0, 0, 1}, {-1, 1, 0, 1}));
+    CHECK(nearly(m * tgx::Vec4{320, 180, 0, 1}, {1, -1, 0, 1}));
+    CHECK(nearly(m * tgx::Vec4{160, 90, 0, 1}, {0, 0, 0, 1}));
 }
 
 TEST_CASE("fit keeps the proportions, in the middle") {

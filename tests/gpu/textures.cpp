@@ -266,8 +266,8 @@ TEST_CASE("linear blends neighboring texels, nearest does not") {
 
     const tgx::Image image = target.read();
     CHECK(image[4, 4] == tgx::colors::black);
-    CHECK(tgx_test::near(image[31, 4], {124, 124, 124, 255}, 3));
-    CHECK(tgx_test::near(image[40, 4], {195, 195, 195, 255}, 3));
+    CHECK(tgx_test::nearly(image[31, 4], {124, 124, 124, 255}, 3));
+    CHECK(tgx_test::nearly(image[40, 4], {195, 195, 195, 255}, 3));
     CHECK(image[60, 4] == tgx::colors::white);
     CHECK(image[31, 12] == tgx::colors::black);
     CHECK(image[32, 12] == tgx::colors::white);

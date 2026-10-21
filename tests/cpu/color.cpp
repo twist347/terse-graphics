@@ -46,5 +46,5 @@ TEST_CASE("Color lerp and to_vec4") {
     // Unlike vector lerps, t is clamped: a channel has nowhere to go.
     CHECK(tgx::lerp(tgx::colors::black, tgx::colors::white, 2.f) == tgx::colors::white);
     CHECK(tgx::lerp(tgx::colors::black, tgx::colors::white, -1.f) == tgx::colors::black);
-    CHECK(tgx_test::near(tgx::to_vec4(tgx::Color{255, 0, 51, 255}), {1, 0, 0.2f, 1}));
+    CHECK(tgx_test::nearly(tgx::to_vec4(tgx::Color{255, 0, 51, 255}), {1, 0, 0.2f, 1}));
 }

@@ -41,7 +41,7 @@ TEST_CASE("Device::read: the window's framebuffer, opaque, rows top to bottom") 
     CHECK(image.size() == app.window().framebuffer_size());
     CHECK(at(image, {5, 5}) == tgx::colors::red);
     CHECK(at(image, {5, 30}) == tgx::colors::black);
-    CHECK(tgx_test::near(at(image, {30, 5}), tgx::Color{128, 128, 128, 255}, 1));
+    CHECK(tgx_test::nearly(at(image, {30, 5}), tgx::Color{128, 128, 128, 255}, 1));
 }
 
 TEST_CASE("a Device draw with a viewport counts it from the window's top-left") {

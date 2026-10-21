@@ -121,9 +121,9 @@ TEST_CASE("a canvas of a size of its own fits a target of another shape") {
     CHECK(image[32, 56] == tgx::colors::black);
 
     // A point in a bar is outside the canvas.
-    CHECK(tgx_test::near(canvas.to_world({32, 16}), {16, 0}));
-    CHECK(tgx_test::near(canvas.to_world({0, 0}), {0, -8}));
-    CHECK(tgx_test::near(canvas.to_screen({32, 16}), {64, 48}));
+    CHECK(tgx_test::nearly(canvas.to_world({32, 16}), {16, 0}));
+    CHECK(tgx_test::nearly(canvas.to_world({0, 0}), {0, -8}));
+    CHECK(tgx_test::nearly(canvas.to_screen({32, 16}), {64, 48}));
 }
 
 TEST_CASE("set_size, then back to following what it draws into") {
@@ -145,19 +145,19 @@ TEST_CASE("to_world and to_screen go through the viewport, the size and the came
     tgx::Canvas minimap = canvas;
     minimap.set_viewport(tgx::Rect{32, 0, 32, 32});
 
-    CHECK(tgx_test::near(minimap.to_world({42, 5}), {10, 5}));
+    CHECK(tgx_test::nearly(minimap.to_world({42, 5}), {10, 5}));
 
     tgx::Canvas pixels = minimap;
     pixels.set_size({4, 2});
-    CHECK(tgx_test::near(pixels.to_world({48, 16}), {2, 1}));
-    CHECK(tgx_test::near(pixels.to_screen({2, 1}), {48, 16}));
+    CHECK(tgx_test::nearly(pixels.to_world({48, 16}), {2, 1}));
+    CHECK(tgx_test::nearly(pixels.to_screen({2, 1}), {48, 16}));
 
     tgx::Canvas camera = minimap;
     camera.set_camera({.target = {50, 50}, .offset = {10, 10}, .zoom = 2.f});
-    CHECK(tgx_test::near(camera.to_world({42, 10}), {50, 50}));
-    CHECK(tgx_test::near(camera.to_world(camera.to_screen({7, -3})), {7, -3}));
+    CHECK(tgx_test::nearly(camera.to_world({42, 10}), {50, 50}));
+    CHECK(tgx_test::nearly(camera.to_world(camera.to_screen({7, -3})), {7, -3}));
 
-    CHECK(tgx_test::near(canvas.to_world({33, 44}), {33, 44}));
+    CHECK(tgx_test::nearly(canvas.to_world({33, 44}), {33, 44}));
 }
 
 TEST_CASE("a camera holds for the shapes after it, until reset") {

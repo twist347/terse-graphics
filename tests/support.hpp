@@ -21,11 +21,13 @@
 
 namespace tgx_test {
     // Vectors equal to within float rounding, as trigonometry leaves them.
-    [[nodiscard]] inline auto near(tgx::Vec2 a, tgx::Vec2 b) -> bool {
+    // Not named near: <windows.h>, which doctest's main includes, defines
+    // near and far as nothing.
+    [[nodiscard]] inline auto nearly(tgx::Vec2 a, tgx::Vec2 b) -> bool {
         return a.x == doctest::Approx(b.x).epsilon(1e-5) && a.y == doctest::Approx(b.y).epsilon(1e-5);
     }
 
-    [[nodiscard]] inline auto near(tgx::Vec4 a, tgx::Vec4 b) -> bool {
+    [[nodiscard]] inline auto nearly(tgx::Vec4 a, tgx::Vec4 b) -> bool {
         return a.x == doctest::Approx(b.x) && a.y == doctest::Approx(b.y)
                && a.z == doctest::Approx(b.z) && a.w == doctest::Approx(b.w);
     }
@@ -39,7 +41,7 @@ namespace tgx_test {
 
     // Colors within tolerance on every channel: drivers round blends and
     // gradients differently.
-    [[nodiscard]] inline auto near(tgx::Color a, tgx::Color b, int tolerance) -> bool {
+    [[nodiscard]] inline auto nearly(tgx::Color a, tgx::Color b, int tolerance) -> bool {
         const auto close = [&](std::uint8_t x, std::uint8_t y) { return std::abs(int{x} - int{y}) <= tolerance; };
         return close(a.r, b.r) && close(a.g, b.g) && close(a.b, b.b) && close(a.a, b.a);
     }

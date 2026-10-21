@@ -95,8 +95,8 @@ TEST_CASE("Blend::multiply darkens, and fades to what is under as alpha drops") 
     canvas.rect({8, 0, 8, 8}, tgx::Color{128, 128, 128, 255});
 
     const tgx::Image image = target.read();
-    CHECK(tgx_test::near(image[4, 4], under, 1));
-    CHECK(tgx_test::near(image[12, 4], {100, 50, 25, 255}, 1));
+    CHECK(tgx_test::nearly(image[4, 4], under, 1));
+    CHECK(tgx_test::nearly(image[12, 4], {100, 50, 25, 255}, 1));
 }
 
 TEST_CASE("rect_lines: inside the edges, the corners filled, the middle left") {
@@ -206,9 +206,9 @@ TEST_CASE("rect_gradient, top to bottom and by the corners") {
     canvas.clear(tgx::colors::black);
     canvas.rect_gradient({0, 0, 64, 64}, tgx::colors::red, tgx::colors::blue);
     tgx::Image image = target.read();
-    CHECK(tgx_test::near(image[32, 0], tgx::colors::red, 8));
-    CHECK(tgx_test::near(image[32, 63], tgx::colors::blue, 8));
-    CHECK(tgx_test::near(image[32, 32], tgx::Color{128, 0, 128, 255}, 8));
+    CHECK(tgx_test::nearly(image[32, 0], tgx::colors::red, 8));
+    CHECK(tgx_test::nearly(image[32, 63], tgx::colors::blue, 8));
+    CHECK(tgx_test::nearly(image[32, 32], tgx::Color{128, 0, 128, 255}, 8));
 
     canvas.clear(tgx::colors::black);
     canvas.rect_gradient(
@@ -216,10 +216,10 @@ TEST_CASE("rect_gradient, top to bottom and by the corners") {
         tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white
     );
     image = target.read();
-    CHECK(tgx_test::near(image[0, 0], tgx::colors::red, 16));
-    CHECK(tgx_test::near(image[63, 0], tgx::colors::green, 16));
-    CHECK(tgx_test::near(image[63, 63], tgx::colors::blue, 16));
-    CHECK(tgx_test::near(image[0, 63], tgx::colors::white, 16));
+    CHECK(tgx_test::nearly(image[0, 0], tgx::colors::red, 16));
+    CHECK(tgx_test::nearly(image[63, 0], tgx::colors::green, 16));
+    CHECK(tgx_test::nearly(image[63, 63], tgx::colors::blue, 16));
+    CHECK(tgx_test::nearly(image[0, 63], tgx::colors::white, 16));
 }
 
 TEST_CASE("triangle_gradient, a color at each corner") {
@@ -230,9 +230,9 @@ TEST_CASE("triangle_gradient, a color at each corner") {
     canvas.triangle_gradient({10, 10}, {210, 10}, {110, 170}, tgx::colors::red, tgx::colors::green, tgx::colors::blue);
 
     const tgx::Image image = target.read();
-    CHECK(tgx_test::near(image[13, 12], tgx::colors::red, 16));
-    CHECK(tgx_test::near(image[206, 12], tgx::colors::green, 16));
-    CHECK(tgx_test::near(image[110, 166], tgx::colors::blue, 16));
+    CHECK(tgx_test::nearly(image[13, 12], tgx::colors::red, 16));
+    CHECK(tgx_test::nearly(image[206, 12], tgx::colors::green, 16));
+    CHECK(tgx_test::nearly(image[110, 166], tgx::colors::blue, 16));
 }
 
 TEST_CASE("circle_gradient, from the center out") {
@@ -244,12 +244,12 @@ TEST_CASE("circle_gradient, from the center out") {
     tgx::Image image = target.read();
     CHECK(image[128, 128].r > 245);
     CHECK(image[205, 128].r < 20);
-    CHECK(tgx_test::near(image[168, 128], tgx::Color{128, 128, 128, 255}, 18));
+    CHECK(tgx_test::nearly(image[168, 128], tgx::Color{128, 128, 128, 255}, 18));
 
     canvas.clear(tgx::colors::black);
     canvas.circle_gradient({128, 128}, 50, tgx::colors::yellow, tgx::colors::yellow.fade(0.f));
     image = target.read();
-    CHECK(tgx_test::near(image[128, 128], tgx::colors::yellow, 8));
+    CHECK(tgx_test::nearly(image[128, 128], tgx::colors::yellow, 8));
     CHECK(image[183, 128] == tgx::colors::black);
 }
 
