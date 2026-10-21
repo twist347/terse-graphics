@@ -1,0 +1,8 @@
+tgx_add_example(01_triangle)
+tgx_add_example(02_indexed)
+tgx_add_example(03_uniforms)
+tgx_add_example(04_texture)
+tgx_add_example(05_blend)
+tgx_add_example(06_cube)
+tgx_add_example(07_canvas_shader)
+tgx_add_example(08_post_process)

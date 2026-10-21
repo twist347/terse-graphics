@@ -1,0 +1,6 @@
+tgx_add_example(01_night_city)
+tgx_add_example(02_space)
+tgx_add_example(03_fireworks)
+tgx_add_example(04_synthwave)
+tgx_add_example(05_flock)
+tgx_add_example(06_meadow)

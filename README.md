@@ -117,6 +117,7 @@ Games are small and whole, each in one file: a loop, state, rules.
 | `examples/games/` | Shows                                                           |
 |-------------------|-----------------------------------------------------------------|
 | `01_pong`         | Pong against a bot or a friend: a ball that speeds up, a score to 7, a field that keeps its shape. |
+| `02_arkanoid`     | Arkanoid: bricks that take one or two hits, a paddle that aims the ball, three lives. |
 
 ## Building
 
