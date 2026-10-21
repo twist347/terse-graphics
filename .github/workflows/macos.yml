@@ -1,6 +1,6 @@
-# macOS: builds the library, examples and tests, warnings as errors,
-# runs the tests that need no display or sound card, and builds a project
-# against the installed package. One workflow per platform, so each has a
+# macOS: builds the library, examples and tests, warnings as errors, runs
+# them all (the GPU ones in the runner's own desktop session) and builds a project against the installed package and with tgx
+# inside it. One workflow per platform, so each has a
 # badge of its own in the README.
 name: macOS
 
@@ -33,6 +33,10 @@ jobs:
       - name: Test
         run: ctest --test-dir build -L cpu --output-on-failure
 
+      # The strictest core profile tgx runs on.
+      - name: Test on the GPU
+        run: ctest --test-dir build -L gpu --output-on-failure
+
       # A project of its own finds the installed package, as a game would.
       - name: Install and build against it
         run: |
@@ -42,3 +46,12 @@ jobs:
             -DCMAKE_PREFIX_PATH="${{ runner.temp }}/tgx"
           cmake --build build-install
           build-install/tgx_install_check
+
+      # The other way in: tgx built inside the project with add_subdirectory.
+      - name: Build inside a project
+        run: |
+          cmake -S tests/install -B build-subdirectory \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DTGX_SOURCE_DIR="$PWD"
+          cmake --build build-subdirectory --parallel
+          build-subdirectory/tgx_install_check

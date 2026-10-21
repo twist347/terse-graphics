@@ -8,7 +8,8 @@
 #include <print>
 
 namespace {
-    constexpr tgx::Vec2 world_size{2400, 600};
+    constexpr tgx::Size world_size{2400, 600};
+    constexpr auto world_end = tgx::to_vec2(world_size);
 
     constexpr std::array trees{
         tgx::Vec2{150, 150}, tgx::Vec2{450, 400}, tgx::Vec2{750, 200}, tgx::Vec2{1050, 450},
@@ -17,7 +18,7 @@ namespace {
 
     // The same calls for both views: each canvas puts them where it shows.
     auto draw_world(tgx::Canvas &canvas, tgx::Vec2 player) noexcept -> void {
-        canvas.rect({0, 0, world_size.x, world_size.y}, tgx::colors::black);
+        canvas.rect({0, 0, world_end.x, world_end.y}, tgx::colors::black);
         for (const tgx::Vec2 tree: trees) {
             canvas.circle(tree, 40, tgx::colors::green);
         }
@@ -44,17 +45,15 @@ int main() {
     constexpr tgx::Rect minimap_area{20, 40, 400, 100};
     tgx::Canvas minimap = screen;
     minimap.set_viewport(minimap_area);
-    minimap.set_size({static_cast<int>(world_size.x), static_cast<int>(world_size.y)});
+    minimap.set_size(world_size);
 
     tgx::Vec2 player{0, 300};
 
     while (!app->should_close()) {
         app->poll_events();
 
-        player.x += 200 * app->clock().delta();
-        if (player.x > world_size.x) {
-            player.x = 0;
-        }
+        // Out at the right end, back in at the left.
+        player.x = tgx::wrap(player.x + 200 * app->clock().delta(), world_end.x);
 
         main_view.set_camera({
             .target = player,

@@ -144,6 +144,11 @@ int main() {
 
     while (!app->should_close()) {
         app->poll_events();
+        // Minimized, on Windows: no size to lay anything out in.
+        if (canvas.size().empty()) {
+            app->swap_buffers();
+            continue;
+        }
 
         const float dt = std::min(app->clock().delta(), 1.f / 30.f);
         const auto time = static_cast<float>(app->clock().elapsed());
@@ -159,13 +164,15 @@ int main() {
         if (input.repeated(tgx::Key::down) && fish.size() > count_step) {
             fish.resize(fish.size() - count_step);
         }
-        const auto approach = [dt](float value, bool on) { return std::clamp(value + (on ? 3.f : -2.f) * dt, 0.f, 1.f); };
+        const auto approach = [dt](float value, bool on) {
+            return std::clamp(value + (on ? 3.f : -2.f) * dt, 0.f, 1.f);
+        };
         lure = approach(lure, input.down(tgx::MouseButton::left));
         scare = approach(scare, input.down(tgx::MouseButton::right));
         const float lure_power = tgx::ease::in_out_sine(lure);
         const float scare_power = tgx::ease::in_out_sine(scare);
 
-        std::array<tgx::Vec2, orb_radii.size()> orbs;
+        std::array<tgx::Vec2, orb_radii.size()> orbs{};
         for (std::size_t o = 0; o < orbs.size(); ++o) {
             orbs[o] = orb_center(o, time, area);
         }
@@ -212,8 +219,9 @@ int main() {
             // Turn away from the edges.
             constexpr float margin = 100.f;
             constexpr float turn = 5.f;
-            push.x += (std::max(margin - self.position.x, 0.f) - std::max(self.position.x - area.x + margin, 0.f)) * turn;
-            push.y += (std::max(margin - self.position.y, 0.f) - std::max(self.position.y - area.y + margin, 0.f)) * turn;
+            const tgx::Vec2 at = self.position;
+            push.x += (std::max(margin - at.x, 0.f) - std::max(at.x - area.x + margin, 0.f)) * turn;
+            push.y += (std::max(margin - at.y, 0.f) - std::max(at.y - area.y + margin, 0.f)) * turn;
 
             for (std::size_t o = 0; o < orbs.size(); ++o) {
                 const tgx::Vec2 from = self.position - orbs[o];
@@ -267,7 +275,8 @@ int main() {
             const tgx::Vec2 bottom{x - area.y * 0.35f, area.y * 0.9f};
             const auto light = tgx::Color::rgb(0x9fe7ff).fade(0.07f + 0.03f * std::sin(time * 0.4f + k));
             const tgx::Color none = light.fade(0.f);
-            canvas.triangle_gradient(top_left, {x + half, 0.f}, bottom + tgx::Vec2{half * 3.f, 0.f}, light, light, none);
+            const tgx::Vec2 far_bottom = bottom + tgx::Vec2{half * 3.f, 0.f};
+            canvas.triangle_gradient(top_left, {x + half, 0.f}, far_bottom, light, light, none);
             canvas.triangle_gradient(top_left, bottom + tgx::Vec2{half * 3.f, 0.f}, bottom, light, none, none);
         }
         for (auto &mote : motes) {

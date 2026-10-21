@@ -5,9 +5,11 @@
 #include <doctest/doctest.h>
 
 #include <array>
+#include <cmath>
+#include <cstdint>
+#include <limits>
 #include <span>
 #include <utility>
-#include <cstdint>
 #include <vector>
 
 TEST_CASE("a seed gives the same numbers everywhere") {
@@ -44,6 +46,19 @@ TEST_CASE("next_float stays in [lo, hi)") {
         REQUIRE(x >= -2.f);
         REQUIRE(x < 3.f);
     }
+}
+
+TEST_CASE("next_float over the widest range spreads over it") {
+    tgx::Random random{4};
+    constexpr float max = std::numeric_limits<float>::max();
+    int below_zero = 0;
+    for (int i = 0; i < 1000; ++i) {
+        const float x = random.next_float(-max, max);
+        REQUIRE(std::isfinite(x));
+        below_zero += x < 0.f ? 1 : 0;
+    }
+    CHECK(below_zero > 400);
+    CHECK(below_zero < 600);
 }
 
 TEST_CASE("next_float() is next_float(0, 1)") {

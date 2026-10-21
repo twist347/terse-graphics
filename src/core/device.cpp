@@ -40,10 +40,14 @@ namespace {
         const tgx::gl::DrawParams &params
     ) noexcept -> void {
         for (const auto &sampler: tgx::gl::detail::samplers(shader)) {
+            // From GL, not tracked: the canvas and layout(binding) set it too.
+            GLint slot = 0;
+            glGetUniformiv(shader.id(), sampler.location, &slot);
+            const auto index = static_cast<std::size_t>(slot);
             TGX_ASSERT_MSG(
-                params.textures[sampler.slot],
+                index < params.textures.size() && params.textures[index],
                 "sampler '{}' reads texture slot {}, which the draw has no texture for",
-                sampler.name, sampler.slot
+                sampler.name, slot
             );
         }
     }

@@ -101,23 +101,11 @@ namespace {
         }
     };
 
-    // A temp folder removed with all inside it when it goes out of scope.
-    struct TempFolder {
-        fs::path path{};
-
-        explicit TempFolder(std::string_view name) : path{tgx_test::temp_path(name)} {}
-        TempFolder(const TempFolder &) = delete;
-        auto operator=(const TempFolder &) -> TempFolder & = delete;
-        ~TempFolder() {
-            std::error_code ignored{};
-            fs::remove_all(path, ignored);
-        }
-    };
 }
 
 TEST_CASE("save_directory: $XDG_DATA_HOME when absolute, else ~/.local/share") {
-    const TempFolder data_home{"data_home"};
-    const TempFolder home{"home"};
+    const tgx_test::TempFile data_home{"data_home"};
+    const tgx_test::TempFile home{"home"};
     const ScopedVariable home_variable{"HOME", home.path.c_str()};
 
     {

@@ -69,6 +69,17 @@ TEST_CASE("remap") {
     CHECK(tgx::remap(20, 0, 10, -1, 1) == 3.f);
 }
 
+TEST_CASE("remap a point between rects") {
+    // A 320x180 picture shown 4 times as big at (40, 20).
+    constexpr tgx::Rect picture{40, 20, 1280, 720};
+    constexpr tgx::Rect pixels{0, 0, 320, 180};
+    static_assert(tgx::remap(tgx::Vec2{40, 20}, picture, pixels) == tgx::Vec2{0, 0});
+    CHECK(tgx::remap(tgx::Vec2{1320, 740}, picture, pixels) == tgx::Vec2{320, 180});
+    CHECK(tgx::remap(tgx::Vec2{44, 28}, picture, pixels) == tgx::Vec2{1, 2});
+    // Outside stays outside.
+    CHECK(tgx::remap(tgx::Vec2{0, 0}, picture, pixels) == tgx::Vec2{-10, -5});
+}
+
 TEST_CASE("smoothstep") {
     static_assert(tgx::smoothstep(0, 10, 5) == 0.5f);
     CHECK(tgx::smoothstep(0, 10, -3) == 0.f);

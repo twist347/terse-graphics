@@ -59,7 +59,9 @@ namespace tgx {
         [[nodiscard]] auto next_float(float lo, float hi) noexcept -> float {
             TGX_ASSERT_MSG(lo <= hi, "next_float({}, {}): an empty range", lo, hi);
 
-            const float value = lo + (hi - lo) * next_float();
+            // In double: hi - lo overflows a float for the widest ranges.
+            const auto span = static_cast<double>(hi) - static_cast<double>(lo);
+            const auto value = static_cast<float>(lo + span * static_cast<double>(next_float()));
             // Rounding can give hi itself when the range is wide.
             return value < hi ? value : std::nextafter(hi, lo);
         }

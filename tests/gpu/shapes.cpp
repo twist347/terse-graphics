@@ -259,7 +259,7 @@ TEST_CASE("rect turned around its origin") {
 
     // 80x20 centered at (64, 64), turned a quarter: 20 wide, 80 tall.
     canvas.clear(tgx::colors::black);
-    canvas.rect({64, 64, 80, 20}, {40, 10}, std::numbers::pi_v<float> / 2.f, tgx::colors::white);
+    canvas.rect({64, 64, 80, 20}, tgx::colors::white, std::numbers::pi_v<float> / 2.f, {40, 10});
 
     const tgx::Image image = target.read();
     CHECK(image[64, 30] == tgx::colors::white);

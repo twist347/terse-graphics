@@ -65,7 +65,8 @@ int main() {
         canvas.sprite(*atlas, {.position = {280, 160}, .size = size, .src = cross});
 
         // A negative width mirrors: the arrow points left.
-        canvas.sprite(*atlas, {.position = {460, 160}, .size = size, .src = {0, 0, -8, 8}});
+        const tgx::Rect mirrored{arrow.x, arrow.y, -arrow.width, arrow.height};
+        canvas.sprite(*atlas, {.position = {460, 160}, .size = size, .src = mirrored});
 
         // The tint multiplies the texture's colors.
         canvas.sprite(*atlas, {.position = {640, 160}, .size = size, .src = arrow, .tint = tgx::colors::cyan});

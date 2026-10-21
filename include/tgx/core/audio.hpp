@@ -25,7 +25,7 @@ namespace tgx {
     struct PlayParams {
         // 1 as recorded, 0 silent. Not below 0.
         float volume{1.f};
-        // -1 left, 0 center, 1 right. Within [-1, 1].
+        // -1 left, 0 center, 1 right. Clamped to that.
         float pan{0.f};
         // 1 as recorded, 2 an octave higher and twice as fast. Above 0.
         float pitch{1.f};
@@ -65,8 +65,8 @@ namespace tgx {
     // Once the play has ended, been stopped or cut off, or its Sound is gone,
     // it does nothing and playing() is false.
     //
-    //     tgx::Playback hum = audio.play(engine);
-    //     hum.pause();    // resume() goes on from there
+    //     tgx::Playback voice = audio.play(dialogue);
+    //     voice.pause();    // resume() goes on from there
     class Playback {
     public:
         // Plays nothing.

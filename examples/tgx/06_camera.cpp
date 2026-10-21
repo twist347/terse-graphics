@@ -33,10 +33,8 @@ int main() {
     while (!app->should_close()) {
         app->poll_events();
 
-        player.x += 200 * app->clock().delta();
-        if (player.x > world_width) {
-            player.x = 0;
-        }
+        // Out at the right end, back in at the left.
+        player.x = tgx::wrap(player.x + 200 * app->clock().delta(), world_width);
 
         // The player's position (target) shows up in the middle of the window
         // (offset), one and a half times as big (zoom).

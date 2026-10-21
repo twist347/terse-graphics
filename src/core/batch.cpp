@@ -66,10 +66,8 @@ namespace {
         }
     )";
 
-    using tgx::detail::batch_max_indices;
-    using tgx::detail::batch_max_vertices;
-
-    static_assert(batch_max_vertices - 1 <= std::numeric_limits<std::uint16_t>::max());
+    // Every vertex is reachable by a uint16 index.
+    static_assert(tgx::detail::batch_max_vertices - 1 <= std::numeric_limits<std::uint16_t>::max());
 }
 
 namespace tgx::detail {
@@ -123,8 +121,6 @@ namespace tgx::detail {
         std::size_t vertex_count,
         std::size_t index_count
     ) noexcept -> std::uint16_t {
-        TGX_ASSERT(vertex_count <= batch_max_vertices && index_count <= batch_max_indices);
-
         if (state != state_
             || vertices_.size() + vertex_count > batch_max_vertices
             || indices_.size() + index_count > batch_max_indices) {

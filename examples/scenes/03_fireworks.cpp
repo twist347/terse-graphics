@@ -212,6 +212,11 @@ int main() {
 
     while (!app->should_close()) {
         app->poll_events();
+        // Minimized, on Windows: no size to lay anything out in.
+        if (canvas.size().empty()) {
+            app->swap_buffers();
+            continue;
+        }
 
         const auto &input = app->input();
         const float dt = std::min(app->clock().delta(), 0.05f);

@@ -4,6 +4,7 @@
 // their own, and printing tgx values when a check fails.
 
 #include "tgx/core/color.hpp"
+#include "tgx/core/error.hpp"
 #include "tgx/core/math.hpp"
 
 #include <doctest/doctest.h>
@@ -16,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 
 namespace tgx_test {
     // Vectors equal to within float rounding, as trigonometry leaves them.
@@ -42,9 +44,16 @@ namespace tgx_test {
         return close(a.r, b.r) && close(a.g, b.g) && close(a.b, b.b) && close(a.a, b.a);
     }
 
-    // A temp_path removed when it goes out of scope, so a failed REQUIRE does
-    // not leave the file behind. Declared before whatever holds the file
-    // open, as Windows does not remove an open file.
+    // The value of a Result that must have one: the test stops otherwise.
+    template<typename T>
+    [[nodiscard]] auto required(tgx::Result<T> result) -> T {
+        REQUIRE(result.has_value());
+        return std::move(*result);
+    }
+
+    // A temp_path removed, with all inside it if a folder, when it goes out
+    // of scope, so a failed REQUIRE does not leave it behind. Declared before
+    // whatever holds the file open, as Windows does not remove an open file.
     struct TempFile {
         std::filesystem::path path{};
 
@@ -53,7 +62,7 @@ namespace tgx_test {
         auto operator=(const TempFile &) -> TempFile & = delete;
         ~TempFile() {
             std::error_code ignored{};
-            std::filesystem::remove(path, ignored);
+            std::filesystem::remove_all(path, ignored);
         }
     };
 

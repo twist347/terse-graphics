@@ -12,12 +12,6 @@
 #include <utility>
 
 namespace {
-    [[nodiscard]] auto plain(tgx::Color color) -> tgx::Texture {
-        auto texture = tgx::Texture::create(tgx::Image::create({1, 1}, color));
-        REQUIRE(texture.has_value());
-        return std::move(*texture);
-    }
-
     // Red from u_a, green from u_b.
     constexpr const char *two_samplers_source = TGX_GLSL_VERSION R"(
         uniform sampler2D u_a;
@@ -48,8 +42,8 @@ TEST_CASE("textures in slots, each sampler reading its own") {
     tgx::gl::Shader shader = tgx_test::cover_shader(two_samplers_source);
     shader.set(shader.uniform<tgx::gl::TextureSlot>("u_a"), {0});
     shader.set(shader.uniform<tgx::gl::TextureSlot>("u_b"), {3});
-    const tgx::Texture red = plain(tgx::colors::red);
-    const tgx::Texture white = plain(tgx::colors::white);
+    const tgx::Texture red = tgx_test::plain(tgx::colors::red);
+    const tgx::Texture white = tgx_test::plain(tgx::colors::white);
     auto &device = tgx_test::app().device();
 
     device.draw(shader, cover.vertices, {.target = &target, .textures = {&red, nullptr, nullptr, &white}});
@@ -57,6 +51,32 @@ TEST_CASE("textures in slots, each sampler reading its own") {
 
     // Swapped: red has no green, white has red.
     device.draw(shader, cover.vertices, {.target = &target, .textures = {&white, nullptr, nullptr, &red}});
+    CHECK(target.read()[4, 4] == tgx::colors::red);
+}
+
+TEST_CASE("a slot set in the shader with layout(binding)") {
+    // An extension; macOS lacks it.
+    auto shader = tgx::gl::Shader::from_source(
+        TGX_GLSL_VERSION R"(
+            layout(location = 0) in vec2 in_position;
+            void main() { gl_Position = vec4(in_position, 0.0, 1.0); }
+        )",
+        TGX_GLSL_VERSION R"(
+            #extension GL_ARB_shading_language_420pack : require
+            layout(binding = 2) uniform sampler2D u_a;
+            out vec4 out_color;
+            void main() { out_color = texture(u_a, vec2(0.5)); }
+        )"
+    );
+    if (!shader) {
+        MESSAGE("skipped: no GL_ARB_shading_language_420pack");
+        return;
+    }
+    const tgx::RenderTarget target = tgx_test::target({8, 8});
+    const auto cover = tgx_test::Cover::create();
+    const tgx::Texture red = tgx_test::plain(tgx::colors::red);
+
+    tgx_test::app().device().draw(*shader, cover.vertices, {.target = &target, .textures = {nullptr, nullptr, &red}});
     CHECK(target.read()[4, 4] == tgx::colors::red);
 }
 
@@ -69,8 +89,8 @@ TEST_CASE("a sprite after a draw with a texture in slot 0, and a draw after the 
         out vec4 out_color;
         void main() { out_color = texture(u_a, vec2(0.5)); }
     )");
-    const tgx::Texture red = plain(tgx::colors::red);
-    const tgx::Texture blue = plain(tgx::colors::blue);
+    const tgx::Texture red = tgx_test::plain(tgx::colors::red);
+    const tgx::Texture blue = tgx_test::plain(tgx::colors::blue);
     auto &device = tgx_test::app().device();
 
     device.draw(shader, cover.vertices, {.target = &target, .textures = {&red}});

@@ -52,7 +52,7 @@ int main() {
         canvas.poly_lines({1152, 295}, 5, 70, tgx::colors::pink, 3, -pi / 2);
 
         // Turned around a point of its own: here its middle.
-        canvas.rect({128, 465, 160, 40}, {80, 20}, time, tgx::colors::orange);
+        canvas.rect({128, 465, 160, 40}, tgx::colors::orange, time, {80, 20});
         // Slices and arcs go from one angle to another.
         canvas.circle_sector({384, 465}, 65, pi / 4, 7 * pi / 4, tgx::colors::yellow);
         canvas.ring({640, 465}, 45, 65, 0, 2 * pi, tgx::colors::gray);

@@ -36,9 +36,7 @@ namespace {
     )";
 
     [[nodiscard]] auto shader(const char *fragment_source) -> tgx::gl::Shader {
-        auto shader = tgx::gl::Shader::from_source(vertex_source, fragment_source);
-        REQUIRE(shader.has_value());
-        return std::move(*shader);
+        return tgx_test::required(tgx::gl::Shader::from_source(vertex_source, fragment_source));
     }
 
     [[nodiscard]] auto tint(tgx::Color color) -> tgx::gl::Shader {

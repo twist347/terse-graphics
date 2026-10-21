@@ -1,5 +1,5 @@
 // Arkanoid: A/D or Left/Right moves the paddle, Space launches the ball. Where
-// the ball lands on the paddle sets its angle. Grey bricks take two hits.
+// the ball lands on the paddle sets its angle. Gray bricks take two hits.
 // Three lives; P pauses, Enter starts again once the game is won or lost.
 
 #include "tgx/tgx.hpp"
@@ -73,7 +73,7 @@ namespace {
 
     // Panned from the left edge of the field to the right one.
     auto play(tgx::Audio &audio, const tgx::Sound &sound, float x, float pitch = 1) -> void {
-        const float pan = std::clamp(tgx::remap(x, 0, field_width, -1, 1), -1.f, 1.f);
+        const float pan = tgx::remap(x, 0, field_width, -1, 1);
         audio.play(sound, {.pan = pan, .pitch = pitch});
     }
 
@@ -281,6 +281,8 @@ namespace {
 }
 
 int main() {
+    // Info also prints what it runs on: tgx and the window, the GL context,
+    // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
     auto app = tgx::App::create({.title = "tgx - games 02 arkanoid"});

@@ -142,6 +142,14 @@ else ()
 endif ()
 target_compile_definitions(tgx PRIVATE GLFW_INCLUDE_NONE)
 
+# Position-independent, glad and GLFW too, so the library also links into a
+# shared library of the app's own (a plugin, game code reloaded while it
+# runs), as raylib's does.
+set_target_properties(tgx tgx_glad PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if (TGX_OWN_GLFW)
+    set_target_properties(glfw PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif ()
+
 # Public headers hold inline code and defaults that depend on this, so the
 # library and everything linking it must see the same value. By default asserts
 # are off in the configurations where CMake defines NDEBUG.

@@ -1,6 +1,7 @@
 # Linux: builds the library, examples and tests, warnings as errors, runs
 # them all (the GPU ones on Mesa's software renderer under a virtual X server)
-# and builds a project against the installed package. One workflow per
+# and builds a project against the installed package and with tgx inside it.
+# Then the tests again under AddressSanitizer and UBSan. One workflow per
 # platform, so each has a badge of its own in the README.
 name: Linux
 
@@ -65,3 +66,59 @@ jobs:
             -DCMAKE_PREFIX_PATH="${{ runner.temp }}/tgx"
           cmake --build build-install
           build-install/tgx_install_check
+
+      # The other way in: tgx built inside the project with add_subdirectory.
+      - name: Build inside a project
+        run: |
+          cmake -S tests/install -B build-subdirectory \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} \
+            -DTGX_SOURCE_DIR="$PWD"
+          cmake --build build-subdirectory --parallel
+          build-subdirectory/tgx_install_check
+
+  # Memory errors and undefined behavior, which the tests above would pass
+  # through unnoticed. Debug, so the asserts run too.
+  sanitizers:
+    name: Linux, Clang 22, AddressSanitizer and UBSan
+    runs-on: ubuntu-26.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwayland-dev libxkbcommon-dev \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+            xvfb libgl1 libgl1-mesa-dri
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_COMPILER=clang-22
+          -DCMAKE_CXX_COMPILER=clang++-22
+          -DTGX_BUILD_EXAMPLES=OFF
+          "-DCMAKE_C_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
+          "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+          "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: ctest --test-dir build -L cpu --output-on-failure
+
+      # Without leak checks: the system's GL and X libraries leak on their
+      # own, and tgx's leaks would show in the CPU tests above.
+      - name: Test on the GPU
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 1
+          ASAN_OPTIONS: detect_leaks=0
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: xvfb-run -a ctest --test-dir build -L gpu --output-on-failure

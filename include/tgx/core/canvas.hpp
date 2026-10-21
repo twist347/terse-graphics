@@ -61,7 +61,7 @@ namespace tgx {
     struct NineSlice {
         // Where origin is placed. By default origin is the top-left corner.
         Vec2 position{};
-        // Size on the canvas. Empty: the size of src.
+        // Size on the canvas. Empty: the size of src. Not mirrored.
         Vec2 size{};
         // Part of the texture, in texels. Empty: the whole texture. Not
         // mirrored.
@@ -69,7 +69,7 @@ namespace tgx {
         // Together no wider or taller than src.
         Borders borders{};
         // Size of a border texel on the canvas: 4 for pixel art drawn 4 times
-        // as big. Borders that do not fit in size shrink to fit.
+        // as big. Not below 0. Borders that do not fit in size shrink to fit.
         float border_scale{1.f};
         // As in Sprite.
         Vec2 origin{};
@@ -193,8 +193,8 @@ namespace tgx {
         // measured from the top-left corner and placed at rect.x, rect.y, as in
         // Sprite.
         //
-        //     canvas.rect({pos.x, pos.y, 40, 20}, {20, 10}, angle, colors::red);   // centered on pos
-        auto rect(Rect rect, Vec2 origin, float rotation, Color color) noexcept -> void;
+        //     canvas.rect({pos.x, pos.y, 40, 20}, colors::red, angle, {20, 10});   // centered on pos
+        auto rect(Rect rect, Color color, float rotation, Vec2 origin = {}) noexcept -> void;
 
         // Outline, drawn inside the edges.
         auto rect_lines(Rect rect, Color color, float thickness = 1.f) noexcept -> void;

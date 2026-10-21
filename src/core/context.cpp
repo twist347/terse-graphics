@@ -355,8 +355,6 @@ namespace tgx {
     }
 
     auto detail::Context::bind_texture(std::uint32_t slot, GlId texture) noexcept -> void {
-        TGX_ASSERT(slot < gl::max_texture_slots);
-
         if (slot != active_slot) {
             glActiveTexture(GL_TEXTURE0 + slot);
             active_slot = slot;

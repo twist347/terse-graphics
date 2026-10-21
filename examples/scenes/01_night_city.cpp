@@ -279,6 +279,11 @@ int main() {
 
     while (!app->should_close()) {
         app->poll_events();
+        // Minimized, on Windows: no size to lay anything out in.
+        if (screen.size().empty()) {
+            app->swap_buffers();
+            continue;
+        }
 
         // A long pause (a dragged window) must not move everything at once.
         const float dt = std::min(app->clock().delta(), 0.1f);
@@ -288,9 +293,7 @@ int main() {
         // The picture scaled up by a whole factor, in the middle of the window.
         const tgx::Rect picture = tgx::fit_whole(resolution, screen.size());
         const tgx::Vec2 position = picture.position();
-        // A minimized window has no picture to point into.
-        const float to_pixels = picture.empty() ? 0.f : width / picture.width;
-        const tgx::Vec2 mouse = (app->input().mouse() - position) * to_pixels;
+        const tgx::Vec2 mouse = tgx::remap(app->input().mouse(), picture, {0, 0, width, height});
 
         // Rain: drops fall along the wind and splash where they meet the road.
         for (Drop &drop: drops) {
@@ -332,7 +335,9 @@ int main() {
         // Two flickers, bright then fading.
         const float left = lightning.strike.left();
         const float flash =
-            lightning.strike.done() ? 0.f : (std::fmod(left, 0.12f) > 0.05f ? 1.f : 0.4f) * (1.f - lightning.strike.progress());
+            lightning.strike.done()
+                ? 0.f
+                : (std::fmod(left, 0.12f) > 0.05f ? 1.f : 0.4f) * (1.f - lightning.strike.progress());
 
         car_x -= 45.f * dt;
         if (car_x < -90.f) {

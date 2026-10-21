@@ -480,7 +480,9 @@ namespace tgx {
             const auto end = static_cast<double>(length);
             frame = stream_->looping ? std::fmod(frame, end) : std::min(frame, end);
         } else {
-            frame = std::min(frame, 0x1p62);
+            // Past the end of anything real, and still a whole ma_uint64.
+            constexpr double far_frame = 0x1p62;
+            frame = std::min(frame, far_frame);
         }
         ma_sound_seek_to_pcm_frame(sound, static_cast<ma_uint64>(frame));
     }
@@ -568,7 +570,7 @@ namespace tgx {
             params.pitch
         );
         TGX_ASSERT_MSG(valid_volume(params.volume), "volume {}: not 0 or more", params.volume);
-        TGX_ASSERT_MSG(params.pan >= -1.f && params.pan <= 1.f, "pan {}: not from -1 to 1", params.pan);
+        TGX_ASSERT_MSG(!std::isnan(params.pan), "pan {}: not a number", params.pan);
 
         if (!s_audio || sound.id_ == 0 || sound.samples_.empty()) {
             return {};
@@ -600,7 +602,7 @@ namespace tgx {
         }
 
         ma_sound_set_volume(&voice.sound, params.volume);
-        ma_sound_set_pan(&voice.sound, params.pan);
+        ma_sound_set_pan(&voice.sound, std::clamp(params.pan, -1.f, 1.f));
         ma_sound_set_pitch(&voice.sound, params.pitch);
         voice.owner = sound.id_;
         voice.started = ++s_plays;

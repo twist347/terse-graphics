@@ -25,15 +25,56 @@ namespace {
     // Seeded: the same sky on every run.
     tgx::Random rng{20261015};
 
-    struct Star { tgx::Vec2 uv; float depth, size, phase, rate; tgx::Color tint; };
-    struct Blob { tgx::Vec2 uv; float radius, phase; tgx::Color color; };
+    struct Star {
+        tgx::Vec2 uv{};
+        float depth{};
+        float size{};
+        float phase{};
+        float rate{};
+        tgx::Color tint{};
+    };
+
+    struct Blob {
+        tgx::Vec2 uv{};
+        float radius{};
+        float phase{};
+        tgx::Color color{};
+    };
+
     // x in pixels, y a fraction of the height: a resize keeps the belt low.
-    struct Rock { tgx::Vec2 pos; float radius, angle, spin, depth; tgx::Color color; std::array<float, 9> shape; };
+    struct Rock {
+        tgx::Vec2 pos{};
+        float radius{};
+        float angle{};
+        float spin{};
+        float depth{};
+        tgx::Color color{};
+        std::array<float, 9> shape{};
+    };
+
     // A glowing dot, the ship's trail or a shockwave's burst, slowing down.
-    struct Spark { tgx::Vec2 from, vel; float born, life, size; tgx::Color hot, cool; };
-    struct Wave { tgx::Vec2 pos; float born; };
+    struct Spark {
+        tgx::Vec2 from{};
+        tgx::Vec2 vel{};
+        float born{};
+        float life{};
+        float size{};
+        tgx::Color hot{};
+        tgx::Color cool{};
+    };
+
+    struct Wave {
+        tgx::Vec2 pos{};
+        float born{};
+    };
+
     // One ring of the planet, in planet radii.
-    struct Band { float inner, outer; tgx::Color color; float alpha; };
+    struct Band {
+        float inner{};
+        float outer{};
+        tgx::Color color{};
+        float alpha{};
+    };
 
     constexpr std::array bands{
         Band{1.32f, 1.48f, tgx::Color::rgb(0x6e5e58), 0.35f},
@@ -126,7 +167,7 @@ int main() {
     std::vector<Rock> rocks{};
     for (int i = 1; i <= 18; ++i) {
         const float depth = static_cast<float>(i) / 18.f;
-        const tgx::Vec2 pos{rng.next_float() * start.x, rng.next_float(0.55f, 0.86f)};
+        const tgx::Vec2 pos{rng.next_float(0.f, start.x), rng.next_float(0.55f, 0.86f)};
         const tgx::Color stone = tgx::lerp(tgx::Color::rgb(0x3a3d55), rng.pick(stones), 0.3f + 0.7f * depth);
         const float spin = rng.next_float(-0.6f, 0.6f);
         Rock rock{pos, 5.f + 24.f * depth * depth, rng.next_float(0.f, 2.f * pi), spin, depth, stone, {}};
@@ -144,6 +185,11 @@ int main() {
 
     while (!app->should_close()) {
         app->poll_events();
+        // Minimized, on Windows: no size to lay anything out in.
+        if (canvas.size().empty()) {
+            app->swap_buffers();
+            continue;
+        }
 
         const float dt = std::min(app->clock().delta(), 0.05f);
         const auto time = static_cast<float>(app->clock().elapsed());
@@ -152,7 +198,7 @@ int main() {
         // The ship chases the mouse at a capped speed, or idles in a loop
         // while the mouse is away, and turns smoothly to where it goes.
         const tgx::Vec2 mouse = app->input().mouse();
-        const bool has_mouse = mouse.x > 0.f && mouse.y > 0.f && mouse.x < w && mouse.y < h;
+        const bool has_mouse = tgx::contains(tgx::Rect{0.f, 0.f, w, h}, mouse);
         const tgx::Vec2 idle{w * (0.3f + 0.12f * std::cos(time * 0.4f)), h * (0.45f + 0.1f * std::sin(time * 0.8f))};
         tgx::Vec2 want = ((has_mouse ? mouse : idle) - ship) * 2.5f;
         want = tgx::length(want) > 520.f ? tgx::normalize(want) * 520.f : want;
@@ -181,7 +227,7 @@ int main() {
         std::erase_if(sparks, [&](const Spark &spark) { return time - spark.born >= spark.life; });
 
         // Rocks drift left, the near ones faster, around the window's edges.
-        for (Rock &rock : rocks) {
+        for (Rock &rock: rocks) {
             const float m = rock.radius * 1.5f;
             rock.pos.x = tgx::wrap(rock.pos.x - (8.f + 40.f * rock.depth) * dt + m, w + 2.f * m) - m;
             rock.angle += rock.spin * dt;
@@ -192,18 +238,18 @@ int main() {
         canvas.set_blend(tgx::Blend::alpha);
         canvas.rect_gradient({0.f, 0.f, w, h}, tgx::Color::rgb(0x0b0d22), tgx::Color::rgb(0x0a0615));
         canvas.set_blend(tgx::Blend::additive);
-        const float diagonal = std::hypot(w, h);
+        const float diagonal = tgx::length(tgx::Vec2{w, h});
         constexpr auto glare = tgx::Color::rgb(0xffcf9a);
         canvas.circle_gradient({-0.05f * w, -0.1f * h}, 0.75f * diagonal, glare.fade(0.22f), glare.fade(0.f));
-        const tgx::Vec2 lean = (ship - tgx::Vec2{w / 2.f, h / 2.f}) * -0.02f;
-        for (const Blob &blob : nebula) {
+        const tgx::Vec2 lean = (ship - tgx::Vec2{w, h} / 2.f) * -0.02f;
+        for (const Blob &blob: nebula) {
             const tgx::Vec2 sway = tgx::from_angle(time * 0.05f + blob.phase) * 12.f;
             const auto at = tgx::Vec2{blob.uv.x * w, blob.uv.y * h} + lean + sway;
             const float glow = 0.1f + 0.03f * std::sin(time * 0.3f + blob.phase);
             canvas.circle_gradient(at, blob.radius * diagonal, blob.color.fade(glow), blob.color.fade(0.f));
         }
         const auto pan = tgx::Vec2{-14.f, -3.f} * time + lean * 4.f;
-        for (const Star &star : stars) {
+        for (const Star &star: stars) {
             const tgx::Vec2 shift = pan * star.depth;
             const tgx::Vec2 at{tgx::wrap(star.uv.x * w + shift.x, w), tgx::wrap(star.uv.y * h + shift.y, h)};
             const float shine = 0.65f + 0.35f * std::sin(time * star.rate + star.phase);
@@ -244,7 +290,8 @@ int main() {
         const auto draw_moon = [&](bool far) {
             if (far == (moon.z > 0.f)) {
                 sphere<48>(canvas, on_screen(moon), radius * 0.12f, 6, [&](tgx::Vec3 n) {
-                    return shade(tgx::Color::rgb(0xb4b6c8), 0.1f + 0.9f * tgx::smoothstep(-0.15f, 0.7f, tgx::dot(n, sun)));
+                    const float lit = tgx::smoothstep(-0.15f, 0.7f, tgx::dot(n, sun));
+                    return shade(tgx::Color::rgb(0xb4b6c8), 0.1f + 0.9f * lit);
                 });
             }
         };
@@ -259,7 +306,8 @@ int main() {
             const float lat = tgx::dot(n, e2);
             const float stripes = 0.5f + 0.5f * std::sin(lat * 13.f + std::sin(lat * 31.f) * 0.9f);
             const tgx::Color band = tgx::lerp(tgx::Color::rgb(0xf0d2a8), tgx::Color::rgb(0xc58658), stripes);
-            const tgx::Color color = tgx::lerp(band, tgx::Color::rgb(0x7d6a78), tgx::smoothstep(0.6f, 0.95f, std::abs(lat)));
+            const float polar = tgx::smoothstep(0.6f, 0.95f, std::abs(lat));
+            const tgx::Color color = tgx::lerp(band, tgx::Color::rgb(0x7d6a78), polar);
             const float light = tgx::smoothstep(-0.12f, 0.75f, tgx::dot(n, sun)) * (0.6f + 0.4f * std::sqrt(-n.z));
             return tgx::lerp(tgx::Color::rgb(0x0b0c1c), color, light);
         });
@@ -277,7 +325,7 @@ int main() {
         draw_moon(false);
 
         // Rocks: each a fan lit on the sun's side, with a dark edge.
-        for (const Rock &rock : rocks) {
+        for (const Rock &rock: rocks) {
             const tgx::Vec2 at{rock.pos.x, rock.pos.y * h};
             std::array<tgx::Vec2, 9> corners{};
             std::array<tgx::Color, 9> shades{};
@@ -296,13 +344,13 @@ int main() {
         // Light: sparks, shockwaves, the engine's flame.
         canvas.set_blend(tgx::Blend::additive);
         constexpr auto ice = tgx::Color::rgb(0x6cc4ff), white = tgx::colors::white;
-        for (const Spark &spark : sparks) {
+        for (const Spark &spark: sparks) {
             const float age = time - spark.born, t = age / spark.life;
             const tgx::Color color = tgx::lerp(spark.hot, spark.cool, t).fade((1.f - t) * (1.f - t) * 0.8f);
             const tgx::Vec2 at = spark.from + spark.vel * ((1.f - std::exp(-1.5f * age)) / 1.5f);
             canvas.circle_gradient(at, spark.size * (1.f + t), color, color.fade(0.f));
         }
-        for (const Wave &wave : waves) {
+        for (const Wave &wave: waves) {
             const float t = (time - wave.born) / wave_time;
             const float r = tgx::ease::out_cubic(t) * 0.4f * std::min(w, h), fade = (1.f - t) * (1.f - t);
             canvas.ring(wave.pos, std::max(r - 4.f - 10.f * t, 0.f), r, 0.f, 2.f * pi, ice.fade(0.8f * fade));

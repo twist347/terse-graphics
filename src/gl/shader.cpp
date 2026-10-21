@@ -32,25 +32,23 @@ namespace {
     // Stage objects are only needed until the program is linked.
     using Stage = tgx::detail::Handle<delete_shader>;
 
-    // Shaders and programs read logs with different calls of the same shape.
-    enum class LogOf {
-        shader,
-        program,
-    };
-
     // Appends "<label>:\n<log>" when the log is not empty. GL's length
-    // includes the terminating null.
-    auto append_log(std::string *out_log, std::string_view label, GLuint object, LogOf kind) -> void {
+    // includes the terminating null. get_length and get_log are GL's calls
+    // for a stage (glGetShader*) or a program (glGetProgram*); the two take
+    // the same arguments.
+    auto append_log(
+        std::string *out_log,
+        std::string_view label,
+        GLuint object,
+        PFNGLGETSHADERIVPROC get_length,
+        PFNGLGETSHADERINFOLOGPROC get_log
+    ) -> void {
         if (!out_log) {
             return;
         }
 
         GLint length = 0;
-        if (kind == LogOf::program) {
-            glGetProgramiv(object, GL_INFO_LOG_LENGTH, &length);
-        } else {
-            glGetShaderiv(object, GL_INFO_LOG_LENGTH, &length);
-        }
+        get_length(object, GL_INFO_LOG_LENGTH, &length);
         if (length <= 1) {
             return;
         }
@@ -63,11 +61,7 @@ namespace {
         const std::size_t at = out_log->size();
         out_log->resize(at + static_cast<std::size_t>(length));
         GLsizei written = 0;
-        if (kind == LogOf::program) {
-            glGetProgramInfoLog(object, length, &written, out_log->data() + at);
-        } else {
-            glGetShaderInfoLog(object, length, &written, out_log->data() + at);
-        }
+        get_log(object, length, &written, out_log->data() + at);
         out_log->resize(at + static_cast<std::size_t>(written));
 
         // Never empty here: "<label>:\n" is already in it.
@@ -93,7 +87,7 @@ namespace {
         glShaderSource(shader.get(), 1, &text, &length);
         glCompileShader(shader.get());
 
-        append_log(out_log, label, shader.get(), LogOf::shader);
+        append_log(out_log, label, shader.get(), glGetShaderiv, glGetShaderInfoLog);
 
         GLint ok = GL_FALSE;
         glGetShaderiv(shader.get(), GL_COMPILE_STATUS, &ok);
@@ -263,7 +257,7 @@ namespace tgx::gl {
         glDetachShader(program.get(), vs.get());
         glDetachShader(program.get(), fs.get());
 
-        append_log(out_log, "link", program.get(), LogOf::program);
+        append_log(out_log, "link", program.get(), glGetProgramiv, glGetProgramInfoLog);
 
         GLint ok = GL_FALSE;
         glGetProgramiv(program.get(), GL_LINK_STATUS, &ok);
@@ -302,10 +296,6 @@ namespace tgx::gl {
                 "texture slot {} is out of range, there are {}",
                 value.index, max_texture_slots
             );
-            const auto sampler = std::ranges::find(samplers_, uniform.location_, &detail::ShaderSampler::location);
-            if (sampler != samplers_.end()) {
-                sampler->slot = value.index;
-            }
         }
 
         tgx::detail::context().use_program(id());

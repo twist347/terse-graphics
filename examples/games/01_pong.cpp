@@ -66,7 +66,7 @@ namespace {
 
     // Panned from the left edge of the field to the right one.
     auto play(tgx::Audio &audio, const tgx::Sound &sound, float x) -> void {
-        const float pan = std::clamp(tgx::remap(x, 0, field_width, -1, 1), -1.f, 1.f);
+        const float pan = tgx::remap(x, 0, field_width, -1, 1);
         audio.play(sound, {.pan = pan});
     }
 
@@ -273,6 +273,8 @@ namespace {
 }
 
 int main() {
+    // Info also prints what it runs on: tgx and the window, the GL context,
+    // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
     auto app = tgx::App::create({.title = "tgx - games 01 pong"});

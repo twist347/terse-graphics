@@ -1,8 +1,9 @@
 // Text in the built-in font: sizes, colors, lines, centering by its measured
-// size, and a field that takes what is typed.
+// size, and a field that takes what is typed, its end kept in sight.
 
 #include "tgx/tgx.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <print>
 #include <string>
@@ -54,13 +55,17 @@ int main() {
         canvas.text({width / 2, 340}, "Centered\nline by line", tgx::colors::white, 32, {0.5f, 0.5f});
         canvas.text({width - 40, 200}, "Right-aligned\n42", tgx::colors::light_gray, 16, {1, 0});
 
-        // A field: a box, what was typed, a cursor after it.
+        // A field: a box, what was typed, a cursor after it. Clipped to the
+        // box; once the text is longer, it moves left to keep the cursor in.
         constexpr tgx::Rect field{40, 440, 600, 40};
         const tgx::Vec2 typed_extent = tgx::Canvas::measure_text(typed, 32);
+        const float start = field.x + 8 - std::max(typed_extent.x - (field.width - 20), 0.f);
         canvas.rect(field, tgx::colors::black);
         canvas.rect_lines(field, tgx::colors::gray, 2);
-        canvas.text({field.x + 8, field.y + 4}, typed, tgx::colors::white, 32);
-        canvas.rect({field.x + 8 + typed_extent.x + 2, field.y + 6, 2, 28}, tgx::colors::yellow);
+        canvas.set_clip(field);
+        canvas.text({start, field.y + 4}, typed, tgx::colors::white, 32);
+        canvas.rect({start + typed_extent.x + 2, field.y + 6, 2, 28}, tgx::colors::yellow);
+        canvas.set_clip({});
         canvas.text({40, 490}, "Type here; Backspace erases.", tgx::colors::gray);
 
         canvas.fps({10, 10});

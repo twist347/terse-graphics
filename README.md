@@ -28,7 +28,7 @@ light and a scanline shader, all made in code.*
 - **Audio**: sounds and streamed music, WAV, OGG, MP3 or FLAC.
 - **Images and textures**: PNG, JPEG, BMP, TGA, GIF in, PNG out.
 - **Utilities**: GPU-ready math with glm's conventions, collisions, a seeded
-  `Random`.
+  `Random`, timers and easing curves.
 - **`tgx::gl`**: your own shaders, typed buffers and uniforms, in the same
   frame as the canvas.
 - **Checks**: asserts for the mistakes OpenGL keeps quiet about.

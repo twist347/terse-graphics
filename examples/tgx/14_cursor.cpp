@@ -27,11 +27,17 @@ namespace {
         Box{tgx::CursorShape::not_allowed, "not_allowed"},
     };
 
-    constexpr std::array modes{
-        tgx::CursorMode::normal, tgx::CursorMode::hidden, tgx::CursorMode::captured,
+    struct Mode {
+        tgx::CursorMode mode{};
+        tgx::Key key{};
+        const char *name{};
     };
-    constexpr std::array mode_keys{tgx::Key::digit1, tgx::Key::digit2, tgx::Key::digit3};
-    constexpr std::array mode_names{"normal", "hidden", "captured"};
+
+    constexpr std::array modes{
+        Mode{tgx::CursorMode::normal, tgx::Key::digit1, "normal"},
+        Mode{tgx::CursorMode::hidden, tgx::Key::digit2, "hidden"},
+        Mode{tgx::CursorMode::captured, tgx::Key::digit3, "captured"},
+    };
 
     // Radians the sight turns per unit of mouse movement.
     constexpr float sensitivity = 0.005f;
@@ -59,9 +65,9 @@ int main() {
     while (!app->should_close()) {
         app->poll_events();
 
-        for (std::size_t i = 0; i < modes.size(); ++i) {
-            if (input.pressed(mode_keys[i])) {
-                window.set_cursor_mode(modes[i]);
+        for (const Mode &mode: modes) {
+            if (input.pressed(mode.key)) {
+                window.set_cursor_mode(mode.mode);
             }
         }
 
@@ -86,9 +92,9 @@ int main() {
         }
         window.set_cursor_shape(shape);
 
-        const auto mode = static_cast<std::size_t>(window.cursor_mode());
+        const auto mode = std::ranges::find(modes, window.cursor_mode(), &Mode::mode);
         canvas.text({40, 40}, "1: normal, 2: hidden, 3: captured (1 lets go)", tgx::colors::light_gray);
-        canvas.text({40, 70}, std::format("mode: {}", mode_names[mode]), tgx::colors::white);
+        canvas.text({40, 70}, std::format("mode: {}", mode->name), tgx::colors::white);
 
         // The sight: a ring that the mouse turns, its line showing which way.
         constexpr tgx::Vec2 center{640, 440};

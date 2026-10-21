@@ -28,8 +28,18 @@ namespace {
 
     // The light of a moment of the day, 0xRRGGBB: sky top and bottom, light on
     // the land (multiplies its colors), haze far things fade into, clouds.
-    struct Palette { float hour; std::array<std::uint32_t, 5> colors; };
-    struct Sky { Color top, bottom, light, haze, cloud; };
+    struct Palette {
+        float hour{};
+        std::array<std::uint32_t, 5> colors{};
+    };
+    struct Sky {
+        Color top{};
+        Color bottom{};
+        Color light{};
+        Color haze{};
+        Color cloud{};
+    };
+
     // Night from 21 to 5; frames in between blend the two around them.
     constexpr std::array palettes{
         Palette{5.f, {0x0a0f2c, 0x26336a, 0x56669e, 0x23305e, 0x323d6c}},
@@ -47,9 +57,17 @@ namespace {
     // height), how much they roll, their color by day, how much haze.
     constexpr std::array hill_base{0.57f, 0.64f, 0.72f, 0.81f};
     constexpr std::array hill_roll{0.065f, 0.055f, 0.04f, 0.025f};
-    constexpr std::array hill_color{Color::rgb(0x7fb89a), Color::rgb(0x62a86a), Color::rgb(0x4f9a4a), Color::rgb(0x6cb246)};
+    constexpr std::array hill_color{
+        Color::rgb(0x7fb89a), Color::rgb(0x62a86a), Color::rgb(0x4f9a4a), Color::rgb(0x6cb246),
+    };
     constexpr std::array hill_haze{0.62f, 0.4f, 0.18f, 0.f};
-    struct Tree { std::size_t layer; float u; float size; bool pine; };
+
+    struct Tree {
+        std::size_t layer{};
+        float u{};
+        float size{};
+        bool pine{};
+    };
     constexpr std::array trees{
         Tree{1, 0.1f, 0.8f, true}, Tree{1, 0.13f, 0.6f, true}, Tree{1, 0.155f, 0.7f, true}, Tree{1, 0.6f, 0.65f, true},
         Tree{1, 0.63f, 0.85f, true}, Tree{2, 0.33f, 0.9f, false}, Tree{2, 0.365f, 0.7f, false},
@@ -57,14 +75,31 @@ namespace {
     };
 
     // A cloud: a flat base and puffs on it, {x, y, radius} at scale 1.
-    constexpr std::array puffs{tgx::Vec3{-30, -6, 20}, tgx::Vec3{-5, -17, 26}, tgx::Vec3{22, -9, 20}, tgx::Vec3{42, 1, 13}};
+    constexpr std::array puffs{
+        tgx::Vec3{-30, -6, 20}, tgx::Vec3{-5, -17, 26}, tgx::Vec3{22, -9, 20}, tgx::Vec3{42, 1, 13},
+    };
     constexpr std::array craters{tgx::Vec3{-7, -5, 5}, tgx::Vec3{7, 6, 4}, tgx::Vec3{8, -9, 2.5f}};
     constexpr std::array petals{Color::rgb(0xffffff), Color::rgb(0xffd34e), Color::rgb(0xff8fab), Color::rgb(0xc9a7ff)};
     constexpr std::array speeds{-16.f, -8.f, -4.f, -2.f, -1.f, 1.f, 2.f, 4.f, 8.f, 16.f};
     // Hours per second at 1x: a day in 160 seconds.
     constexpr float base_rate = 0.15f;
-    struct Blade { float u, depth, length, lean, phase, bend; Color root, tip; };
-    struct Firefly { Vec2 pos, vel; float phase; };
+
+    struct Blade {
+        float u{};
+        float depth{};
+        float length{};
+        float lean{};
+        float phase{};
+        float bend{};
+        Color root{};
+        Color tip{};
+    };
+
+    struct Firefly {
+        Vec2 pos{};
+        Vec2 vel{};
+        float phase{};
+    };
 
     // Channel by channel: light falling on a surface.
     auto mul(Color a, Color b) -> Color {
@@ -86,7 +121,8 @@ namespace {
     auto hill_y(std::size_t layer, float x, Vec2 size) -> float {
         const auto l = static_cast<float>(layer);
         const float u = x / size.x * 2.f * pi;
-        const float wave = 0.6f * std::sin(u * (1.1f + 0.5f * l) + l * 1.7f) + 0.4f * std::sin(u * (2.7f + 0.9f * l) + l * 4.1f);
+        const float wave = 0.6f * std::sin(u * (1.1f + 0.5f * l) + l * 1.7f)
+                           + 0.4f * std::sin(u * (2.7f + 0.9f * l) + l * 4.1f);
         return size.y * (hill_base[layer] - hill_roll[layer] * wave);
     }
 
@@ -155,7 +191,7 @@ int main() {
             lerp(Color::rgb(0x88c44e), Color::rgb(0xc6e274), shade)};
     }
     std::array<Firefly, 40> fireflies{};
-    for (auto &fly : fireflies) {
+    for (auto &fly: fireflies) {
         fly = {random.point_in({0.f, 500.f, 1280.f, 200.f}), {}, random.next_float(0.f, 9.f)};
     }
 
@@ -168,6 +204,11 @@ int main() {
 
     while (!app->should_close()) {
         app->poll_events();
+        // Minimized, on Windows: no size to lay anything out in.
+        if (canvas.size().empty()) {
+            app->swap_buffers();
+            continue;
+        }
 
         const auto &input = app->input();
         const float dt = app->clock().delta();
@@ -175,8 +216,11 @@ int main() {
         // A wheel notch or an arrow steps the speed of time, Space pauses.
         const int step = (input.wheel().y > 0.f || input.pressed(tgx::Key::right) ? 1 : 0)
             - (input.wheel().y < 0.f || input.pressed(tgx::Key::left) ? 1 : 0);
-        speed = static_cast<std::size_t>(std::clamp(static_cast<int>(speed) + step, 0, static_cast<int>(speeds.size()) - 1));
-        paused = paused != input.pressed(tgx::Key::space);
+        const int last_speed = static_cast<int>(speeds.size()) - 1;
+        speed = static_cast<std::size_t>(std::clamp(static_cast<int>(speed) + step, 0, last_speed));
+        if (input.pressed(tgx::Key::space)) {
+            paused = !paused;
+        }
         rate += ((paused ? 0.f : speeds[speed] * base_rate) - rate) * std::min(1.f, dt * 3.f);
         hour = tgx::wrap(hour + rate * dt, 24.f);
 
@@ -196,7 +240,8 @@ int main() {
             const Vec2 at = sky_random.point_in({0.f, 0.f, 1.f, 0.62f});
             const float twinkle = 0.65f + 0.35f * std::sin(time * 2.3f + sky_random.next_float(0.f, 40.f));
             const float radius = sky_random.next_float(0.5f, 1.6f) * s;
-            glow.circle({at.x * size.x, at.y * size.y}, radius, Color::rgb(0xfff6e0).fade(dark * twinkle * (1.f - at.y)));
+            const float shine = dark * twinkle * (1.f - at.y);
+            glow.circle({at.x * size.x, at.y * size.y}, radius, Color::rgb(0xfff6e0).fade(shine));
         }
 
         // The sun is up from 5:24 to 19:24, the moon twelve hours later.
@@ -214,7 +259,7 @@ int main() {
             const float pale = 1.f - 0.6f * day;
             glow.circle_gradient(moon, 160.f * s, Color::rgb(0xb4c2ff).fade(0.2f * dark), clear);
             canvas.circle(moon, 22.f * s, Color::rgb(0xf4f0de).fade(pale));
-            for (const auto &crater : craters) {
+            for (const auto &crater: craters) {
                 canvas.circle(moon + Vec2{crater.x, crater.y} * s, crater.z * s, Color::rgb(0xdcd6c2).fade(pale));
             }
         }
@@ -223,12 +268,13 @@ int main() {
         for (int i = 0; i < 6; ++i) {
             const float k = sky_random.next_float(0.7f, 1.5f) * s;
             const float span = size.x + 300.f * s;
-            const float x = tgx::wrap(sky_random.next_float(0.f, span) + time * sky_random.next_float(6.f, 14.f) * s, span);
+            const float start = sky_random.next_float(0.f, span);
+            const float x = tgx::wrap(start + time * sky_random.next_float(6.f, 14.f) * s, span);
             const Vec2 c{x - 150.f * s, sky_random.next_float(0.12f, 0.4f) * size.y};
-            for (const float lift : {0.f, 5.f}) {
+            for (const float lift: {0.f, 5.f}) {
                 const Color color = lift == 0.f ? lerp(sky.cloud, sky.top, 0.22f) : sky.cloud;
                 canvas.rect_rounded({c.x - 52.f * k, c.y - (6.f + lift) * k, 104.f * k, 20.f * k}, 10.f * k, color);
-                for (const auto &puff : puffs) {
+                for (const auto &puff: puffs) {
                     canvas.circle({c.x + puff.x * k, c.y + (puff.y - lift) * k}, puff.z * k, color);
                 }
             }
@@ -240,7 +286,7 @@ int main() {
             const Color top = tint(hill_color[layer]);
             // Mist at the foot of the far hills; the meadow darkens instead.
             draw_hill(canvas, layer, size, top, lerp(top, layer == 3 ? Color::rgb(0x1c3a20) : sky.haze, 0.33f));
-            for (const auto &tree : trees) {
+            for (const auto &tree: trees) {
                 if (tree.layer == layer) {
                     const Vec2 at{tree.u * size.x, hill_y(layer, tree.u * size.x, size) + 4.f * tree.size * s};
                     const Color leaves = tint(Color::rgb(tree.pine ? 0x2e6a48 : 0x3e8a3a));
@@ -305,7 +351,7 @@ int main() {
                 size.y * (0.71f + 0.05f * std::sin(time * (0.4f + 0.1f * f) + f)) + 6.f * s * std::sin(time * 4.f + f)};
             const float w = (4.f + 12.f * std::abs(std::sin(time * 13.f + f * 2.f))) * s;
             const Color color = mul(petals[i], sky.light).fade(day);
-            for (const float side : {-w, w}) {
+            for (const float side: {-w, w}) {
                 canvas.triangle(b, b + Vec2{side, -12.f * s}, b + Vec2{side * 1.1f, s}, color);
                 canvas.triangle(b, b + Vec2{side * 0.8f, s}, b + Vec2{side * 0.5f, 10.f * s}, color);
             }
@@ -313,16 +359,18 @@ int main() {
         }
 
         // Fireflies wander low; near the mouse they gather and circle it.
-        for (auto &fly : fireflies) {
+        for (auto &fly: fireflies) {
             Vec2 target = tgx::from_angle(fly.phase * 5.f + 2.5f * std::sin(time * 0.23f + fly.phase)) * 36.f * s;
             target.y += fly.pos.y < size.y * 0.68f ? 30.f * s : fly.pos.y > size.y * 0.95f ? -30.f * s : 0.f;
             if (const Vec2 to = mouse - fly.pos; mouse_in && tgx::length(to) < 280.f * s && tgx::length(to) > 1.f) {
                 const Vec2 dir = tgx::normalize(to);
-                target += (dir * 90.f + tgx::perpendicular(dir) * 50.f) * s * tgx::smoothstep(40.f * s, 120.f * s, tgx::length(to));
+                const float pull = tgx::smoothstep(40.f * s, 120.f * s, tgx::length(to));
+                target += (dir * 90.f + tgx::perpendicular(dir) * 50.f) * s * pull;
             }
             fly.vel = tgx::lerp(fly.vel, target, std::min(1.f, dt * 1.5f));
             fly.pos += fly.vel * dt;
-            fly.pos.x = fly.pos.x < -20.f ? size.x + 20.f : fly.pos.x > size.x + 20.f ? -20.f : fly.pos.x;
+            // Out at one side, in at the other, 20 past the edge.
+            fly.pos.x = tgx::wrap(fly.pos.x + 20.f, size.x + 40.f) - 20.f;
             const float pulse = 0.5f + 0.5f * std::sin(time * 2.2f + fly.phase);
             const float light = dark * (0.25f + 0.75f * pulse * pulse);
             glow.circle_gradient(fly.pos, 18.f * s, Color::rgb(0xd4ff6a).fade(0.5f * light), clear);

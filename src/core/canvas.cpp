@@ -58,6 +58,8 @@ namespace {
 
     // Glyphs are one row filling the atlas height, so v goes from 0 to 1.
     static_assert(font::atlas_height == font::line_height);
+    // Text at the default size keeps the font's pixels square.
+    static_assert(tgx::Canvas::default_text_size == font::line_height);
 
     // The Device's batch, with room for this many more vertices and indices
     // with the state, and the index of the first new vertex.
@@ -103,8 +105,6 @@ namespace {
         tgx::Color inner, tgx::Color outer,
         bool closed
     ) noexcept -> void {
-        TGX_ASSERT(segments >= 1);
-
         const std::size_t count = closed ? segments : segments + 1;
         auto [batch, first] = start(state, count + 1, segments * 3);
         batch.push_vertex({center, white_uv, inner});
@@ -126,8 +126,6 @@ namespace {
         tgx::Color color,
         bool closed
     ) noexcept -> void {
-        TGX_ASSERT(segments >= 1);
-
         const std::size_t count = closed ? segments : segments + 1;
         auto [batch, first] = start(state, count * 2, segments * 6);
 
@@ -146,7 +144,7 @@ namespace {
     // Outline, drawn inside the edges. The polygon needs a circle touching
     // every edge (center, inradius), like a triangle or a regular polygon:
     // scaling the corners toward it moves every edge thickness inward.
-    // Asserts thickness < inradius.
+    // thickness must be below inradius.
     template<typename Corner>
     auto push_outline(
         const BatchState &state,
@@ -157,8 +155,6 @@ namespace {
         float thickness,
         tgx::Color color
     ) noexcept -> void {
-        TGX_ASSERT(thickness < inradius);
-
         const float keep = 1.f - thickness / inradius;
         const auto inner = [&](std::size_t i) noexcept { return center + (corner(i) - center) * keep; };
         push_band(state, count, corner, inner, color, true);
@@ -295,7 +291,7 @@ namespace tgx {
         quad(detail::corners(rect), each_corner(color));
     }
 
-    auto Canvas::rect(Rect rect, Vec2 origin, float rotation, Color color) noexcept -> void {
+    auto Canvas::rect(Rect rect, Color color, float rotation, Vec2 origin) noexcept -> void {
         const auto box = detail::placed_corners(rect.size(), origin, rect.position(), rotation);
         quad(box, each_corner(color));
     }
@@ -627,7 +623,7 @@ namespace tgx {
             state_for(texture.id()),
             detail::placed_corners({width, height}, sprite.origin, sprite.position, sprite.rotation),
             detail::corners(uv_of(texture, first), uv_of(texture, last)),
-            {sprite.tint, sprite.tint, sprite.tint, sprite.tint}
+            each_corner(sprite.tint)
         );
     }
 
@@ -650,6 +646,8 @@ namespace tgx {
         );
 
         const Vec2 size = slice.size == Vec2{} ? src.size() : slice.size;
+        TGX_ASSERT_MSG(size.x >= 0.f && size.y >= 0.f, "a nine-slice of size {}x{}", size.x, size.y);
+        TGX_ASSERT_MSG(slice.border_scale >= 0.f, "nine-slice border_scale {}", slice.border_scale);
         const auto [left, right] = fit_borders(borders.left, borders.right, slice.border_scale, size.x);
         const auto [top, bottom] = fit_borders(borders.top, borders.bottom, slice.border_scale, size.y);
 

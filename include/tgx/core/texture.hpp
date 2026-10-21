@@ -72,11 +72,13 @@ namespace tgx {
             const TextureParams &params = {}
         ) -> Result<Texture>;
 
-        // Uninitialized, to fill with update(). params.access must be dynamic
-        // (asserted). Fails like the create() above.
+        // Uninitialized, to fill with update(). Always dynamic, whatever
+        // params.access says. Fails like the create() above.
+        //
+        //     auto paint = tgx::Texture::create({256, 256});   // then paint->update(x, y, image)
         [[nodiscard]] static auto create(
             Size size,
-            const TextureParams &params
+            const TextureParams &params = {}
         ) noexcept -> Result<Texture>;
 
         Texture(const Texture &) = delete;

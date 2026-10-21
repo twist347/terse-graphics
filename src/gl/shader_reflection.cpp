@@ -41,39 +41,55 @@ namespace {
             default: return 1;
         }
     }
-}
 
-namespace tgx::gl {
-    auto detail::collect_uniforms(GlId program) -> std::vector<ShaderUniform> {
+    // Calls each(name, location, type, size) for every active uniform or
+    // vertex input that has a location: uniform block members and built-ins
+    // such as gl_VertexID have none. get_active and get_location are GL's
+    // calls for one kind (glGetActiveUniform, glGetUniformLocation) or the
+    // other (glGetActiveAttrib, glGetAttribLocation); they take the same
+    // arguments.
+    template<typename Each>
+    auto for_each_active(
+        tgx::GlId program,
+        GLenum count_query,
+        GLenum length_query,
+        PFNGLGETACTIVEUNIFORMPROC get_active,
+        PFNGLGETUNIFORMLOCATIONPROC get_location,
+        Each each
+    ) -> void {
         GLint count = 0;
         GLint max_length = 0;
-        glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
-        glGetProgramiv(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_length);
+        glGetProgramiv(program, count_query, &count);
+        glGetProgramiv(program, length_query, &max_length);
 
-        std::vector<ShaderUniform> uniforms{};
         // Longest name plus GL's terminator, which the location query needs.
         std::string name(static_cast<std::size_t>(max_length), '\0');
         for (GLint i = 0; i < count; ++i) {
             GLsizei length = 0;
             GLint size = 0;
             GLenum type = 0;
-            glGetActiveUniform(program, static_cast<GLuint>(i), max_length, &length, &size, &type, name.data());
-
-            // Uniform block members have no location; the block's buffer sets
-            // them.
-            const GLint location = glGetUniformLocation(program, name.c_str());
-            if (location < 0) {
-                continue;
+            get_active(program, static_cast<GLuint>(i), max_length, &length, &size, &type, name.data());
+            if (const GLint location = get_location(program, name.c_str()); location >= 0) {
+                each(std::string_view{name.data(), static_cast<std::size_t>(length)}, location, type, size);
             }
-
-            // An array is reported by its first element, at the array's
-            // location.
-            std::string_view base{name.data(), static_cast<std::size_t>(length)};
-            if (base.ends_with("[0]")) {
-                base.remove_suffix(3);
-            }
-            uniforms.push_back({std::string{base}, location, type, size});
         }
+    }
+}
+
+namespace tgx::gl {
+    auto detail::collect_uniforms(GlId program) -> std::vector<ShaderUniform> {
+        std::vector<ShaderUniform> uniforms{};
+        for_each_active(
+            program, GL_ACTIVE_UNIFORMS, GL_ACTIVE_UNIFORM_MAX_LENGTH, glGetActiveUniform, glGetUniformLocation,
+            [&](std::string_view name, GLint location, GLenum type, GLint size) {
+                // An array is reported by its first element, at the array's
+                // location.
+                if (name.ends_with("[0]")) {
+                    name.remove_suffix(3);
+                }
+                uniforms.push_back({std::string{name}, location, type, size});
+            }
+        );
         return uniforms;
     }
 
@@ -88,32 +104,18 @@ namespace tgx::gl {
     }
 
     auto detail::collect_vertex_inputs(GlId program) -> std::vector<VertexInput> {
-        GLint count = 0;
-        GLint max_length = 0;
-        glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
-        glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &max_length);
-
         std::vector<VertexInput> inputs{};
-        std::string name(static_cast<std::size_t>(max_length), '\0');
-        for (GLint i = 0; i < count; ++i) {
-            GLsizei length = 0;
-            GLint size = 0;
-            GLenum type = 0;
-            glGetActiveAttrib(program, static_cast<GLuint>(i), max_length, &length, &size, &type, name.data());
-
-            // Skips built-ins such as gl_VertexID.
-            const GLint location = glGetAttribLocation(program, name.c_str());
-            if (location < 0) {
-                continue;
+        for_each_active(
+            program, GL_ACTIVE_ATTRIBUTES, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, glGetActiveAttrib, glGetAttribLocation,
+            [&](std::string_view name, GLint location, GLenum type, GLint size) {
+                inputs.push_back({
+                    std::string{name},
+                    static_cast<std::uint32_t>(location),
+                    slots_of(type) * static_cast<std::uint32_t>(size),
+                    to_component_kind(type),
+                });
             }
-
-            inputs.push_back({
-                std::string{name.data(), static_cast<std::size_t>(length)},
-                static_cast<std::uint32_t>(location),
-                slots_of(type) * static_cast<std::uint32_t>(size),
-                to_component_kind(type),
-            });
-        }
+        );
         return inputs;
     }
 

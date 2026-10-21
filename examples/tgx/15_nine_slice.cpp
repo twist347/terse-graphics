@@ -1,6 +1,6 @@
 // Nine-slice: one small frame drawn at any size, corners kept sharp. A panel
-// that stretches, buttons as wide as their labels, and a bar cut in three
-// that fills up.
+// that stretches, buttons as wide as their labels that light up under the
+// mouse, and a bar cut in three that fills up.
 
 #include "tgx/tgx.hpp"
 
@@ -36,7 +36,7 @@ int main() {
     // the audio output.
     tgx::set_log_level(tgx::LogLevel::info);
 
-    auto app = tgx::App::create({.title = "tgx - 15 nine-slice"});
+    auto app = tgx::App::create({.title = "tgx - 15 nine slice"});
     if (!app) {
         std::println(stderr, "app: {}", app.error());
         return 1;

@@ -85,7 +85,11 @@ In `tgx`:
   usual operations and `ortho`, `perspective`, `look_at`, `translate`, `rotate`,
   `scale`. Same conventions as glm, and glm values convert with `std::bit_cast`.
   `fit` and `fit_whole` place a fixed-size picture in a window of any shape.
-  `frame_of` gives a sprite sheet's frame by index, as `Sprite::src`.
+  `frame_of` gives a sprite sheet's frame by index, as `Sprite::src`. For the
+  numbers in between: `remap` (a value from one range to another, or a point
+  from one rect to another, such as the mouse over a scaled picture),
+  `smoothstep`, `wrap` (whatever goes around: an angle, a screen edge),
+  `to_vec2` (a `Size` for math), `Rect::position()` and `size()`.
 - **Random**: `tgx::Random`, a seeded value with floats, ints, chances, points
   in a rect, directions and picks; the same seed gives the same numbers on
   every run, and the same integers on every platform (floats may differ in
@@ -194,7 +198,7 @@ while (!app->should_close()) {
 More shapes, in the same style:
 
 ```cpp
-canvas.rect({x, y, 40, 20}, {20, 10}, angle, tgx::colors::red);       // turned around its middle
+canvas.rect({x, y, 40, 20}, tgx::colors::red, angle, {20, 10});       // turned around its middle
 canvas.rect_rounded({40, 40, 200, 100}, 12.f, tgx::colors::blue);     // corner radius
 canvas.rect_rounded_lines({40, 40, 200, 100}, 12.f, tgx::colors::white, 2.f);
 canvas.triangle_lines(a, b, c, tgx::colors::green, 2.f);
@@ -598,16 +602,17 @@ asserts on, tgx stops at the call instead; the main cases:
   negative size;
 - a rect of negative size or a circle of negative radius, for a collision
   check or a canvas shape; a negative, infinite or NaN thickness; a polygon of fewer
-  than 3 or more than 1024 sides; a nine-slice with a mirrored `src`, or
-  borders below 0 or wider than `src`;
+  than 3 or more than 1024 sides; a nine-slice with a mirrored `src` or size,
+  borders below 0 or wider than `src`, or a `border_scale` below 0;
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
 - an `Image` of negative size, a pixel outside one, or saving an empty one;
 - `Random::next_int` or `next_float` with an empty range, a pick from no
-  items;
+  items; `remap` or `smoothstep` from a range of no length, `wrap` within a
+  span of 0 or less;
 - a sound made of samples that do not split into its channels, or of more
   than 254 of them; a sound played at a pitch of 0 or less, or infinite; a
-  volume below 0, a pan outside -1 to 1, a seek before the start;
+  volume below 0, a seek before the start;
 - a canvas shader without `u_projection`, or with a sampler other than
   `u_texture`; a camera with zoom 0, or an infinite zoom or rotation;
 - a `Key`, `MouseButton` or `CursorShape` cast from outside its values;
@@ -616,7 +621,6 @@ asserts on, tgx stops at the call instead; the main cases:
   frame past the sheet;
 - a tone of no length, not in (0, 22050] Hz, with a volume outside 0 to 1,
   or a negative attack or decay;
-- a texture made without pixels that is not dynamic;
 - a window of no size, a negative fps limit or msaa;
 - a number that is not one (NaN) where it would go on unnoticed: a color's
   hue, alpha or mix, an easing's `t`, a volume, a pan, a seek.
@@ -684,15 +688,17 @@ cmake --build build
 Examples and tests are built when tgx is the project being built; turn them
 off with `-DTGX_BUILD_EXAMPLES=OFF` and `-DTGX_BUILD_TESTS=OFF`. They run
 with `ctest --test-dir build`, in two parts: `-L cpu` needs no window (math,
-colors, collisions, the camera, random numbers, timers, easing, images,
-sounds, text, viewports, folders, errors), `-L gpu` opens one and checks what
+colors, collisions, the camera, shape geometry, random numbers, timers,
+easing, images, sounds, text, viewports, folders, errors, the App's
+accessors), `-L gpu` opens one and checks what
 is drawn by the pixels read back (the Canvas, its shapes, blending, clip and
 viewports, textures, shaders, buffers, render targets, Device draws with their
 texture slots, render state, vertex formats and uniforms, raw GL, frame
-stats). CI runs the GPU part on Linux only, on Mesa's software renderer under
-Xvfb.
-`-DTGX_WARNINGS_AS_ERRORS=ON` fails the build on a warning in tgx's own code,
-as CI does on Linux, macOS and Windows.
+stats). CI runs the GPU part on Linux, on Mesa's software renderer under
+Xvfb, and on macOS; on Linux it also runs both parts under AddressSanitizer and
+UBSan.
+`-DTGX_WARNINGS_AS_ERRORS=ON` fails the build on a warning in tgx, its examples
+or tests (not the vendored libraries), as CI does on Linux, macOS and Windows.
 Asserts follow the build type (off where CMake defines `NDEBUG`); force them
 with `-DTGX_ASSERTS=ON` or `OFF`. The setting reaches everything that links
 `tgx::tgx`, so the library and the app always agree; an installed tgx keeps
@@ -703,8 +709,10 @@ In another CMake project: `add_subdirectory(terse-graphics)` (or
 FetchContent) and link `tgx::tgx`. Examples and tests are then off. The
 vendored libraries build as `tgx_glad`, `tgx_miniaudio` and so on, apart from
 the project's own, and go inside the tgx library itself, as raylib's do: there
-is one library to link. stb and miniaudio are compiled with internal linkage,
-so the app may link its own copies of them. A `glfw` target the project
+is one library to link. It is position-independent, so it also links into a
+shared library of your own (a plugin, game code reloaded while the game
+runs). stb and miniaudio are compiled with internal linkage, so the app may
+link its own copies of them. A `glfw` target the project
 already has (3.4 or newer) is used instead of tgx's copy.
 
 Or installed, as a package:
@@ -725,6 +733,6 @@ system only for threads (and for GLFW, if tgx was built with one found by
 off. The version is written once, in `tgx/core/version.hpp`, and CMake reads it from
 there: `TGX_VERSION_MAJOR`, `_MINOR`, `_PATCH`, `TGX_VERSION_STRING`
 (`"0.1.0"`), and `TGX_VERSION` as one number for
-`#if TGX_VERSION_AT_LEAST(0, 2, 0)`. `tests/install` is such a project; CI builds it against the package on
-every platform. Before 1.0 a package fits only programs written for the same
+`#if TGX_VERSION_AT_LEAST(0, 2, 0)`. `tests/install` is such a project; CI builds it on every platform against
+the package, and with `-DTGX_SOURCE_DIR` through `add_subdirectory`. Before 1.0 a package fits only programs written for the same
 minor version.

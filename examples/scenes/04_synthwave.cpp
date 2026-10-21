@@ -295,7 +295,9 @@ int main() {
         bank += (turn / std::max(dt, 1e-4f) - bank) * std::min(dt * 6.f, 1.f);
         speed = std::clamp(speed - speed_keys * 4.f * dt, 0.5f, 12.f);
         travel += speed * dt;
-        crt_on = crt_on != input.pressed(tgx::Key::c);
+        if (input.pressed(tgx::Key::c)) {
+            crt_on = !crt_on;
+        }
         tube.set_shader(crt_on ? &*crt : nullptr);
 
         const tgx::Vec2 view = tgx::to_vec2(size);

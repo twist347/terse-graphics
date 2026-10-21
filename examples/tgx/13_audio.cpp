@@ -66,18 +66,26 @@ int main(int argc, char **argv) {
 
     while (!app->should_close()) {
         app->poll_events();
+        // Minimized, on Windows: no size to lay anything out in.
+        if (canvas.size().empty()) {
+            app->swap_buffers();
+            continue;
+        }
 
-        // -1 at the left edge of the window, 1 at the right.
-        const float pan = std::clamp(tgx::remap(input.mouse().x, 0, tgx::to_vec2(canvas.size()).x, -1, 1), -1.f, 1.f);
+        // -1 at the left edge of the window, 1 at the right; play() clamps it.
+        const float pan = tgx::remap(input.mouse().x, 0, tgx::to_vec2(canvas.size()).x, -1, 1);
 
         for (std::size_t i = 0; i < keys.size(); ++i) {
             if (input.pressed(keys[i])) {
-                audio.play(note, {.volume = 0.8f, .pan = pan, .pitch = pitches[i]});
+                // All five at once still add up to no more than full scale.
+                audio.play(note, {.volume = 0.4f, .pan = pan, .pitch = pitches[i]});
                 lit[i] = 1.f;
             }
             lit[i] = std::max(lit[i] - 3.f * app->clock().delta(), 0.f);
         }
         if (input.pressed(tgx::Key::space)) {
+            // The old one would play on with nothing left to stop it.
+            hum.stop();
             hum = audio.play(drone);
         }
         if (input.pressed(tgx::Key::p)) {
@@ -112,7 +120,7 @@ int main(int argc, char **argv) {
 
         // Where the notes will sound, from left to right.
         canvas.rect({40, 220, 440, 4}, tgx::colors::gray);
-        canvas.circle({40 + (pan + 1.f) / 2.f * 440, 222}, 8, tgx::colors::yellow);
+        canvas.circle({tgx::remap(std::clamp(pan, -1.f, 1.f), -1, 1, 40, 480), 222}, 8, tgx::colors::yellow);
 
         canvas.text({40, 260}, "Space: a long note, P: pause / resume it, S: stop it", tgx::colors::light_gray);
         canvas.text({40, 290}, hum.playing() ? "the long note sounds" : "the long note is silent", tgx::colors::white);

@@ -190,7 +190,19 @@ namespace tgx {
         float from_start, float from_end,
         float to_start, float to_end
     ) noexcept -> float {
+        TGX_ASSERT_MSG(from_start != from_end, "remap from {} to {}: an empty range", from_start, from_end);
         return to_start + (value - from_start) / (from_end - from_start) * (to_end - to_start);
+    }
+
+    // point at the same place in to as it is in from, which must not be
+    // flat. For the mouse over a scaled picture.
+    //
+    //     const tgx::Vec2 pixel = tgx::remap(input.mouse(), picture, {0, 0, 320, 180});   // window to target pixels
+    [[nodiscard]] constexpr auto remap(Vec2 point, Rect from, Rect to) noexcept -> Vec2 {
+        return {
+            remap(point.x, from.x, from.right(), to.x, to.right()),
+            remap(point.y, from.y, from.bottom(), to.y, to.bottom()),
+        };
     }
 
     // 0 up to from, 1 from to on, an S-curve between that starts and ends
@@ -199,6 +211,7 @@ namespace tgx {
     //
     //     const float day = tgx::smoothstep(-0.1f, 0.3f, sun_height);   // dawn to full light
     [[nodiscard]] constexpr auto smoothstep(float from, float to, float x) noexcept -> float {
+        TGX_ASSERT_MSG(from != to, "smoothstep({}, {}): edges at one place", from, to);
         const float t = (x - from) / (to - from);
         const float u = t < 0.f ? 0.f : t > 1.f ? 1.f : t;
         return u * u * (3.f - 2.f * u);
@@ -210,6 +223,7 @@ namespace tgx {
     //
     //     ship.x = tgx::wrap(ship.x, screen_width);   // out at one edge, in at the other
     [[nodiscard]] inline auto wrap(float value, float span) noexcept -> float {
+        TGX_ASSERT_MSG(span > 0.f, "wrap within {}: not a positive span", span);
         float v = std::fmod(value, span);
         if (v < 0.f) {
             v += span;

@@ -79,10 +79,11 @@ namespace {
     [[nodiscard]] constexpr auto to_glfw(tgx::CursorMode mode) noexcept -> int {
         using enum tgx::CursorMode;
         switch (mode) {
+            case normal: return GLFW_CURSOR_NORMAL;
             case hidden: return GLFW_CURSOR_HIDDEN;
             case captured: return GLFW_CURSOR_DISABLED;
-            default: return GLFW_CURSOR_NORMAL;
         }
+        return GLFW_CURSOR_NORMAL;
     }
 
     [[nodiscard]] constexpr auto to_cursor_mode(int glfw_mode) noexcept -> tgx::CursorMode {
@@ -96,6 +97,7 @@ namespace {
     [[nodiscard]] constexpr auto to_glfw(tgx::CursorShape shape) noexcept -> int {
         using enum tgx::CursorShape;
         switch (shape) {
+            case arrow: return GLFW_ARROW_CURSOR;
             case text: return GLFW_IBEAM_CURSOR;
             case hand: return GLFW_POINTING_HAND_CURSOR;
             case crosshair: return GLFW_CROSSHAIR_CURSOR;
@@ -103,8 +105,8 @@ namespace {
             case resize_ns: return GLFW_RESIZE_NS_CURSOR;
             case resize_all: return GLFW_RESIZE_ALL_CURSOR;
             case not_allowed: return GLFW_NOT_ALLOWED_CURSOR;
-            default: return GLFW_ARROW_CURSOR;
         }
+        return GLFW_ARROW_CURSOR;
     }
 
     // Null for the arrow, and for a shape the system lacks: GLFW then

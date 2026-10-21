@@ -4,6 +4,8 @@
 
 #include "tgx/tgx.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <print>
 #include <vector>
@@ -42,8 +44,8 @@ int main() {
             app->window().request_close();
         }
 
-        // A notch of the wheel zooms by a tenth.
-        zoom *= 1 + 0.1f * input.wheel().y;
+        // A notch of the wheel zooms by a tenth, within 0.1 to 10.
+        zoom = std::clamp(zoom * std::pow(1.1f, input.wheel().y), 0.1f, 10.f);
 
         world.set_camera({
             .target = player,
