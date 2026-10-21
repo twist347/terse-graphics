@@ -288,7 +288,7 @@ int main() {
         const float speed_keys = input.axis(tgx::Key::up, tgx::Key::down);
         steer_target = std::clamp(steer_target + steer_keys * 1.6f * dt, -1.f, 1.f);
         if (tgx::length_squared(input.mouse_delta()) > 0.f && canvas.size().width > 0) {
-            steer_target = std::clamp(input.mouse().x / static_cast<float>(canvas.size().width) * 2.f - 1.f, -1.f, 1.f);
+            steer_target = std::clamp(tgx::remap(input.mouse().x, 0, tgx::to_vec2(canvas.size()).x, -1, 1), -1.f, 1.f);
         }
         const float turn = (steer_target - steer) * std::min(dt * 3.f, 1.f);
         steer += turn;
@@ -298,7 +298,7 @@ int main() {
         crt_on = crt_on != input.pressed(tgx::Key::c);
         tube.set_shader(crt_on ? &*crt : nullptr);
 
-        const tgx::Vec2 view{static_cast<float>(size.width), static_cast<float>(size.height)};
+        const tgx::Vec2 view = tgx::to_vec2(size);
         const float horizon = view.y * horizon_at;
         const tgx::Camera2D camera{.target = view / 2.f, .offset = view / 2.f, .rotation = -bank * 0.05f};
         world.set_camera(camera);
@@ -335,7 +335,7 @@ int main() {
         // The bright parts into the bloom; the scene, the bloom, the words.
         bright->set(u_texel, tgx::Vec2{2.f / view.x, 2.f / view.y});
         blur.sprite(scene->texture(), {.size = view / 4.f});
-        const tgx::Vec2 screen{static_cast<float>(canvas.size().width), static_cast<float>(canvas.size().height)};
+        const tgx::Vec2 screen = tgx::to_vec2(canvas.size());
         canvas.clear(tgx::colors::black);
         tube.sprite(scene->texture(), {.size = screen});
         light.sprite(bloom->texture(), {.size = screen, .tint = tgx::colors::white.fade(0.9f)});

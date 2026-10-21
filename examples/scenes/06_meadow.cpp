@@ -66,11 +66,6 @@ namespace {
     struct Blade { float u, depth, length, lean, phase, bend; Color root, tip; };
     struct Firefly { Vec2 pos, vel; float phase; };
 
-    auto smooth(float from, float to, float x) -> float {
-        const float t = std::clamp((x - from) / (to - from), 0.f, 1.f);
-        return t * t * (3.f - 2.f * t);
-    }
-
     // Channel by channel: light falling on a surface.
     auto mul(Color a, Color b) -> Color {
         const auto ch = [](std::uint8_t x, std::uint8_t y) { return static_cast<std::uint8_t>(x * y / 255); };
@@ -152,8 +147,8 @@ int main() {
     tgx::Random random{20261015};
     std::array<Blade, 700> blades{};
     for (std::size_t i = 0; i < blades.size(); ++i) {
-        const float shade = random.next_float(0.f, 1.f);
-        const float depth = (static_cast<float>(i) + random.next_float(0.f, 1.f)) / static_cast<float>(blades.size());
+        const float shade = random.next_float();
+        const float depth = (static_cast<float>(i) + random.next_float()) / static_cast<float>(blades.size());
         blades[i] = {random.next_float(-0.01f, 1.01f), depth, random.next_float(16.f, 34.f),
             random.next_float(-0.15f, 0.15f), random.next_float(0.f, 2.f * pi), 0.f,
             lerp(Color::rgb(0x2c7032), Color::rgb(0x4e963a), shade),
@@ -185,12 +180,12 @@ int main() {
         rate += ((paused ? 0.f : speeds[speed] * base_rate) - rate) * std::min(1.f, dt * 3.f);
         hour = std::fmod(hour + rate * dt + 24.f, 24.f);
 
-        const Vec2 size{static_cast<float>(canvas.size().width), static_cast<float>(canvas.size().height)};
+        const Vec2 size = tgx::to_vec2(canvas.size());
         const float s = size.y / 720.f;
         const Sky sky = sky_at(hour);
         const float altitude = std::sin((hour - 6.f) / 12.f * pi);
-        const float day = smooth(-0.1f, 0.3f, altitude);
-        const float dark = 1.f - smooth(-0.5f, -0.15f, altitude);
+        const float day = tgx::smoothstep(-0.1f, 0.3f, altitude);
+        const float dark = 1.f - tgx::smoothstep(-0.5f, -0.15f, altitude);
         const Vec2 mouse = input.mouse();
         const bool mouse_in = tgx::contains(tgx::Rect{0.f, 0.f, size.x, size.y}, mouse);
         canvas.rect_gradient({0.f, 0.f, size.x, size.y * 0.7f}, sky.top, sky.bottom);
@@ -207,7 +202,7 @@ int main() {
         // The sun is up from 5:24 to 19:24, the moon twelve hours later.
         if (const float up = hour - 5.4f; up > 0.f && up < 14.f) {
             const Vec2 sun = on_arc(up, size);
-            const float high = smooth(0.f, 0.45f, (size.y * 0.56f - sun.y) / (size.y * 0.5f));
+            const float high = tgx::smoothstep(0.f, 0.45f, (size.y * 0.56f - sun.y) / (size.y * 0.5f));
             const Color warm = lerp(Color::rgb(0xff7a3c), Color::rgb(0xfff2c0), high);
             glow.circle_gradient(sun, size.x * 0.45f, warm.fade(0.3f * (1.f - high)), clear);
             glow.circle_gradient(sun, 200.f * s, warm.fade(0.28f), clear);
@@ -267,7 +262,7 @@ int main() {
             if (i == blades.size() / 2) {
                 tgx::Random flower_random{3};
                 for (int f = 0; f < 36; ++f) {
-                    const float u = flower_random.next_float(0.f, 1.f);
+                    const float u = flower_random.next_float();
                     const float depth = flower_random.next_float(0.1f, 0.6f);
                     const float k = s * (0.6f + 0.7f * depth);
                     const Vec2 root = root_of(u, depth);
@@ -323,7 +318,7 @@ int main() {
             target.y += fly.pos.y < size.y * 0.68f ? 30.f * s : fly.pos.y > size.y * 0.95f ? -30.f * s : 0.f;
             if (const Vec2 to = mouse - fly.pos; mouse_in && tgx::length(to) < 280.f * s && tgx::length(to) > 1.f) {
                 const Vec2 dir = tgx::normalize(to);
-                target += (dir * 90.f + tgx::perpendicular(dir) * 50.f) * s * smooth(40.f * s, 120.f * s, tgx::length(to));
+                target += (dir * 90.f + tgx::perpendicular(dir) * 50.f) * s * tgx::smoothstep(40.f * s, 120.f * s, tgx::length(to));
             }
             fly.vel = tgx::lerp(fly.vel, target, std::min(1.f, dt * 1.5f));
             fly.pos += fly.vel * dt;

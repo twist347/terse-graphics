@@ -50,12 +50,12 @@ namespace tgx::detail {
 
     // A canvas's coordinate space: its size if set, else its viewport's, else
     // units.
-    [[nodiscard]] inline auto span_of(Size size, Rect viewport, Size units) noexcept -> Size {
+    [[nodiscard]] inline auto span_of(Size size, std::optional<Rect> viewport, Size units) noexcept -> Size {
         if (!size.empty()) {
             return size;
         }
-        if (!viewport.empty()) {
-            return {round_to_int(viewport.width), round_to_int(viewport.height)};
+        if (viewport) {
+            return {round_to_int(viewport->width), round_to_int(viewport->height)};
         }
         return units;
     }
@@ -69,26 +69,19 @@ namespace tgx::detail {
         return ortho(0.f, static_cast<float>(size.width), static_cast<float>(size.height), 0.f);
     }
 
-    // Part of the surface covered, in surface units.
-    [[nodiscard]] inline auto covered(Rect viewport, const Surface &surface) noexcept -> Rect {
-        if (!viewport.empty()) {
-            return viewport;
-        }
-        return {0.f, 0.f, static_cast<float>(surface.units.width), static_cast<float>(surface.units.height)};
+    // Part of the surface drawn on, in surface units: what the viewport
+    // covers (all of it if none), or a size of its own as large as fits in
+    // that, centered.
+    [[nodiscard]] inline auto shown(Size size, std::optional<Rect> viewport, const Surface &surface) noexcept -> Rect {
+        const Vec2 units = to_vec2(surface.units);
+        const Rect covered = viewport.value_or(Rect{0.f, 0.f, units.x, units.y});
+        return size.empty() ? covered : fit_into(size, covered);
     }
 
-    // Part of the surface drawn on, in surface units: a size of its own as
-    // large as fits in what is covered, centered; else the viewport as set.
-    [[nodiscard]] inline auto shown(Size size, Rect viewport, const Surface &surface) noexcept -> Rect {
-        if (size.empty()) {
-            return viewport;
-        }
-        return fit_into(size, covered(viewport, surface));
-    }
-
-    // Part of the surface covered, in pixels.
+    // A part of the surface in pixels. All of it while the surface has no
+    // size to scale by.
     [[nodiscard]] inline auto pixel_viewport(Rect rect, const Surface &surface) noexcept -> gl::Viewport {
-        if (rect.empty() || surface.units.empty()) {
+        if (surface.units.empty()) {
             return surface.viewport();
         }
 
@@ -140,16 +133,16 @@ namespace tgx::detail {
 
     [[nodiscard]] inline auto screen_mapping(
         Size size,
-        Rect viewport,
+        std::optional<Rect> viewport,
         const Surface &surface
     ) noexcept -> std::optional<ScreenMapping> {
-        const Rect area = covered(shown(size, viewport, surface), surface);
+        const Rect area = shown(size, viewport, surface);
         const Size span = span_of(size, viewport, surface.units);
         if (area.empty() || span.empty()) {
             return std::nullopt;
         }
         return ScreenMapping{
-            {area.x, area.y},
+            area.position(),
             {static_cast<float>(span.width) / area.width, static_cast<float>(span.height) / area.height},
         };
     }

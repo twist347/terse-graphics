@@ -128,7 +128,7 @@ namespace tgx::detail {
     }
 
     [[nodiscard]] constexpr auto corners(Rect rect) noexcept -> std::array<Vec2, 4> {
-        return corners({rect.x, rect.y}, {rect.right(), rect.bottom()});
+        return corners(rect.position(), {rect.right(), rect.bottom()});
     }
 
     // from_angle, without cos and sin for the usual unturned shape.

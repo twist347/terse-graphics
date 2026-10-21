@@ -56,10 +56,9 @@ int main() {
             player.x = 0;
         }
 
-        const tgx::Size size = screen.size();
         main_view.set_camera({
             .target = player,
-            .offset = {static_cast<float>(size.width) / 2, static_cast<float>(size.height) / 2},
+            .offset = tgx::to_vec2(screen.size()) / 2,
             .zoom = 1.5f,
         });
 

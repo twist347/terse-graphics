@@ -46,6 +46,17 @@ TEST_CASE("next_float stays in [lo, hi)") {
     }
 }
 
+TEST_CASE("next_float() is next_float(0, 1)") {
+    tgx::Random a{3};
+    tgx::Random b{3};
+    for (int i = 0; i < 1000; ++i) {
+        const float x = a.next_float();
+        REQUIRE(x >= 0.f);
+        REQUIRE(x < 1.f);
+        REQUIRE(x == b.next_float(0.f, 1.f));
+    }
+}
+
 TEST_CASE("next_int covers both ends and nothing past them") {
     tgx::Random random{2};
     std::array<int, 6> seen{};

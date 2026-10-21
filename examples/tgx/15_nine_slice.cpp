@@ -78,8 +78,8 @@ int main() {
         const float width = std::lerp(200.f, 700.f, (1.f - std::cos(time)) / 2.f);
         const tgx::Rect panel{40, 100, width, 140};
         canvas.nine_slice(*atlas, {
-            .position = {panel.x, panel.y},
-            .size = {panel.width, panel.height},
+            .position = panel.position(),
+            .size = panel.size(),
             .src = frame,
             .borders = {2, 2, 2, 2},
             .border_scale = scale,
@@ -97,8 +97,8 @@ int main() {
                 shape = tgx::CursorShape::hand;
             }
             canvas.nine_slice(*atlas, {
-                .position = {button.x, button.y},
-                .size = {button.width, button.height},
+                .position = button.position(),
+                .size = button.size(),
                 .src = frame,
                 .borders = {2, 2, 2, 2},
                 .border_scale = scale,

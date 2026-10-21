@@ -134,7 +134,7 @@ int main() {
     // Specks drifting up in the light, in fractions of the window.
     std::array<tgx::Vec3, mote_count> motes{};
     for (auto &mote : motes) {
-        mote = {random.next_float(0.f, 1.f), random.next_float(0.f, 1.f), random.next_float(0.4f, 1.f)};
+        mote = {random.next_float(), random.next_float(), random.next_float(0.4f, 1.f)};
     }
 
     // Eased in and out, so the ring and the pull fade rather than snap.
@@ -148,7 +148,7 @@ int main() {
         const float dt = std::min(app->clock().delta(), 1.f / 30.f);
         const auto time = static_cast<float>(app->clock().elapsed());
         const tgx::Size size = canvas.size();
-        const tgx::Vec2 area{static_cast<float>(size.width), static_cast<float>(size.height)};
+        const tgx::Vec2 area = tgx::to_vec2(size);
         const tgx::Vec2 mouse = input.mouse();
 
         if (input.repeated(tgx::Key::up) && fish.size() < max_count) {

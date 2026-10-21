@@ -216,8 +216,7 @@ int main() {
         const auto &input = app->input();
         const float dt = std::min(app->clock().delta(), 0.05f);
         const auto time = static_cast<float>(app->clock().elapsed());
-        const auto width = static_cast<float>(canvas.size().width);
-        const auto height = static_cast<float>(canvas.size().height);
+        const auto [width, height] = tgx::to_vec2(canvas.size());
         const float horizon = std::round(height * horizon_share);
         // The whole sky fits in the lake's reflection.
         const float squeeze = (height - horizon) / horizon;
@@ -255,7 +254,7 @@ int main() {
         // The same stars every frame; fewer low down, in the city's glow.
         tgx::Random stars{11};
         for (int i = 0; i < 260; ++i) {
-            const float y = std::pow(stars.next_float(0.f, 1.f), 1.6f) * 0.95f;
+            const float y = std::pow(stars.next_float(), 1.6f) * 0.95f;
             const tgx::Vec2 at{stars.next_float(0.f, width), y * horizon};
             const float star = stars.next_float(1.f, 2.2f);
             const float twinkle = (0.45f + 0.35f * std::sin(time * 1.7f + stars.next_float(0.f, 20.f))) * (1.f - y);

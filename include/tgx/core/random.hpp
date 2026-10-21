@@ -49,13 +49,17 @@ namespace tgx {
             return std::rotr(shifted, static_cast<int>(rotation));
         }
 
+        // In [0, 1).
+        [[nodiscard]] auto next_float() noexcept -> float {
+            // 24 bits: as many as a float holds exactly.
+            return static_cast<float>(next_u32() >> 8) * 0x1p-24f;
+        }
+
         // In [lo, hi): hi never comes up, unless lo == hi.
         [[nodiscard]] auto next_float(float lo, float hi) noexcept -> float {
             TGX_ASSERT_MSG(lo <= hi, "next_float({}, {}): an empty range", lo, hi);
 
-            // 24 bits: as many as a float holds exactly.
-            const float unit = static_cast<float>(next_u32() >> 8) * 0x1p-24f;
-            const float value = lo + (hi - lo) * unit;
+            const float value = lo + (hi - lo) * next_float();
             // Rounding can give hi itself when the range is wide.
             return value < hi ? value : std::nextafter(hi, lo);
         }
@@ -83,7 +87,7 @@ namespace tgx {
 
         // chance(0.25f) is true about once in four.
         [[nodiscard]] auto chance(float p) noexcept -> bool {
-            return next_float(0.f, 1.f) < p;
+            return next_float() < p;
         }
 
         // Anywhere inside the rectangle.

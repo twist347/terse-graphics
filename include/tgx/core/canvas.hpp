@@ -113,18 +113,20 @@ namespace tgx {
         //     app->canvas().set_size({1280, 720});   // the same field in any window
         auto set_size(Size size) noexcept -> void;
 
-        // The current coordinate space. Never empty while there is a target.
+        // The current coordinate space. Never empty while there is a target,
+        // unless the viewport is empty.
         [[nodiscard]] auto size() const noexcept -> Size;
 
         // Part of the window or target to cover, e.g. for a minimap. In screen
-        // coordinates or target pixels. Empty (default): all of it.
+        // coordinates or target pixels. An empty rect shows nothing;
+        // std::nullopt (default) covers all of it.
         //
         //     tgx::Canvas minimap = app->canvas();
-        //     minimap.set_viewport({16, 16, 200, 150});   // its coordinates span 200x150
-        auto set_viewport(Rect rect) noexcept -> void;
+        //     minimap.set_viewport(Rect{16, 16, 200, 150});   // its coordinates span 200x150
+        //     minimap.set_viewport({});                        // all of it again
+        auto set_viewport(std::optional<Rect> rect) noexcept -> void;
 
-        // Empty: all of it.
-        [[nodiscard]] auto viewport() const noexcept -> Rect { return viewport_; }
+        [[nodiscard]] auto viewport() const noexcept -> std::optional<Rect> { return viewport_; }
 
         // A render target to draw into, or nullptr (default) for the window.
         // Its id and size are copied, so it may be moved, but it must exist
@@ -356,7 +358,7 @@ namespace tgx {
         auto refit(Size span) noexcept -> void;
 
         Size size_{};
-        Rect viewport_{};
+        std::optional<Rect> viewport_{};
         detail::Target target_{};
         Camera2D camera_{};
         std::optional<Rect> clip_{};

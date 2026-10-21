@@ -45,7 +45,7 @@ TEST_CASE("a canvas with a viewport: a minimap") {
     const tgx::RenderTarget target = tgx_test::target({64, 64});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
     tgx::Canvas minimap = canvas;
-    minimap.set_viewport({32, 0, 32, 32});   // the top-right quarter
+    minimap.set_viewport(tgx::Rect{32, 0, 32, 32});   // the top-right quarter
     CHECK(minimap.size() == tgx::Size{32, 32});
 
     canvas.clear(tgx::colors::black);
@@ -62,12 +62,33 @@ TEST_CASE("a canvas with a viewport: a minimap") {
     CHECK(image[21, 2] == tgx::colors::white);
 }
 
+TEST_CASE("an empty viewport shows nothing; none covers all") {
+    const tgx::RenderTarget target = tgx_test::target({64, 64});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    tgx::Canvas hidden = canvas;
+    hidden.set_viewport(tgx::Rect{32, 32, 0, 0});
+    CHECK(hidden.viewport() == tgx::Rect{32, 32, 0, 0});
+
+    canvas.clear(tgx::colors::black);
+    hidden.rect({-100, -100, 1000, 1000}, tgx::colors::red);
+    tgx::Image image = target.read();
+    CHECK(image[32, 32] == tgx::colors::black);
+    CHECK(image[5, 5] == tgx::colors::black);
+
+    hidden.set_viewport({});
+    CHECK_FALSE(hidden.viewport());
+    hidden.rect({0, 0, 64, 64}, tgx::colors::red);
+    image = target.read();
+    CHECK(image[5, 5] == tgx::colors::red);
+    CHECK(image[60, 60] == tgx::colors::red);
+}
+
 TEST_CASE("a canvas of a size of its own fits its viewport, with bars on two sides") {
     // 4x2 in a 32x32 viewport: 32x16 at (32, 8), 8 pixels a unit.
     const tgx::RenderTarget target = tgx_test::target({64, 64});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
     tgx::Canvas pixels = canvas;
-    pixels.set_viewport({32, 0, 32, 32});
+    pixels.set_viewport(tgx::Rect{32, 0, 32, 32});
     pixels.set_size({4, 2});
 
     canvas.clear(tgx::colors::black);
@@ -122,7 +143,7 @@ TEST_CASE("to_world and to_screen go through the viewport, the size and the came
     const tgx::RenderTarget target = tgx_test::target({64, 64});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
     tgx::Canvas minimap = canvas;
-    minimap.set_viewport({32, 0, 32, 32});
+    minimap.set_viewport(tgx::Rect{32, 0, 32, 32});
 
     CHECK(tgx_test::near(minimap.to_world({42, 5}), {10, 5}));
 

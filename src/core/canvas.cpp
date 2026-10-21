@@ -216,9 +216,11 @@ namespace tgx {
         return detail::span_of(size_, viewport_, surface().units);
     }
 
-    auto Canvas::set_viewport(Rect rect) noexcept -> void {
+    auto Canvas::set_viewport(std::optional<Rect> rect) noexcept -> void {
         // A negative size would silently count as empty.
-        TGX_ASSERT_MSG(valid_area(rect), "viewport {} {} {}x{}", rect.x, rect.y, rect.width, rect.height);
+        TGX_ASSERT_MSG(
+            !rect || valid_area(*rect), "viewport {} {} {}x{}", rect->x, rect->y, rect->width, rect->height
+        );
 
         viewport_ = rect;
         transform_stale_ = true;
@@ -294,7 +296,7 @@ namespace tgx {
     }
 
     auto Canvas::rect(Rect rect, Vec2 origin, float rotation, Color color) noexcept -> void {
-        const auto box = detail::placed_corners({rect.width, rect.height}, origin, {rect.x, rect.y}, rotation);
+        const auto box = detail::placed_corners(rect.size(), origin, rect.position(), rotation);
         quad(box, each_corner(color));
     }
 
@@ -613,7 +615,7 @@ namespace tgx {
         const float height = natural ? std::abs(src.height) : sprite.size.y;
 
         // A negative size reverses the texels, mirroring them.
-        Vec2 first{src.x, src.y};
+        Vec2 first = src.position();
         Vec2 last{src.x + std::abs(src.width), src.y + std::abs(src.height)};
         if (src.width < 0.f) {
             std::swap(first.x, last.x);
@@ -647,7 +649,7 @@ namespace tgx {
             "nine-slice borders bigger than src, {}x{}", src.width, src.height
         );
 
-        const Vec2 size = slice.size == Vec2{} ? Vec2{src.width, src.height} : slice.size;
+        const Vec2 size = slice.size == Vec2{} ? src.size() : slice.size;
         const auto [left, right] = fit_borders(borders.left, borders.right, slice.border_scale, size.x);
         const auto [top, bottom] = fit_borders(borders.top, borders.bottom, slice.border_scale, size.y);
 

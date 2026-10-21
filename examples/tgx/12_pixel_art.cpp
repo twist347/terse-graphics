@@ -38,7 +38,6 @@ int main() {
 
         // The largest whole scale that fits the window, in the middle of it.
         const tgx::Rect picture = tgx::fit_whole(resolution, screen.size());
-        const tgx::Vec2 position{picture.x, picture.y};
 
         world.clear(tgx::Color::rgb(0x305080));
         world.rect({0, 140, width, height - 140}, tgx::colors::brown);
@@ -49,13 +48,13 @@ int main() {
         // The mouse in the target's pixels: the window point, less where the
         // picture starts, scaled down as the picture is scaled up.
         const float to_pixels = picture.width > 0 ? width / picture.width : 0;
-        const tgx::Vec2 mouse = (app->input().mouse() - position) * to_pixels;
+        const tgx::Vec2 mouse = (app->input().mouse() - picture.position()) * to_pixels;
         world.rect({std::floor(mouse.x), std::floor(mouse.y), 1, 1}, tgx::colors::red);
 
         // The target as one sprite; the world's shapes are drawn into it
         // first, as they came first.
         screen.clear(tgx::colors::black);
-        screen.sprite(pixels->texture(), {.position = position, .size = {picture.width, picture.height}});
+        screen.sprite(pixels->texture(), {.position = picture.position(), .size = picture.size()});
 
         screen.fps({10, 10});
 

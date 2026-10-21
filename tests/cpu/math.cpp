@@ -60,6 +60,29 @@ TEST_CASE("lerp and move_towards") {
     CHECK(tgx::move_towards(tgx::Vec2{5, 5}, tgx::Vec2{5, 5}, 1.f) == tgx::Vec2{5, 5});
 }
 
+TEST_CASE("remap") {
+    static_assert(tgx::remap(5, 0, 10, -1, 1) == 0.f);
+    CHECK(tgx::remap(0, 0, 10, -1, 1) == -1.f);
+    CHECK(tgx::remap(10, 0, 10, -1, 1) == 1.f);
+    // Either range may run backwards; not clamped.
+    CHECK(tgx::remap(2, 0, 10, 100, 0) == 80.f);
+    CHECK(tgx::remap(20, 0, 10, -1, 1) == 3.f);
+}
+
+TEST_CASE("smoothstep") {
+    static_assert(tgx::smoothstep(0, 10, 5) == 0.5f);
+    CHECK(tgx::smoothstep(0, 10, -3) == 0.f);
+    CHECK(tgx::smoothstep(0, 10, 0) == 0.f);
+    CHECK(tgx::smoothstep(0, 10, 10) == 1.f);
+    CHECK(tgx::smoothstep(0, 10, 30) == 1.f);
+    // Slow at the ends, fast in the middle.
+    CHECK(tgx::smoothstep(0, 10, 1) < 0.1f);
+    CHECK(tgx::smoothstep(0, 10, 9) > 0.9f);
+    // Backwards: 1 before to, 0 past from.
+    CHECK(tgx::smoothstep(10, 0, 0) == 1.f);
+    CHECK(tgx::smoothstep(10, 0, 10) == 0.f);
+}
+
 TEST_CASE("Vec3") {
     CHECK(tgx::cross(tgx::Vec3{1, 0, 0}, tgx::Vec3{0, 1, 0}) == tgx::Vec3{0, 0, 1});
     CHECK(tgx::dot(tgx::Vec3{1, 2, 3}, tgx::Vec3{4, 5, 6}) == 32.f);
@@ -78,6 +101,9 @@ TEST_CASE("Size and Rect") {
     CHECK(r.right() == 40.f);
     CHECK(r.bottom() == 60.f);
     CHECK(r.center() == tgx::Vec2{25, 40});
+    static_assert(r.position() == tgx::Vec2{10, 20});
+    static_assert(r.size() == tgx::Vec2{30, 40});
+    static_assert(tgx::to_vec2(tgx::Size{1280, 720}) == tgx::Vec2{1280, 720});
     static_assert(tgx::Rect::from_center({25, 40}, {30, 40}) == tgx::Rect{10, 20, 30, 40});
 
     // A 64x32 sheet of 16x16 frames: 4 columns, 2 rows.

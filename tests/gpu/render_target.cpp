@@ -66,7 +66,7 @@ TEST_CASE("a canvas with a viewport on a target, and to_world in its pixels") {
     draw_quarter(canvas);
 
     tgx::Canvas quarter = canvas;
-    quarter.set_viewport({32, 16, 32, 16});
+    quarter.set_viewport(tgx::Rect{32, 16, 32, 16});
     CHECK(quarter.size() == tgx::Size{32, 16});
     quarter.rect({0, 0, 32, 16}, tgx::colors::yellow);
 

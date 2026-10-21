@@ -46,11 +46,6 @@ namespace {
         Band{2.27f, 2.33f, tgx::Color::rgb(0x8c7c70), 0.45f},
     };
 
-    auto smooth(float from, float to, float x) -> float {
-        const float t = std::clamp((x - from) / (to - from), 0.f, 1.f);
-        return t * t * (3.f - 2.f * t);
-    }
-
     auto wrap(float value, float span) -> float {
         const float v = std::fmod(value, span);
         return v < 0.f ? v + span : v;
@@ -124,7 +119,7 @@ int main() {
     constexpr std::array hues{285.f, 215.f, 185.f, 205.f, 330.f};
     std::vector<Blob> nebula{};
     for (int i = 0; i < 22; ++i) {
-        const tgx::Vec2 along = tgx::lerp(tgx::Vec2{0.05f, 0.95f}, tgx::Vec2{0.75f, -0.05f}, rng.next_float(0.f, 1.f));
+        const tgx::Vec2 along = tgx::lerp(tgx::Vec2{0.05f, 0.95f}, tgx::Vec2{0.75f, -0.05f}, rng.next_float());
         const tgx::Vec2 uv = along + tgx::Vec2{0.7f, 0.5f} * rng.next_float(-0.18f, 0.18f);
         const tgx::Color hue = tgx::Color::hsv(hues[static_cast<std::size_t>(i) % hues.size()], 0.75f, 0.62f);
         nebula.push_back({uv, rng.next_float(0.18f, 0.36f), rng.next_float(0.f, 2.f * pi), hue});
@@ -132,11 +127,11 @@ int main() {
 
     // Rocks from far (small, dark, slow) to near, so the near ones draw last.
     constexpr std::array stones{tgx::Color::rgb(0x9a8270), tgx::Color::rgb(0x86808e)};
-    const tgx::Vec2 start{static_cast<float>(canvas.size().width), static_cast<float>(canvas.size().height)};
+    const tgx::Vec2 start = tgx::to_vec2(canvas.size());
     std::vector<Rock> rocks{};
     for (int i = 1; i <= 18; ++i) {
         const float depth = static_cast<float>(i) / 18.f;
-        const tgx::Vec2 pos{rng.next_float(0.f, 1.f) * start.x, rng.next_float(0.55f, 0.86f)};
+        const tgx::Vec2 pos{rng.next_float() * start.x, rng.next_float(0.55f, 0.86f)};
         const tgx::Color stone = tgx::lerp(tgx::Color::rgb(0x3a3d55), rng.pick(stones), 0.3f + 0.7f * depth);
         const float spin = rng.next_float(-0.6f, 0.6f);
         Rock rock{pos, 5.f + 24.f * depth * depth, rng.next_float(0.f, 2.f * pi), spin, depth, stone, {}};
@@ -157,7 +152,7 @@ int main() {
 
         const float dt = std::min(app->clock().delta(), 0.05f);
         const auto time = static_cast<float>(app->clock().elapsed());
-        const float w = static_cast<float>(canvas.size().width), h = static_cast<float>(canvas.size().height);
+        const auto [w, h] = tgx::to_vec2(canvas.size());
 
         // The ship chases the mouse at a capped speed, or idles in a loop
         // while the mouse is away, and turns smoothly to where it goes.
@@ -241,7 +236,7 @@ int main() {
                     const tgx::Vec3 mid = at_ring((inner + outer) / 2.f, (a0 + a1) / 2.f);
                     const float toward = tgx::dot(mid, sun);
                     const float off = tgx::length(mid - sun * toward);
-                    const float lit = toward > 0.f ? 1.f : 0.15f + 0.85f * smooth(0.9f, 1.05f, off);
+                    const float lit = toward > 0.f ? 1.f : 0.15f + 0.85f * tgx::smoothstep(0.9f, 1.05f, off);
                     const tgx::Color color = shade(band_color, ring_light * lit).fade(alpha);
                     const tgx::Vec2 p0 = on_screen(at_ring(inner, a0)), p2 = on_screen(at_ring(outer, a1));
                     canvas.triangle(p0, on_screen(at_ring(outer, a0)), p2, color);
@@ -254,7 +249,7 @@ int main() {
         const auto draw_moon = [&](bool far) {
             if (far == (moon.z > 0.f)) {
                 sphere<48>(canvas, on_screen(moon), radius * 0.12f, 6, [&](tgx::Vec3 n) {
-                    return shade(tgx::Color::rgb(0xb4b6c8), 0.1f + 0.9f * smooth(-0.15f, 0.7f, tgx::dot(n, sun)));
+                    return shade(tgx::Color::rgb(0xb4b6c8), 0.1f + 0.9f * tgx::smoothstep(-0.15f, 0.7f, tgx::dot(n, sun)));
                 });
             }
         };
@@ -269,8 +264,8 @@ int main() {
             const float lat = tgx::dot(n, e2);
             const float stripes = 0.5f + 0.5f * std::sin(lat * 13.f + std::sin(lat * 31.f) * 0.9f);
             const tgx::Color band = tgx::lerp(tgx::Color::rgb(0xf0d2a8), tgx::Color::rgb(0xc58658), stripes);
-            const tgx::Color color = tgx::lerp(band, tgx::Color::rgb(0x7d6a78), smooth(0.6f, 0.95f, std::abs(lat)));
-            const float light = smooth(-0.12f, 0.75f, tgx::dot(n, sun)) * (0.6f + 0.4f * std::sqrt(-n.z));
+            const tgx::Color color = tgx::lerp(band, tgx::Color::rgb(0x7d6a78), tgx::smoothstep(0.6f, 0.95f, std::abs(lat)));
+            const float light = tgx::smoothstep(-0.12f, 0.75f, tgx::dot(n, sun)) * (0.6f + 0.4f * std::sqrt(-n.z));
             return tgx::lerp(tgx::Color::rgb(0x0b0c1c), color, light);
         });
         // Rims: warm on the sunny side (the wider arcs fainter), cool on the night side.

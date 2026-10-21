@@ -50,8 +50,7 @@ int main() {
 
         // anchor: which point of the text goes to the position. Centered on
         // the window, each line by its own width; right-aligned to an edge.
-        const tgx::Size size = canvas.size();
-        const auto width = static_cast<float>(size.width);
+        const float width = tgx::to_vec2(canvas.size()).x;
         canvas.text({width / 2, 340}, "Centered\nline by line", tgx::colors::white, 32, {0.5f, 0.5f});
         canvas.text({width - 40, 200}, "Right-aligned\n42", tgx::colors::light_gray, 16, {1, 0});
 

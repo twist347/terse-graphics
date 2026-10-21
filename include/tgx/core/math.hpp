@@ -56,6 +56,11 @@ namespace tgx {
         [[nodiscard]] constexpr auto operator==(const Size &) const noexcept -> bool = default;
     };
 
+    // For math with positions: to_vec2(canvas.size()) / 2 is the center.
+    [[nodiscard]] constexpr auto to_vec2(Size size) noexcept -> Vec2 {
+        return {static_cast<float>(size.width), static_cast<float>(size.height)};
+    }
+
     // Axis-aligned: top-left corner and size, y down.
     struct Rect {
         float x{0.f};
@@ -66,6 +71,11 @@ namespace tgx {
         [[nodiscard]] constexpr auto right() const noexcept -> float { return x + width; }
 
         [[nodiscard]] constexpr auto bottom() const noexcept -> float { return y + height; }
+
+        // The top-left corner.
+        [[nodiscard]] constexpr auto position() const noexcept -> Vec2 { return {x, y}; }
+
+        [[nodiscard]] constexpr auto size() const noexcept -> Vec2 { return {width, height}; }
 
         [[nodiscard]] constexpr auto center() const noexcept -> Vec2 { return {x + width / 2.f, y + height / 2.f}; }
 
@@ -109,7 +119,7 @@ namespace tgx {
     // Where content goes inside area: as large as fits with proportions kept,
     // centered, bars on two sides. Empty when either size is empty.
     //
-    // A point p of the area is at (p - {r.x, r.y}) * content.width / r.width
+    // A point p of the area is at (p - r.position()) * content.width / r.width
     // (and the same for y) in the content.
     [[nodiscard]] constexpr auto fit(Size content, Size area) noexcept -> Rect {
         if (content.empty() || area.empty()) {
@@ -169,6 +179,29 @@ namespace tgx {
 
     [[nodiscard]] constexpr auto radians(float degrees) noexcept -> float {
         return degrees * (std::numbers::pi_v<float> / 180.f);
+    }
+
+    // value at the same place between to_start and to_end as it is between
+    // from_start and from_end, which must differ. Not clamped, like lerp.
+    //
+    //     const float pan = tgx::remap(x, 0, field_width, -1, 1);   // left edge -1, right edge 1
+    [[nodiscard]] constexpr auto remap(
+        float value,
+        float from_start, float from_end,
+        float to_start, float to_end
+    ) noexcept -> float {
+        return to_start + (value - from_start) / (from_end - from_start) * (to_end - to_start);
+    }
+
+    // 0 up to from, 1 from to on, an S-curve between that starts and ends
+    // flat. from and to must differ; to below from runs it backwards. As
+    // GLSL's smoothstep.
+    //
+    //     const float day = tgx::smoothstep(-0.1f, 0.3f, sun_height);   // dawn to full light
+    [[nodiscard]] constexpr auto smoothstep(float from, float to, float x) noexcept -> float {
+        const float t = (x - from) / (to - from);
+        const float u = t < 0.f ? 0.f : t > 1.f ? 1.f : t;
+        return u * u * (3.f - 2.f * u);
     }
 
     // Vec2, Vec3, Vec4: what is the same for every size is written once

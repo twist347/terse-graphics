@@ -288,8 +288,7 @@ int main() {
 
         // The picture scaled up by a whole factor, in the middle of the window.
         const tgx::Rect picture = tgx::fit_whole(resolution, screen.size());
-        const tgx::Vec2 position{picture.x, picture.y};
-        const tgx::Vec2 size{picture.width, picture.height};
+        const tgx::Vec2 position = picture.position();
         // A minimized window has no picture to point into.
         const float to_pixels = picture.empty() ? 0.f : width / picture.width;
         const tgx::Vec2 mouse = (app->input().mouse() - position) * to_pixels;
@@ -391,10 +390,10 @@ int main() {
         // The target onto the window, through the shader; the words on top of
         // it, sharp, at the window's own resolution.
         screen.clear(tgx::colors::black);
-        tube.sprite(pixels->texture(), {.position = position, .size = size});
+        tube.sprite(pixels->texture(), {.position = position, .size = picture.size()});
         screen.text(position + tgx::Vec2{16.f, 40.f}, "NIGHT CITY", tgx::colors::white.fade(0.85f), 32.f);
         screen.text(
-            position + tgx::Vec2{16.f, size.y - 32.f},
+            position + tgx::Vec2{16.f, picture.height - 32.f},
             "mouse: lantern   space: lightning   f12: screenshot",
             tgx::colors::light_gray.fade(0.7f)
         );

@@ -225,7 +225,7 @@ its coordinates then span that part:
 
 ```cpp
 tgx::Canvas minimap = app->canvas();
-minimap.set_viewport({16, 16, 200, 150});   // screen coordinates of the window
+minimap.set_viewport(tgx::Rect{16, 16, 200, 150});   // screen coordinates of the window
 ```
 
 A clip cuts the shapes after it to a rect without changing coordinates, as a
@@ -257,7 +257,7 @@ world.circle({160, 90}, 20, tgx::colors::yellow);
 // pixels while the display's scale is whole; at 1.25, fit into
 // framebuffer_size() and draw with a canvas set_size to it.
 const tgx::Rect r = tgx::fit_whole({320, 180}, app->window().size());
-app->canvas().sprite(pixels->texture(), {.position = {r.x, r.y}, .size = {r.width, r.height}});
+app->canvas().sprite(pixels->texture(), {.position = r.position(), .size = r.size()});
 ```
 
 What has been drawn into the window this frame can be read back the same

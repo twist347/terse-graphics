@@ -45,10 +45,9 @@ int main() {
         // A notch of the wheel zooms by a tenth.
         zoom *= 1 + 0.1f * input.wheel().y;
 
-        const tgx::Size size = screen.size();
         world.set_camera({
             .target = player,
-            .offset = {static_cast<float>(size.width) / 2, static_cast<float>(size.height) / 2},
+            .offset = tgx::to_vec2(screen.size()) / 2,
             .zoom = zoom,
         });
 

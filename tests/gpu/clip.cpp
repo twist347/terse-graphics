@@ -61,7 +61,7 @@ TEST_CASE("a clip is in the canvas's own units, within its viewport") {
     const tgx::RenderTarget target = tgx_test::target({64, 64});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
     tgx::Canvas pixels = canvas;
-    pixels.set_viewport({32, 0, 32, 32});
+    pixels.set_viewport(tgx::Rect{32, 0, 32, 32});
     pixels.set_size({4, 2});
 
     canvas.clear(tgx::colors::black);

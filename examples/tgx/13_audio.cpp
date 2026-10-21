@@ -68,8 +68,7 @@ int main(int argc, char **argv) {
         app->poll_events();
 
         // -1 at the left edge of the window, 1 at the right.
-        const float width = static_cast<float>(canvas.size().width);
-        const float pan = std::clamp(input.mouse().x / width * 2.f - 1.f, -1.f, 1.f);
+        const float pan = std::clamp(tgx::remap(input.mouse().x, 0, tgx::to_vec2(canvas.size()).x, -1, 1), -1.f, 1.f);
 
         for (std::size_t i = 0; i < keys.size(); ++i) {
             if (input.pressed(keys[i])) {

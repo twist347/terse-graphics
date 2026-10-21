@@ -66,7 +66,7 @@ namespace {
 
     // Panned from the left edge of the field to the right one.
     auto play(tgx::Audio &audio, const tgx::Sound &sound, float x) -> void {
-        const float pan = std::clamp(x / field_width * 2 - 1, -1.f, 1.f);
+        const float pan = std::clamp(tgx::remap(x, 0, field_width, -1, 1), -1.f, 1.f);
         audio.play(sound, {.pan = pan});
     }
 
