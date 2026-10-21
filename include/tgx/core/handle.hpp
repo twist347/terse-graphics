@@ -53,4 +53,47 @@ namespace tgx::detail {
 
         GlId id_{0};
     };
+
+    // The claim on a one-per-process part whose state lives in a global (the
+    // window, the GL context, the audio output): move-only, calls Release
+    // once, from whichever holds it last. Not API.
+    template<void (*Release)() noexcept>
+    class Claim {
+    public:
+        Claim() noexcept = default;
+
+        explicit Claim(bool held) noexcept : held_{held} {
+        }
+
+        Claim(const Claim &) = delete;
+        auto operator=(const Claim &) -> Claim & = delete;
+
+        Claim(Claim &&other) noexcept : held_{std::exchange(other.held_, false)} {
+        }
+
+        auto operator=(Claim &&other) noexcept -> Claim & {
+            if (this == &other) {
+                return *this;
+            }
+
+            reset();
+            held_ = std::exchange(other.held_, false);
+
+            return *this;
+        }
+
+        ~Claim() {
+            reset();
+        }
+
+    private:
+        auto reset() noexcept -> void {
+            if (held_) {
+                held_ = false;
+                Release();
+            }
+        }
+
+        bool held_{false};
+    };
 }

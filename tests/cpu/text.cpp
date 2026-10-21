@@ -1,12 +1,14 @@
 #include "tgx/core/canvas.hpp"
 
 #include "core/text.hpp"
+#include "core/utf8.hpp"
 
 #include "support.hpp"
 
 #include <doctest/doctest.h>
 
 #include <cstddef>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -37,6 +39,22 @@ TEST_CASE("UTF-8 sequence lengths from the lead byte") {
     CHECK(sequence_length(0x80) == 1);
     CHECK(sequence_length(0xf8) == 1);
     CHECK(sequence_length(0xff) == 1);
+}
+
+TEST_CASE("UTF-8 out: 1 to 4 bytes, read back by their lead") {
+    const auto encoded = [](char32_t c) {
+        std::string text{};
+        tgx::detail::append_utf8(text, c);
+        return text;
+    };
+    CHECK(encoded(U'a') == "a");
+    CHECK(encoded(U'\u00e9') == "\xc3\xa9");
+    CHECK(encoded(U'\u20ac') == "\xe2\x82\xac");
+    CHECK(encoded(U'\U0001f600') == "\xf0\x9f\x98\x80");
+    for (const char32_t c: {U'a', U'\u00e9', U'\u20ac', U'\U0001f600'}) {
+        const std::string text = encoded(c);
+        CHECK(tgx::detail::sequence_length(static_cast<unsigned char>(text[0])) == text.size());
+    }
 }
 
 TEST_CASE("for_each_glyph: one glyph a character") {

@@ -97,7 +97,7 @@ target_include_directories(tgx SYSTEM PUBLIC
 )
 if (TGX_OWN_GLFW)
     target_include_directories(tgx SYSTEM PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/glfw-3.5.1/include>
+            $<BUILD_INTERFACE:${TGX_GLFW_DIR}/include>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/tgx/glfw>
     )
 endif ()
@@ -195,8 +195,8 @@ if (TGX_INSTALL)
     install(DIRECTORY thirdparty/glad/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tgx/glad)
     if (TGX_OWN_GLFW)
         install(FILES
-                thirdparty/glfw-3.5.1/include/GLFW/glfw3.h
-                thirdparty/glfw-3.5.1/include/GLFW/glfw3native.h
+                ${TGX_GLFW_DIR}/include/GLFW/glfw3.h
+                ${TGX_GLFW_DIR}/include/GLFW/glfw3native.h
                 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tgx/glfw/GLFW
         )
     endif ()
@@ -219,7 +219,7 @@ if (TGX_INSTALL)
         install(FILES ${tgx_license_file} DESTINATION ${CMAKE_INSTALL_DOCDIR} RENAME LICENSE.${licensed})
     endforeach ()
     if (TGX_OWN_GLFW)
-        install(FILES thirdparty/glfw-3.5.1/LICENSE.md DESTINATION ${CMAKE_INSTALL_DOCDIR} RENAME LICENSE.glfw)
+        install(FILES ${TGX_GLFW_DIR}/LICENSE.md DESTINATION ${CMAKE_INSTALL_DOCDIR} RENAME LICENSE.glfw)
     endif ()
 endif ()
 

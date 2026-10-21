@@ -597,7 +597,7 @@ asserts on, tgx stops at the call instead; the main cases:
 - a viewport or clip of negative size, for a draw or a canvas; a canvas of
   negative size;
 - a rect of negative size or a circle of negative radius, for a collision
-  check or a canvas shape; a negative or NaN thickness; a polygon of fewer
+  check or a canvas shape; a negative, infinite or NaN thickness; a polygon of fewer
   than 3 or more than 1024 sides; a nine-slice with a mirrored `src`, or
   borders below 0 or wider than `src`;
 - a vertex layout that does not fit its stride, or uses a location twice;

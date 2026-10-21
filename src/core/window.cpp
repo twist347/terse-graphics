@@ -85,6 +85,14 @@ namespace {
         }
     }
 
+    [[nodiscard]] constexpr auto to_cursor_mode(int glfw_mode) noexcept -> tgx::CursorMode {
+        switch (glfw_mode) {
+            case GLFW_CURSOR_HIDDEN: return tgx::CursorMode::hidden;
+            case GLFW_CURSOR_DISABLED: return tgx::CursorMode::captured;
+            default: return tgx::CursorMode::normal;
+        }
+    }
+
     [[nodiscard]] constexpr auto to_glfw(tgx::CursorShape shape) noexcept -> int {
         using enum tgx::CursorShape;
         switch (shape) {
@@ -315,19 +323,6 @@ namespace tgx {
         return Window{};
     }
 
-    auto Window::operator=(Window &&other) noexcept -> Window & {
-        if (this == &other) {
-            return *this;
-        }
-        release();
-        owned_ = std::exchange(other.owned_, false);
-        return *this;
-    }
-
-    Window::~Window() {
-        release();
-    }
-
     auto Window::poll_events() noexcept -> void {
         detail::begin_input_frame();
         glfwPollEvents();
@@ -424,11 +419,7 @@ namespace tgx {
 
     // Queried, not stored: one source of truth.
     auto Window::cursor_mode() const noexcept -> CursorMode {
-        switch (glfwGetInputMode(s_window.handle, GLFW_CURSOR)) {
-            case GLFW_CURSOR_HIDDEN: return CursorMode::hidden;
-            case GLFW_CURSOR_DISABLED: return CursorMode::captured;
-            default: return CursorMode::normal;
-        }
+        return to_cursor_mode(glfwGetInputMode(s_window.handle, GLFW_CURSOR));
     }
 
     auto Window::set_cursor_shape(CursorShape shape) noexcept -> void {
@@ -461,20 +452,17 @@ namespace tgx {
         return s_window.handle;
     }
 
-    auto Window::release() noexcept -> void {
-        if (owned_) {
-            detail::detach_input();
-            s_window.pacer.set_fps(0);
-            for (GLFWcursor *cursor: s_window.cursors) {
-                if (cursor) {
-                    glfwDestroyCursor(cursor);
-                }
+    auto detail::release_window() noexcept -> void {
+        detach_input();
+        s_window.pacer.set_fps(0);
+        for (GLFWcursor *cursor: s_window.cursors) {
+            if (cursor) {
+                glfwDestroyCursor(cursor);
             }
-            glfwDestroyWindow(s_window.handle);
-            glfwTerminate();
-            s_window = {};
-            owned_ = false;
         }
+        glfwDestroyWindow(s_window.handle);
+        glfwTerminate();
+        s_window = {};
     }
 
     auto detail::gl_loader() noexcept -> GlLoader {

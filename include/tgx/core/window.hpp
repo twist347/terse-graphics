@@ -2,15 +2,19 @@
 
 #include "tgx/core/assert.hpp"
 #include "tgx/core/error.hpp"
+#include "tgx/core/handle.hpp"
 #include "tgx/core/input.hpp"
 #include "tgx/core/math.hpp"
 
 #include <cstdint>
-#include <utility>
 
 struct GLFWwindow;
 
 namespace tgx {
+    namespace detail {
+        auto release_window() noexcept -> void;
+    }
+
     // How the mouse cursor behaves over the window.
     enum class CursorMode : std::int32_t {
         normal,
@@ -72,12 +76,8 @@ namespace tgx {
         Window(const Window &) = delete;
         auto operator=(const Window &) -> Window & = delete;
 
-        Window(Window &&other) noexcept : owned_{std::exchange(other.owned_, false)} {
-        }
-
-        auto operator=(Window &&other) noexcept -> Window &;
-
-        ~Window();
+        Window(Window &&) noexcept = default;
+        auto operator=(Window &&) noexcept -> Window & = default;
 
         // Resizes, close requests, keys and the mouse since the last call.
         // Updates input().
@@ -154,12 +154,9 @@ namespace tgx {
         [[nodiscard]] auto native_handle() const noexcept -> GLFWwindow *;
 
     private:
-        Window() noexcept : owned_{true} {
+        Window() noexcept : claim_{true} {
         }
 
-        auto release() noexcept -> void;
-
-        // False once moved from: another Window closes the window.
-        bool owned_{false};
+        detail::Claim<detail::release_window> claim_{};
     };
 }

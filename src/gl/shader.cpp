@@ -332,9 +332,7 @@ namespace tgx::gl {
     template auto Shader::set<Mat4>(Uniform<Mat4>, const Mat4 &) noexcept -> void;
     template auto Shader::set<Color>(Uniform<Color>, const Color &) noexcept -> void;
     template auto Shader::set<TextureSlot>(Uniform<TextureSlot>, const TextureSlot &) noexcept -> void;
-}
 
-namespace tgx::gl {
     auto detail::upload_mat4(std::int32_t location, const Mat4 &value) noexcept -> void {
         // Mat4 is column-major: no transpose.
         const auto floats = std::bit_cast<std::array<float, 16>>(value);

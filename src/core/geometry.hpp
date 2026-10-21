@@ -115,7 +115,7 @@ namespace tgx::detail {
                 const Vec2 normal = normalize(Vec2{unit.x / radii.x, unit.y / radii.y});
                 at = {inward(at.x, normal.x, radii.x, inset), inward(at.y, normal.y, radii.y, inset)};
             }
-            return center + Vec2{at.x * turn.x - at.y * turn.y, at.x * turn.y + at.y * turn.x};
+            return center + turned(at, turn);
         }
     };
 
@@ -131,26 +131,29 @@ namespace tgx::detail {
         return corners({rect.x, rect.y}, {rect.right(), rect.bottom()});
     }
 
-    // Clockwise from the top-left. origin, from the top-left corner, is
-    // placed at position, and the box rotates around it.
+    // from_angle, without cos and sin for the usual unturned shape.
+    [[nodiscard]] inline auto turn_of(float rotation) noexcept -> Vec2 {
+        return rotation == 0.f ? Vec2{1.f, 0.f} : from_angle(rotation);
+    }
+
+    // A point of a box, from its top-left corner, where the box goes: origin
+    // (also from the top-left) at position, turned around it as Sprite is.
+    // turn is turn_of(rotation).
+    [[nodiscard]] constexpr auto placed(Vec2 point, Vec2 origin, Vec2 position, Vec2 turn) noexcept -> Vec2 {
+        return turned(point - origin, turn) + position;
+    }
+
+    // Clockwise from the top-left, placed as placed() does.
     [[nodiscard]] inline auto placed_corners(
         Vec2 size,
         Vec2 origin,
         Vec2 position,
         float rotation
     ) noexcept -> std::array<Vec2, 4> {
-        auto box = corners(-origin, size - origin);
-        if (rotation == 0.f) {
-            for (Vec2 &corner: box) {
-                corner += position;
-            }
-            return box;
-        }
-        // rotate() written out, to compute cos and sin once for all corners.
-        const float c = std::cos(rotation);
-        const float s = std::sin(rotation);
+        const Vec2 turn = turn_of(rotation);
+        auto box = corners({}, size);
         for (Vec2 &corner: box) {
-            corner = Vec2{corner.x * c - corner.y * s, corner.x * s + corner.y * c} + position;
+            corner = placed(corner, origin, position, turn);
         }
         return box;
     }

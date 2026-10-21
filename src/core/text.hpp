@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/default_font.hpp"
+#include "core/utf8.hpp"
 
-#include <bit>
 #include <cstddef>
 #include <string_view>
 
@@ -16,12 +16,6 @@ namespace tgx::detail {
 
     // Columns between tab stops.
     inline constexpr std::size_t tab_columns = 4;
-
-    // Leading one bits. 1 for ASCII, a stray continuation or an invalid lead.
-    [[nodiscard]] constexpr auto sequence_length(unsigned char lead) noexcept -> std::size_t {
-        const int ones = std::countl_one(lead);
-        return ones >= 2 && ones <= 4 ? static_cast<std::size_t>(ones) : 1;
-    }
 
     // Calls f with each character's glyph index, or newline_glyph. One UTF-8
     // sequence is one character, '?' without a glyph. '\t' pads to the next

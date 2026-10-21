@@ -11,14 +11,7 @@
 // has no such switch, so its functions, and miniaudio's one global, get a
 // tgx_ prefix. miniaudio includes <windows.h>, whose min and max macros would
 // break std::min.
-// MSVC's code generation warns about vendored code past /external:W0, and a
-// warning level does not reach it: all its warnings on at /W4 are turned off
-// by number (uninitialized, unreachable, not inlined, division by zero,
-// constant overflow, buffer overrun).
-#if defined(_MSC_VER)
-#pragma warning(push, 0)
-#pragma warning(disable: 4700 4701 4702 4703 4714 4723 4724 4756 4789)
-#endif
+#include "core/vendor_begin.hpp"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -58,9 +51,7 @@
 #include <miniaudio/miniaudio.h>
 #undef STB_VORBIS_HEADER_ONLY
 #include <stb/stb_vorbis.c>
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
+#include "core/vendor_end.hpp"
 
 #include <algorithm>
 #include <array>
@@ -565,19 +556,6 @@ namespace tgx {
         return Audio{};
     }
 
-    auto Audio::operator=(Audio &&other) noexcept -> Audio & {
-        if (this == &other) {
-            return *this;
-        }
-        release();
-        owned_ = std::exchange(other.owned_, false);
-        return *this;
-    }
-
-    Audio::~Audio() {
-        release();
-    }
-
     auto Audio::active() const noexcept -> bool {
         return static_cast<bool>(s_audio);
     }
@@ -648,10 +626,7 @@ namespace tgx {
         return s_volume;
     }
 
-    auto Audio::release() noexcept -> void {
-        if (!owned_) {
-            return;
-        }
+    auto detail::release_audio() noexcept -> void {
         if (s_audio) {
             for (Voice &voice: s_audio->voices) {
                 if (voice.owner != 0) {
@@ -662,6 +637,5 @@ namespace tgx {
             s_audio.reset();
         }
         s_volume = 1.f;
-        owned_ = false;
     }
 }

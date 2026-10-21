@@ -3,15 +3,19 @@
 #include "tgx/core/clock.hpp"
 #include "tgx/core/color.hpp"
 #include "tgx/core/error.hpp"
+#include "tgx/core/handle.hpp"
 #include "tgx/core/image.hpp"
 
 #include <cstdint>
 #include <optional>
-#include <utility>
 
 namespace tgx {
     class RenderTarget;
     class Window;
+
+    namespace detail {
+        auto release_device() noexcept -> void;
+    }
 
     namespace gl {
         class Shader;
@@ -79,12 +83,8 @@ namespace tgx {
         Device(const Device &) = delete;
         auto operator=(const Device &) -> Device & = delete;
 
-        Device(Device &&other) noexcept : owned_{std::exchange(other.owned_, false)} {
-        }
-
-        auto operator=(Device &&other) noexcept -> Device &;
-
-        ~Device();
+        Device(Device &&) noexcept = default;
+        auto operator=(Device &&) noexcept -> Device & = default;
 
         auto clear(const ClearParams &params) noexcept -> void;
 
@@ -125,12 +125,9 @@ namespace tgx {
         ) noexcept -> void;
 
     private:
-        Device() noexcept : owned_{true} {
+        Device() noexcept : claim_{true} {
         }
 
-        auto release() noexcept -> void;
-
-        // False after a move.
-        bool owned_{false};
+        detail::Claim<detail::release_device> claim_{};
     };
 }

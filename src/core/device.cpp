@@ -84,19 +84,6 @@ namespace tgx {
         return Device{};
     }
 
-    auto Device::operator=(Device &&other) noexcept -> Device & {
-        if (this == &other) {
-            return *this;
-        }
-        release();
-        owned_ = std::exchange(other.owned_, false);
-        return *this;
-    }
-
-    Device::~Device() {
-        release();
-    }
-
     auto Device::clear(const ClearParams &params) noexcept -> void {
         const detail::Target target = detail::target_of(params.target);
         // GL silently ignores a clear of a missing buffer.
@@ -216,14 +203,11 @@ namespace tgx {
         detail::context().draw(call);
     }
 
-    auto Device::release() noexcept -> void {
-        if (owned_) {
-            // The batch goes while GL and the Context are still whole. Its
-            // shapes are dropped: their frame is over.
-            detail::Context &context = detail::context();
-            context.batch.reset();
-            context = {};
-            owned_ = false;
-        }
+    auto detail::release_device() noexcept -> void {
+        // The batch goes while GL and the Context are still whole. Its shapes
+        // are dropped: their frame is over.
+        Context &state = context();
+        state.batch.reset();
+        state = {};
     }
 }

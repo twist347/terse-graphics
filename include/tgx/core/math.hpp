@@ -298,11 +298,17 @@ namespace tgx {
         return v == Vec2{} ? 0.f : std::atan2(v.y, v.x);
     }
 
+    namespace detail {
+        // rotate() by the angle whose cosine and sine are turn: for many
+        // points, from_angle once.
+        [[nodiscard]] constexpr auto turned(Vec2 v, Vec2 turn) noexcept -> Vec2 {
+            return {v.x * turn.x - v.y * turn.y, v.x * turn.y + v.y * turn.x};
+        }
+    }
+
     // Around {0, 0}.
     [[nodiscard]] inline auto rotate(Vec2 v, float angle) noexcept -> Vec2 {
-        const float c = std::cos(angle);
-        const float s = std::sin(angle);
-        return {v.x * c - v.y * s, v.x * s + v.y * c};
+        return detail::turned(v, from_angle(angle));
     }
 
     // A quarter turn counter-clockwise on screen (to the left of v), like

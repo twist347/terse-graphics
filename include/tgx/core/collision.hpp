@@ -25,13 +25,14 @@ namespace tgx {
         // Asserted by the callers, so the message names them.
         [[nodiscard]] constexpr auto valid(Rect rect) noexcept -> bool { return rect.width >= 0.f && rect.height >= 0.f; }
 
-        // Zero or more and finite; also used by the Canvas. Not
-        // std::isfinite, to stay constexpr on every compiler.
-        [[nodiscard]] constexpr auto valid_radius(float radius) noexcept -> bool {
-            return radius >= 0.f && radius <= std::numeric_limits<float>::max();
+        // Zero or more and finite: a radius, a thickness, a side; also used
+        // by the Canvas. Not std::isfinite, to stay constexpr on every
+        // compiler.
+        [[nodiscard]] constexpr auto valid_length(float length) noexcept -> bool {
+            return length >= 0.f && length <= std::numeric_limits<float>::max();
         }
 
-        [[nodiscard]] constexpr auto valid(Circle circle) noexcept -> bool { return valid_radius(circle.radius); }
+        [[nodiscard]] constexpr auto valid(Circle circle) noexcept -> bool { return valid_length(circle.radius); }
     }
 
     // Left and top edges are inside, right and bottom outside, so a point

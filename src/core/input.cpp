@@ -5,6 +5,7 @@
 #include "core/geometry.hpp"
 #include "core/glfw_keys.hpp"
 #include "core/input_internal.hpp"
+#include "core/utf8.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -95,25 +96,8 @@ namespace {
         s_input.wheel += {static_cast<float>(x), static_cast<float>(y)};
     }
 
-    // Appends the code point as UTF-8.
     auto on_char(GLFWwindow *, unsigned int c) noexcept -> void {
-        std::string &text = s_input.text;
-        const auto byte = [](unsigned int b) noexcept { return static_cast<char>(b); };
-        if (c < 0x80) {
-            text += byte(c);
-        } else if (c < 0x800) {
-            text += byte(0xc0 | (c >> 6));
-            text += byte(0x80 | (c & 0x3f));
-        } else if (c < 0x10000) {
-            text += byte(0xe0 | (c >> 12));
-            text += byte(0x80 | ((c >> 6) & 0x3f));
-            text += byte(0x80 | (c & 0x3f));
-        } else {
-            text += byte(0xf0 | (c >> 18));
-            text += byte(0x80 | ((c >> 12) & 0x3f));
-            text += byte(0x80 | ((c >> 6) & 0x3f));
-            text += byte(0x80 | (c & 0x3f));
-        }
+        tgx::detail::append_utf8(s_input.text, static_cast<char32_t>(c));
     }
 }
 

@@ -1,13 +1,13 @@
 #pragma once
 
 #include "tgx/core/error.hpp"
+#include "tgx/core/handle.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <span>
-#include <utility>
 #include <vector>
 
 namespace tgx {
@@ -15,6 +15,8 @@ namespace tgx {
 
     namespace detail {
         struct MusicStream;
+
+        auto release_audio() noexcept -> void;
     }
 
     // Settings for one Audio::play.
@@ -235,12 +237,8 @@ namespace tgx {
         Audio(const Audio &) = delete;
         auto operator=(const Audio &) -> Audio & = delete;
 
-        Audio(Audio &&other) noexcept : owned_{std::exchange(other.owned_, false)} {
-        }
-
-        auto operator=(Audio &&other) noexcept -> Audio &;
-
-        ~Audio();
+        Audio(Audio &&) noexcept = default;
+        auto operator=(Audio &&) noexcept -> Audio & = default;
 
         // False when silent.
         [[nodiscard]] auto active() const noexcept -> bool;
@@ -259,12 +257,9 @@ namespace tgx {
         [[nodiscard]] auto volume() const noexcept -> float;
 
     private:
-        Audio() noexcept : owned_{true} {
+        Audio() noexcept : claim_{true} {
         }
 
-        auto release() noexcept -> void;
-
-        // False once moved from: another Audio closes the output.
-        bool owned_{false};
+        detail::Claim<detail::release_audio> claim_{};
     };
 }
