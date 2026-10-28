@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <limits>
 #include <optional>
 #include <span>
 
@@ -24,13 +23,6 @@ namespace tgx {
     namespace detail {
         // Asserted by the callers, so the message names them.
         [[nodiscard]] constexpr auto valid(Rect rect) noexcept -> bool { return rect.width >= 0.f && rect.height >= 0.f; }
-
-        // Zero or more and finite: a radius, a thickness, a side; also used
-        // by the Canvas. Not std::isfinite, to stay constexpr on every
-        // compiler.
-        [[nodiscard]] constexpr auto valid_length(float length) noexcept -> bool {
-            return length >= 0.f && length <= std::numeric_limits<float>::max();
-        }
 
         [[nodiscard]] constexpr auto valid(Circle circle) noexcept -> bool { return valid_length(circle.radius); }
     }

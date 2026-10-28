@@ -6,6 +6,7 @@
 #include <cmath>
 #include <concepts>
 #include <functional>
+#include <limits>
 #include <numbers>
 #include <type_traits>
 
@@ -230,6 +231,14 @@ namespace tgx {
         }
         // A tiny negative v plus span can round to span itself.
         return v < span ? v : 0.f;
+    }
+
+    namespace detail {
+        // Zero or more and finite: a radius, a thickness, a side. Not
+        // std::isfinite, to stay constexpr on every compiler.
+        [[nodiscard]] constexpr auto valid_length(float length) noexcept -> bool {
+            return length >= 0.f && length <= std::numeric_limits<float>::max();
+        }
     }
 
     // Vec2, Vec3, Vec4: what is the same for every size is written once

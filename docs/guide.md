@@ -709,10 +709,13 @@ FetchContent) and link `tgx::tgx`. Examples and tests are then off. The
 vendored libraries build as `tgx_glad`, `tgx_miniaudio` and so on, apart from
 the project's own, and go inside the tgx library itself, as raylib's do: there
 is one library to link. It is position-independent, so it also links into a
-shared library of your own (a plugin, game code reloaded while the game
-runs). stb and miniaudio are compiled with internal linkage, so the app may
-link its own copies of them. A `glfw` target the project
-already has (3.4 or newer) is used instead of tgx's copy.
+shared library of your own, such as a plugin. That library gets its own copy
+of tgx, with its own state: it makes its own `App` and does not see the
+program's. Game code reloaded while the game runs has to share the game's
+tgx, which needs a shared build, on the [roadmap](roadmap.md). stb and
+miniaudio are compiled with internal linkage, so the app may link its own
+copies of them. A `glfw` target the project already has (3.4 or newer) is
+used instead of tgx's copy.
 
 Or installed, as a package:
 

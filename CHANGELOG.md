@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **`Window`, `Device` and `Audio` can no longer be assigned.** In
+  `device = tgx::Device::create(*window)` the new device was made first, and
+  then the old one released the state the two share: the next draw crashed.
+  A `Window` assigned this way was destroyed, and an `Audio` went silent
+  while the old output kept running on freed memory. They still move.
+- **The guide no longer promises game code reloaded while the game runs.** A
+  shared library that links tgx gets its own copy, with its own state:
+  without an `App` of its own it sees no window, and its first draw crashes.
+  Sharing one tgx needs a shared build, now on the roadmap.
+
+### Tests
+
+- Compile-time checks that `Window`, `Device` and `Audio` move but do not
+  assign.
+
 ## 0.1.0 — 2026-10-21
 
 The first release. Before 1.0 a minor version may break the API; each break

@@ -238,7 +238,8 @@ namespace tgx {
         auto operator=(const Audio &) -> Audio & = delete;
 
         Audio(Audio &&) noexcept = default;
-        auto operator=(Audio &&) noexcept -> Audio & = default;
+        // Releasing the old one would end the new one: they share one state.
+        auto operator=(Audio &&) noexcept -> Audio & = delete;
 
         // False when silent.
         [[nodiscard]] auto active() const noexcept -> bool;

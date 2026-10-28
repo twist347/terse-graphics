@@ -1,6 +1,6 @@
 #include "tgx/core/audio.hpp"
 
-#include "core/tone.hpp"
+#include "audio/tone.hpp"
 
 #include "support.hpp"
 

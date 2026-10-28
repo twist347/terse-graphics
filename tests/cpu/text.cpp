@@ -1,7 +1,7 @@
 #include "tgx/core/canvas.hpp"
 
-#include "core/text.hpp"
-#include "core/utf8.hpp"
+#include "base/utf8.hpp"
+#include "canvas/text.hpp"
 
 #include "support.hpp"
 

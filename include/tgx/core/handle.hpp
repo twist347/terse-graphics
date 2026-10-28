@@ -55,8 +55,9 @@ namespace tgx::detail {
     };
 
     // The claim on a one-per-process part whose state lives in a global (the
-    // window, the GL context, the audio output): move-only, calls Release
-    // once, from whichever holds it last. Not API.
+    // window, the GL context, the audio output): calls Release once, from
+    // whichever holds it last. Moves but does not assign: the new claim is on
+    // the same global, so releasing the old one would end it. Not API.
     template<void (*Release)() noexcept>
     class Claim {
     public:
@@ -71,29 +72,15 @@ namespace tgx::detail {
         Claim(Claim &&other) noexcept : held_{std::exchange(other.held_, false)} {
         }
 
-        auto operator=(Claim &&other) noexcept -> Claim & {
-            if (this == &other) {
-                return *this;
-            }
-
-            reset();
-            held_ = std::exchange(other.held_, false);
-
-            return *this;
-        }
+        auto operator=(Claim &&) noexcept -> Claim & = delete;
 
         ~Claim() {
-            reset();
-        }
-
-    private:
-        auto reset() noexcept -> void {
             if (held_) {
-                held_ = false;
                 Release();
             }
         }
 
+    private:
         bool held_{false};
     };
 }

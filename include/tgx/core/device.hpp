@@ -6,7 +6,6 @@
 #include "tgx/core/handle.hpp"
 #include "tgx/core/image.hpp"
 
-#include <cstdint>
 #include <optional>
 
 namespace tgx {
@@ -84,7 +83,8 @@ namespace tgx {
         auto operator=(const Device &) -> Device & = delete;
 
         Device(Device &&) noexcept = default;
-        auto operator=(Device &&) noexcept -> Device & = default;
+        // Releasing the old one would end the new one: they share one state.
+        auto operator=(Device &&) noexcept -> Device & = delete;
 
         auto clear(const ClearParams &params) noexcept -> void;
 

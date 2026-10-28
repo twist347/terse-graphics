@@ -1,6 +1,6 @@
 # miniaudio v0.11.25, https://github.com/mackron/miniaudio
 # Public domain or MIT-0: no notice travels with a game. Header only here:
-# src/core/audio.cpp compiles it with internal linkage, with OGG Vorbis
+# src/audio/audio.cpp compiles it with internal linkage, with OGG Vorbis
 # decoding through stb_vorbis v1.22 (thirdparty/stb). Backends are loaded at
 # run time on every platform, so no system audio library is linked.
 add_library(tgx_miniaudio INTERFACE)

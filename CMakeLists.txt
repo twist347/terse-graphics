@@ -47,35 +47,58 @@ endif ()
 
 add_subdirectory(thirdparty)
 
-set(TGX_CORE_SOURCES
-        src/core/app.cpp
-        src/core/assert.cpp
-        src/core/audio.cpp
-        src/core/batch.cpp
-        src/core/canvas.cpp
-        src/core/clock.cpp
-        src/core/context.cpp
-        src/core/device.cpp
-        src/core/file.cpp
-        src/core/frame_pacer.cpp
-        src/core/gl_debug.cpp
-        src/core/image.cpp
-        src/core/input.cpp
-        src/core/log.cpp
-        src/core/paths.cpp
-        src/core/render_target.cpp
-        src/core/texture.cpp
-        src/core/window.cpp
+# Math, colors, images, files, the log.
+set(TGX_BASE_SOURCES
+        src/base/assert.cpp
+        src/base/file.cpp
+        src/base/image.cpp
+        src/base/log.cpp
+        src/base/paths.cpp
 )
 
-set(TGX_GL_SOURCES
-        src/gl/buffer.cpp
-        src/gl/shader.cpp
-        src/gl/shader_reflection.cpp
-        src/gl/vertex_array.cpp
+# The window and input.
+set(TGX_PLATFORM_SOURCES
+        src/platform/frame_pacer.cpp
+        src/platform/input.cpp
+        src/platform/window.cpp
 )
 
-add_library(tgx STATIC ${TGX_CORE_SOURCES} ${TGX_GL_SOURCES})
+# GL: the Device, textures, render targets, the Canvas's batch, tgx::gl.
+set(TGX_GPU_SOURCES
+        src/gpu/batch.cpp
+        src/gpu/clock.cpp
+        src/gpu/context.cpp
+        src/gpu/device.cpp
+        src/gpu/gl_debug.cpp
+        src/gpu/render_target.cpp
+        src/gpu/texture.cpp
+        src/gpu/gl/buffer.cpp
+        src/gpu/gl/shader.cpp
+        src/gpu/gl/shader_reflection.cpp
+        src/gpu/gl/vertex_array.cpp
+)
+
+# Shapes and text, as vertices for the batch.
+set(TGX_CANVAS_SOURCES
+        src/canvas/canvas.cpp
+)
+
+set(TGX_AUDIO_SOURCES
+        src/audio/audio.cpp
+)
+
+set(TGX_APP_SOURCES
+        src/app/app.cpp
+)
+
+add_library(tgx STATIC
+        ${TGX_BASE_SOURCES}
+        ${TGX_PLATFORM_SOURCES}
+        ${TGX_GPU_SOURCES}
+        ${TGX_CANVAS_SOURCES}
+        ${TGX_AUDIO_SOURCES}
+        ${TGX_APP_SOURCES}
+)
 add_library(tgx::tgx ALIAS tgx)
 
 target_compile_features(tgx PUBLIC cxx_std_23)
@@ -143,8 +166,7 @@ endif ()
 target_compile_definitions(tgx PRIVATE GLFW_INCLUDE_NONE)
 
 # Position-independent, glad and GLFW too, so the library also links into a
-# shared library of the app's own (a plugin, game code reloaded while it
-# runs), as raylib's does.
+# shared library of the app's own, such as a plugin, as raylib's does.
 set_target_properties(tgx tgx_glad PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if (TGX_OWN_GLFW)
     set_target_properties(glfw PROPERTIES POSITION_INDEPENDENT_CODE ON)

@@ -14,3 +14,12 @@ static_assert(std::is_same_v<decltype(std::declval<tgx::App &>().canvas()), tgx:
 static_assert(std::is_same_v<decltype(std::declval<const tgx::App &>().canvas()), const tgx::Canvas &>);
 static_assert(std::is_same_v<decltype(std::declval<tgx::App &>().audio()), tgx::Audio &>);
 static_assert(std::is_same_v<decltype(std::declval<const tgx::App &>().audio()), const tgx::Audio &>);
+
+// The one-per-process parts move, as Result needs, but do not assign: the old
+// one's release would end the new one.
+static_assert(std::is_nothrow_move_constructible_v<tgx::Window>);
+static_assert(!std::is_move_assignable_v<tgx::Window>);
+static_assert(std::is_nothrow_move_constructible_v<tgx::Device>);
+static_assert(!std::is_move_assignable_v<tgx::Device>);
+static_assert(std::is_nothrow_move_constructible_v<tgx::Audio>);
+static_assert(!std::is_move_assignable_v<tgx::Audio>);

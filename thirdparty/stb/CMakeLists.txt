@@ -1,6 +1,6 @@
 # stb_image v2.30, https://github.com/nothings/stb
-# Header only here: src/core/image.cpp compiles it with internal linkage.
-# stb_vorbis v1.22 sits next to it, compiled by src/core/audio.cpp.
+# Header only here: src/base/image.cpp compiles it with internal linkage.
+# stb_vorbis v1.22 sits next to it, compiled by src/audio/audio.cpp.
 add_library(tgx_stb_image INTERFACE)
 target_include_directories(tgx_stb_image SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # Files are read by the caller, which handles paths stdio cannot (non-ASCII

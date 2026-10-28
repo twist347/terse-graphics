@@ -77,7 +77,8 @@ namespace tgx {
         auto operator=(const Window &) -> Window & = delete;
 
         Window(Window &&) noexcept = default;
-        auto operator=(Window &&) noexcept -> Window & = default;
+        // Releasing the old one would end the new one: they share one state.
+        auto operator=(Window &&) noexcept -> Window & = delete;
 
         // Resizes, close requests, keys and the mouse since the last call.
         // Updates input().

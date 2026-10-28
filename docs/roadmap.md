@@ -23,7 +23,8 @@ taken up; what is done leaves this file (the [guide](guide.md) and the
 - Math: `reflect`, the angle between vectors, `Mat4` inverse and transpose.
 - Build: `BUILD_SHARED_LIBS` (an export macro on the public API, stb and
   miniaudio hidden, glad and GLFW exported, as raw GL and `native_handle()`
-  call them, a SOVERSION), clang-cl on Windows, a pkg-config file for builds
+  call them, a SOVERSION; game code reloaded while the game runs needs it to
+  share the game's tgx), clang-cl on Windows, a pkg-config file for builds
   without CMake.
 - Loading from memory: `Texture::decode`, `Music::decode`.
 

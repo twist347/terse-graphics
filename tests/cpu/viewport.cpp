@@ -1,4 +1,4 @@
-#include "core/viewport.hpp"
+#include "canvas/viewport.hpp"
 
 #include <doctest/doctest.h>
 
