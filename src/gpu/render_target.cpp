@@ -24,9 +24,7 @@ namespace {
 
 namespace tgx {
     auto detail::delete_framebuffer(GlId id) noexcept -> void {
-        // Draws the waiting shapes while it exists.
-        detail::flush_target_use(id);
-        detail::context().forget_framebuffer(id);
+        detail::context().before_delete_framebuffer(id);
         glDeleteFramebuffers(1, &id);
     }
 

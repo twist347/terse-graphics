@@ -82,15 +82,17 @@ namespace tgx::detail {
         FrameStats frame{};
         FrameStats last_frame{};
 
-        // Null while the batch is created and destroyed, when its own shader
-        // and texture call the flush hooks; they skip a null batch. unique_ptr
-        // is nulled before it deletes; optional does not promise that.
+        // Null during setup and teardown: its own resources notify this
+        // Context. unique_ptr::reset clears it before deleting the batch.
         std::unique_ptr<Batch> batch{};
 
-        // For a context just made current: forgets tracked state and sets GL
-        // to match. A GL context can outlive a Device and keep what it set.
-        // Leaves no batch.
-        auto reset() noexcept -> void;
+        // For a context just made current: forgets tracked state, sets GL to
+        // match and makes the Canvas's batch. A GL context can outlive a
+        // Device and keep what it set.
+        [[nodiscard]] auto open() -> Result<void>;
+
+        // Drops the batch's shapes (their frame is over) and all state.
+        auto close() noexcept -> void;
 
         // Draws the batch, if any.
         auto flush() noexcept -> void;
@@ -110,16 +112,18 @@ namespace tgx::detail {
         // Unless already bound.
         auto bind_framebuffer(GlId next) noexcept -> void;
 
-        // Call before deleting a framebuffer. If bound, GL falls back to the
-        // window's, and GL may reuse the id.
-        auto forget_framebuffer(GlId id) noexcept -> void;
+        // Flushes waiting draws and forgets the cached framebuffer.
+        auto before_delete_framebuffer(GlId id) noexcept -> void;
 
         // Unless already current.
         auto use_program(GlId next) noexcept -> void;
 
-        // Call before deleting a program. GL may reuse the id, which must not
-        // be mistaken for the current one.
-        auto forget_program(GlId id) noexcept -> void;
+        // Makes the program current to set a uniform, after drawing the
+        // shapes waiting with the old values.
+        auto edit_program(GlId id) noexcept -> void;
+
+        // Flushes waiting uses and forgets the cached program.
+        auto before_delete_program(GlId id) noexcept -> void;
 
         // Unless already bound.
         auto bind_vertex_array(GlId next) noexcept -> void;
@@ -132,21 +136,13 @@ namespace tgx::detail {
         // below gl::max_texture_slots.
         auto bind_texture(std::uint32_t slot, GlId texture) noexcept -> void;
 
-        // Call before deleting a texture. GL unbinds it from every slot and
-        // may reuse the id.
-        auto forget_texture(GlId texture) noexcept -> void;
+        // Binds the texture to change it, after drawing the shapes waiting
+        // with the old pixels. The next draw rebinds what it needs.
+        auto edit_texture(GlId texture) noexcept -> void;
+
+        // Flushes waiting reads and writes and forgets cached bindings.
+        auto before_delete_texture(GlId texture) noexcept -> void;
     };
 
     [[nodiscard]] auto context() noexcept -> Context &;
-
-    // Call before a texture or program changes or is deleted. If the batch
-    // uses it, the batch is drawn now, so it never sees later changes.
-    auto flush_texture_use(GlId texture) noexcept -> void;
-
-    auto flush_shader_use(GlId program) noexcept -> void;
-
-    // Call before a render target is deleted: draws the shapes waiting for
-    // it. Whichever of its framebuffer and texture goes first draws them
-    // (flush_texture_use covers the texture).
-    auto flush_target_use(GlId framebuffer) noexcept -> void;
 }

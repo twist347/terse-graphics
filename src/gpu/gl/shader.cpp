@@ -218,9 +218,7 @@ namespace {
 
 namespace tgx::gl {
     auto detail::delete_program(GlId id) noexcept -> void {
-        // Draws the batched shapes while their program still exists.
-        tgx::detail::flush_shader_use(id);
-        tgx::detail::context().forget_program(id);
+        tgx::detail::context().before_delete_program(id);
         glDeleteProgram(id);
     }
 
@@ -288,8 +286,6 @@ namespace tgx::gl {
             return;
         }
 
-        // Draws the batched shapes first, so they keep the old values.
-        tgx::detail::flush_shader_use(id());
         if constexpr (std::same_as<T, TextureSlot>) {
             TGX_ASSERT_MSG(
                 value.index < max_texture_slots,
@@ -298,7 +294,7 @@ namespace tgx::gl {
             );
         }
 
-        tgx::detail::context().use_program(id());
+        tgx::detail::context().edit_program(id());
         UniformTraits<T>::upload(uniform.location_, value);
     }
 

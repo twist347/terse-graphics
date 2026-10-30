@@ -18,7 +18,9 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <type_traits>
+#include <utility>
 
 static_assert(std::is_same_v<GLuint, tgx::GlId>);
 
@@ -171,7 +173,7 @@ namespace tgx {
         return {.pixels = target.size, .units = target.size};
     }
 
-    auto detail::Context::reset() noexcept -> void {
+    auto detail::Context::open() -> Result<void> {
         *this = {};
 
         glDisable(GL_BLEND);
@@ -193,6 +195,20 @@ namespace tgx {
         // differs. The whole framebuffer is the same from either corner.
         gl_viewport = surface_of({}).viewport();
         glViewport(0, 0, gl_viewport.width, gl_viewport.height);
+
+        auto made = Batch::create();
+        if (!made) {
+            *this = {};
+            return std::unexpected{made.error()};
+        }
+        batch = std::make_unique<Batch>(std::move(*made));
+        return {};
+    }
+
+    auto detail::Context::close() noexcept -> void {
+        // The batch goes while GL and the rest are still whole.
+        batch.reset();
+        *this = {};
     }
 
     auto detail::Context::flush() noexcept -> void {
@@ -321,7 +337,10 @@ namespace tgx {
         }
     }
 
-    auto detail::Context::forget_framebuffer(GlId id) noexcept -> void {
+    auto detail::Context::before_delete_framebuffer(GlId id) noexcept -> void {
+        if (batch && batch->uses_target(id)) {
+            flush();
+        }
         if (id == framebuffer) {
             framebuffer = 0;
         }
@@ -335,7 +354,17 @@ namespace tgx {
         }
     }
 
-    auto detail::Context::forget_program(GlId id) noexcept -> void {
+    auto detail::Context::edit_program(GlId id) noexcept -> void {
+        if (batch && batch->uses_shader(id)) {
+            flush();
+        }
+        use_program(id);
+    }
+
+    auto detail::Context::before_delete_program(GlId id) noexcept -> void {
+        if (batch && batch->uses_shader(id)) {
+            flush();
+        }
         if (id == program) {
             program = 0;
         }
@@ -366,29 +395,22 @@ namespace tgx {
         }
     }
 
-    auto detail::Context::forget_texture(GlId texture) noexcept -> void {
+    auto detail::Context::edit_texture(GlId texture) noexcept -> void {
+        if (batch && batch->uses_texture(texture)) {
+            flush();
+        }
+        // Any slot would do: no binding target is free of draws.
+        bind_texture(0, texture);
+    }
+
+    auto detail::Context::before_delete_texture(GlId texture) noexcept -> void {
+        if (batch && batch->uses_texture(texture)) {
+            flush();
+        }
         std::ranges::replace(textures, texture, GLuint{0});
     }
 
     auto detail::context() noexcept -> Context & {
         return s_context;
-    }
-
-    auto detail::flush_texture_use(GlId texture) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_texture(texture)) {
-            s_context.flush();
-        }
-    }
-
-    auto detail::flush_shader_use(GlId program) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_shader(program)) {
-            s_context.flush();
-        }
-    }
-
-    auto detail::flush_target_use(GlId framebuffer) noexcept -> void {
-        if (s_context.batch && s_context.batch->uses_target(framebuffer)) {
-            s_context.flush();
-        }
     }
 }

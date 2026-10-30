@@ -10,7 +10,6 @@
 #include "tgx/gl/version.hpp"
 #include "tgx/gl/vertex_array.hpp"
 
-#include "gpu/batch.hpp"
 #include "gpu/context.hpp"
 #include "gpu/gl/vertex_array_internal.hpp"
 #include "gpu/gl_debug.hpp"
@@ -21,7 +20,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <utility>
 
@@ -69,14 +67,9 @@ namespace tgx {
         detail::install_debug_callback();
 
         detail::Context &context = detail::context();
-        context.reset();
-
-        auto batch = detail::Batch::create();
-        if (!batch) {
-            context = {};
-            return std::unexpected{batch.error()};
+        if (auto opened = context.open(); !opened) {
+            return std::unexpected{opened.error()};
         }
-        context.batch = std::make_unique<detail::Batch>(std::move(*batch));
 
         // One blank frame now: on Wayland with a fractional scale, the buffer
         // gets the size GLFW reports only at a swap, so the first frame would
@@ -208,10 +201,6 @@ namespace tgx {
     }
 
     auto detail::release_device() noexcept -> void {
-        // The batch goes while GL and the Context are still whole. Its shapes
-        // are dropped: their frame is over.
-        Context &state = context();
-        state.batch.reset();
-        state = {};
+        context().close();
     }
 }

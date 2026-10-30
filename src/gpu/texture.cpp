@@ -9,14 +9,7 @@
 
 #include <glad/gl.h>
 
-#include <cstdint>
-
 namespace {
-    // The slot for edits. No binding target is free of draws, unlike for
-    // buffers, so it goes through the Device's cache and the next draw
-    // rebinds it.
-    constexpr std::uint32_t edit_slot = 0;
-
     [[nodiscard]] constexpr auto to_gl(tgx::TextureWrap wrap) noexcept -> GLint {
         using enum tgx::TextureWrap;
         switch (wrap) {
@@ -57,7 +50,7 @@ namespace {
 
         GLuint id = 0;
         glGenTextures(1, &id);
-        tgx::detail::context().bind_texture(edit_slot, id);
+        tgx::detail::context().edit_texture(id);
 
         glTexImage2D(
             GL_TEXTURE_2D, 0, tgx::detail::pixel_storage,
@@ -83,9 +76,7 @@ namespace {
 
 namespace tgx {
     auto detail::delete_texture(GlId id) noexcept -> void {
-        // Draws the waiting sprites while the texture exists.
-        detail::flush_texture_use(id);
-        detail::context().forget_texture(id);
+        detail::context().before_delete_texture(id);
         glDeleteTextures(1, &id);
     }
 
@@ -129,9 +120,7 @@ namespace tgx {
             return;
         }
 
-        // Waiting sprites use the old pixels.
-        detail::flush_texture_use(handle_.get());
-        detail::context().bind_texture(edit_slot, handle_.get());
+        detail::context().edit_texture(handle_.get());
         glTexSubImage2D(
             GL_TEXTURE_2D, 0,
             x, y, size.width, size.height,
