@@ -453,7 +453,10 @@ const std::array layout{
 
 auto vbo = tgx::gl::Buffer<Vertex>::create(vertices);   // std::array, std::vector, span...
 auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
-vao.set_vertex_buffer(*vbo);
+if (!vbo || !vao) {
+    return 1;
+}
+vao->set_vertex_buffer(*vbo);
 ```
 
 Shader sources carry their own `#version` line; `TGX_GLSL_VERSION` is the one
@@ -489,8 +492,8 @@ includes the viewport: the whole framebuffer unless a draw says otherwise.
 ```cpp
 auto &device = app->device();
 device.clear({.color = tgx::colors::black, .depth = 1.f});
-device.draw(*shader, vao);
-device.draw(*shader, vao, {.first = 12, .count = 6});
+device.draw(*shader, *vao);
+device.draw(*shader, *vao, {.first = 12, .count = 6});
 device.draw(*shader, sprites, {.state = {.blend = tgx::Blend::alpha}});
 device.draw(*shader, cube, {.state = {.depth = tgx::gl::Depth::less, .cull = tgx::gl::Cull::back}});
 device.draw(*shader, minimap, {.viewport = tgx::gl::Viewport{0, 0, 256, 256}});   // pixels, from the top-left
@@ -534,7 +537,7 @@ raw GL and leave GL as found (see [Rules](#rules)); the window is
 device.flush();               // waiting shapes are not clipped
 glEnable(GL_SCISSOR_TEST);
 glScissor(0, 0, 320, 180);    // pixels from the bottom-left, as GL counts
-device.draw(*shader, vao);
+device.draw(*shader, *vao);
 glDisable(GL_SCISSOR_TEST);   // as found
 
 glfwSetWindowOpacity(app->window().native_handle(), 0.9f);

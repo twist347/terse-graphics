@@ -82,8 +82,12 @@ int main() {
     }
 
     auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
-    vao.set_vertex_buffer(*vbo);
-    vao.set_index_buffer(*ibo);
+    if (!vao) {
+        std::println(stderr, "vertex array: {}", vao.error());
+        return 1;
+    }
+    vao->set_vertex_buffer(*vbo);
+    vao->set_index_buffer(*ibo);
 
     // A red square, then a blue one over its corner, both half transparent.
     const auto squares = [&](float x, tgx::Blend blend) {
@@ -91,11 +95,11 @@ int main() {
 
         shader->set(u_offset, {x, 0.1f});
         shader->set(u_color, tgx::colors::red.with_alpha(128));
-        app->device().draw(*shader, vao, params);
+        app->device().draw(*shader, *vao, params);
 
         shader->set(u_offset, {x + 0.2f, -0.1f});
         shader->set(u_color, tgx::colors::blue.with_alpha(128));
-        app->device().draw(*shader, vao, params);
+        app->device().draw(*shader, *vao, params);
     };
 
     while (!app->should_close()) {

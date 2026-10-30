@@ -137,11 +137,15 @@ int main() {
         tgx::gl::VertexAttribute::of(0, &SceneVertex::position),
         tgx::gl::VertexAttribute::of(1, &SceneVertex::color),
     });
-    scene_vao.set_vertex_buffer(*scene_vbo);
     auto cover_vao = tgx::gl::VertexArray::create<CoverVertex>(std::array{
         tgx::gl::VertexAttribute::of(0, &CoverVertex::position),
     });
-    cover_vao.set_vertex_buffer(*cover_vbo);
+    if (!scene_vao || !cover_vao) {
+        std::println(stderr, "vertex array: {}", !scene_vao ? scene_vao.error() : cover_vao.error());
+        return 1;
+    }
+    scene_vao->set_vertex_buffer(*scene_vbo);
+    cover_vao->set_vertex_buffer(*cover_vbo);
 
     auto target = make_target(app->window().framebuffer_size());
     if (!target) {
@@ -163,13 +167,13 @@ int main() {
         }
 
         device.clear({.target = &*target, .color = tgx::colors::dark_gray, .depth = 1.f});
-        device.draw(*scene_shader, scene_vao, {
+        device.draw(*scene_shader, *scene_vao, {
             .target = &*target,
             .state = {.depth = tgx::gl::Depth::less},
         });
 
         post_shader->set(u_strength, app->input().down(tgx::Key::space) ? 0.f : 1.f);
-        device.draw(*post_shader, cover_vao, {.textures = {&target->texture()}});
+        device.draw(*post_shader, *cover_vao, {.textures = {&target->texture()}});
 
         app->canvas().fps({10, 10});
 

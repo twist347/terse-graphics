@@ -2,6 +2,7 @@
 
 #include "tgx/core/assert.hpp"
 #include "tgx/core/color.hpp"
+#include "tgx/core/error.hpp"
 #include "tgx/core/handle.hpp"
 #include "tgx/core/math.hpp"
 
@@ -112,16 +113,17 @@ namespace tgx::gl {
         // that GL 3.3 guarantees.
         static constexpr std::uint32_t max_attributes = 16;
 
+        // Fails with Error::out_of_memory or Error::platform on a driver failure.
         [[nodiscard]] static auto create(
             std::size_t stride,
             std::span<const VertexAttribute> attributes
-        ) noexcept -> VertexArray;
+        ) noexcept -> Result<VertexArray>;
 
         // The stride is sizeof(Vertex).
         template<VertexElement Vertex>
         [[nodiscard]] static auto create(
             std::span<const VertexAttribute> attributes
-        ) noexcept -> VertexArray {
+        ) noexcept -> Result<VertexArray> {
             return create(sizeof(Vertex), attributes);
         }
 

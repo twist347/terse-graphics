@@ -76,7 +76,9 @@ namespace tgx_test {
 
         // A vertex array for Vertex, with no buffer yet.
         [[nodiscard]] static auto layout() -> tgx::gl::VertexArray {
-            return tgx::gl::VertexArray::create<Vertex>(std::array{tgx::gl::VertexAttribute::of(0, &Vertex::position)});
+            return required(tgx::gl::VertexArray::create<Vertex>(
+                std::array{tgx::gl::VertexAttribute::of(0, &Vertex::position)}
+            ));
         }
 
         auto draw(const tgx::gl::DrawParams &params = {}) const noexcept -> void {

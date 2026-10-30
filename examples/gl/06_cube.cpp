@@ -127,8 +127,12 @@ int main() {
     }
 
     auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
-    vao.set_vertex_buffer(*vbo);
-    vao.set_index_buffer(*ibo);
+    if (!vao) {
+        std::println(stderr, "vertex array: {}", vao.error());
+        return 1;
+    }
+    vao->set_vertex_buffer(*vbo);
+    vao->set_index_buffer(*ibo);
 
     // The camera: up and back from the cube, looking at its middle.
     const tgx::Mat4 view = tgx::look_at({0, 1.5f, 3}, {0, 0, 0}, {0, 1, 0});
@@ -149,7 +153,7 @@ int main() {
         // The depth buffer is cleared too: every frame starts with nothing in
         // front.
         app->device().clear({.color = tgx::colors::dark_gray, .depth = 1.f});
-        app->device().draw(*shader, vao, {.state = solid});
+        app->device().draw(*shader, *vao, {.state = solid});
 
         app->canvas().fps({10, 10});
 

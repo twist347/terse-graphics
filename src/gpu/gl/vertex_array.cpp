@@ -6,6 +6,7 @@
 
 #include "gpu/context.hpp"
 #include "gpu/gl/vertex_array_internal.hpp"
+#include "gpu/gl_error.hpp"
 
 #include <glad/gl.h>
 
@@ -62,7 +63,7 @@ namespace tgx::gl {
     auto VertexArray::create(
         std::size_t stride,
         std::span<const VertexAttribute> attributes
-    ) noexcept -> VertexArray {
+    ) noexcept -> Result<VertexArray> {
         TGX_ASSERT(stride > 0 && stride <= max_stride);
         TGX_ASSERT(!attributes.empty() && attributes.size() <= VertexArray::max_attributes);
 
@@ -87,19 +88,30 @@ namespace tgx::gl {
             );
         }
 
+        tgx::detail::drain_gl_errors();
+
         GLuint id = 0;
         glGenVertexArrays(1, &id);
+        if (const auto generated = tgx::detail::checked_allocation<detail::delete_vertex_array>(id); !generated) {
+            return std::unexpected{generated.error()};
+        }
 
         // Enabling an attribute is VAO state. The VAO can stay bound: its only
         // buffer binding, GL_ELEMENT_ARRAY_BUFFER, tgx binds only to attach an
         // index buffer here, and buffers are edited through
         // GL_COPY_WRITE_BUFFER.
         tgx::detail::context().bind_vertex_array(id);
+        // A rejected bind can leave the previous VAO current.
+        if (const auto bound = tgx::detail::checked_allocation<detail::delete_vertex_array>(id); !bound) {
+            return std::unexpected{bound.error()};
+        }
         for (const VertexAttribute &attribute: attributes) {
             glEnableVertexAttribArray(attribute.location);
         }
 
-        return VertexArray{id, stride, attributes};
+        return tgx::detail::checked_allocation<detail::delete_vertex_array>(id).transform([&](GlId allocated) {
+            return VertexArray{allocated, stride, attributes};
+        });
     }
 
     VertexArray::VertexArray(GlId id, std::size_t stride, std::span<const VertexAttribute> attributes) noexcept

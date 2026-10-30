@@ -108,8 +108,12 @@ int main() {
     }
 
     auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
-    vao.set_vertex_buffer(*vbo);
-    vao.set_index_buffer(*ibo);
+    if (!vao) {
+        std::println(stderr, "vertex array: {}", vao.error());
+        return 1;
+    }
+    vao->set_vertex_buffer(*vbo);
+    vao->set_index_buffer(*ibo);
 
     while (!app->should_close()) {
         app->poll_events();
@@ -120,7 +124,7 @@ int main() {
 
         app->device().clear({.color = tgx::colors::dark_gray});
         // textures[0] is slot 0.
-        app->device().draw(*shader, vao, {.textures = {&*texture}});
+        app->device().draw(*shader, *vao, {.textures = {&*texture}});
 
         app->canvas().fps({10, 10});
 

@@ -226,9 +226,10 @@ TEST_CASE("every vertex format, read at its offset") {
         VertexAttribute::of(5, &Vertex::v3),
         VertexAttribute::of(6, &Vertex::v4),
     });
-    vertices.set_vertex_buffer(*buffer);
+    REQUIRE(vertices.has_value());
+    vertices->set_vertex_buffer(*buffer);
 
-    tgx_test::app().device().draw(*shader, vertices, {.target = &target});
+    tgx_test::app().device().draw(*shader, *vertices, {.target = &target});
     CHECK(target.read()[4, 4] == color);
 }
 

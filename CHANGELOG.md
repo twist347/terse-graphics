@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+- **`gl::VertexArray::create` returns `Result<VertexArray>`.** Both overloads
+  report driver failures as `Error::out_of_memory` or `Error::platform`.
+  Check the result and dereference it before attaching buffers or drawing.
+
 ### Fixed
 
 - **`Window`, `Device` and `Audio` can no longer be assigned.** In
@@ -16,6 +22,8 @@
 
 ### Tests
 
+- Vertex array allocation failures, cleanup, preservation of the previously
+  bound layout and subsequent drawing.
 - Compile-time checks that `Window`, `Device` and `Audio` move but do not
   assign.
 

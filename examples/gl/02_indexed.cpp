@@ -83,15 +83,19 @@ int main() {
     }
 
     auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
-    vao.set_vertex_buffer(*vbo);
+    if (!vao) {
+        std::println(stderr, "vertex array: {}", vao.error());
+        return 1;
+    }
+    vao->set_vertex_buffer(*vbo);
     // With an index buffer attached, draws go by the indices.
-    vao.set_index_buffer(*ibo);
+    vao->set_index_buffer(*ibo);
 
     while (!app->should_close()) {
         app->poll_events();
 
         app->device().clear({.color = tgx::colors::dark_gray});
-        app->device().draw(*shader, vao);
+        app->device().draw(*shader, *vao);
 
         app->canvas().fps({10, 10});
 

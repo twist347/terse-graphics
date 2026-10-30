@@ -9,7 +9,7 @@
 
 #include <expected>
 
-// GL error checks around allocating storage. The only place where a driver
+// GL error checks around GPU allocations. The only place where a driver
 // failure is reported as an error instead of asserted.
 namespace tgx::detail {
     // GL keeps one flag per kind of error, so a few calls clear them all. The
@@ -35,7 +35,7 @@ namespace tgx::detail {
         return err == GL_OUT_OF_MEMORY ? Error::out_of_memory : Error::platform;
     }
 
-    // Call after allocating an object's storage. On an error, deletes the
+    // Call after allocating an object or its storage. On an error, deletes the
     // object as a Handle with the same Delete would.
     template<auto Delete>
     [[nodiscard]] auto checked_allocation(GlId id) noexcept -> Result<GlId> {

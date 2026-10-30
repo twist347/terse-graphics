@@ -79,7 +79,11 @@ int main() {
     }
 
     auto vao = tgx::gl::VertexArray::create<Vertex>(layout);
-    vao.set_vertex_buffer(*vbo);
+    if (!vao) {
+        std::println(stderr, "vertex array: {}", vao.error());
+        return 1;
+    }
+    vao->set_vertex_buffer(*vbo);
 
     while (!app->should_close()) {
         app->poll_events();
@@ -92,7 +96,7 @@ int main() {
         shader->set(u_transform, tgx::scale({1 / aspect, 1, 1}) * tgx::rotate({0, 0, 1}, angle));
 
         app->device().clear({.color = tgx::colors::dark_gray});
-        app->device().draw(*shader, vao);
+        app->device().draw(*shader, *vao);
 
         app->canvas().fps({10, 10});
 

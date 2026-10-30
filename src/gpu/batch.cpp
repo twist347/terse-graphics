@@ -97,8 +97,11 @@ namespace tgx::detail {
             gl::VertexAttribute::of(2, &BatchVertex::color),
         };
         auto vertex_array = gl::VertexArray::create<BatchVertex>(layout);
-        vertex_array.set_vertex_buffer(*vertex_buffer);
-        vertex_array.set_index_buffer(*index_buffer);
+        if (!vertex_array) {
+            return std::unexpected{vertex_array.error()};
+        }
+        vertex_array->set_vertex_buffer(*vertex_buffer);
+        vertex_array->set_index_buffer(*index_buffer);
 
         auto builtin = Texture::create(builtin_atlas(), {.filter = TextureFilter::nearest});
         if (!builtin) {
@@ -110,7 +113,7 @@ namespace tgx::detail {
             u_projection,
             std::move(*vertex_buffer),
             std::move(*index_buffer),
-            std::move(vertex_array),
+            std::move(*vertex_array),
             std::move(*builtin),
         };
     }
