@@ -5,6 +5,8 @@
 #include <doctest/doctest.h>
 #include <GLFW/glfw3.h>
 
+#include <ostream>
+
 namespace {
     struct InputCallbacks {
         GLFWwindow *handle{tgx_test::app().window().native_handle()};

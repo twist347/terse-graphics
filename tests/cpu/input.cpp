@@ -2,6 +2,8 @@
 
 #include <doctest/doctest.h>
 
+#include <ostream>
+
 namespace {
     using tgx::Key;
     using tgx::MouseButton;
