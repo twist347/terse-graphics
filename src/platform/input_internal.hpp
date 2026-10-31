@@ -1,32 +1,38 @@
 #pragma once
 
+#include "tgx/core/input.hpp"
 #include "tgx/core/math.hpp"
 
-struct GLFWwindow;
-
-// How the Window drives input. State and callbacks live in input.cpp.
+// Input updates in tgx's own types, apart from GLFW.
 namespace tgx::detail {
-    // For a new window: sets the callbacks, reads the mouse position.
-    auto attach_input(GLFWwindow *handle) noexcept -> void;
+    enum class InputAction {
+        press,
+        repeat,
+        release,
+    };
 
-    // Takes the cursor's position as is, without a movement.
-    auto reset_mouse(GLFWwindow *handle) noexcept -> void;
+    // The platform writes; the app only reads Input. No window is needed to
+    // create an instance and check its transitions here.
+    struct InputAccess {
+        [[nodiscard]] static auto create() noexcept -> Input { return Input{}; }
 
-    // After a cursor mode change: reset_mouse(), and the next poll's cursor
-    // moves count as no movement. GLFW moves the cursor itself (into the
-    // middle on capture, back on release) and reports it in that poll.
-    auto settle_mouse(GLFWwindow *handle) noexcept -> void;
+        // A fresh window's state, with the initial mouse position as is.
+        static auto reset(Input &input, Vec2 mouse = {}) noexcept -> void;
 
-    // Clears all state before the window is destroyed. The callbacks go
-    // with the window.
-    auto detach_input() noexcept -> void;
+        // Before polling: clear events, keeping held keys and buttons.
+        static auto begin_frame(Input &input) noexcept -> void;
+        static auto end_frame(Input &input) noexcept -> void;
 
-    // Clears the previous poll's events (presses, releases, mouse movement,
-    // wheel, text). Called right before polling.
-    auto begin_input_frame() noexcept -> void;
+        static auto key(Input &input, Key key, InputAction action) noexcept -> void;
+        static auto button(Input &input, MouseButton button, InputAction action) noexcept -> void;
+        static auto cursor(Input &input, Vec2 position) noexcept -> void;
+        static auto scroll(Input &input, Vec2 offset) noexcept -> void;
+        static auto character(Input &input, char32_t codepoint) -> void;
 
-    // Called right after polling.
-    auto end_input_frame() noexcept -> void;
+        // GLFW moves the cursor on a mode change. Take the position as is
+        // and suppress movement through the next poll, still tracking it.
+        static auto settle_mouse(Input &input, Vec2 position) noexcept -> void;
+    };
 
     // The math under Input::axis and direction, here so tests can use it.
 

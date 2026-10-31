@@ -2,11 +2,15 @@
 
 #include "tgx/core/math.hpp"
 
+#include <array>
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 namespace tgx {
-    class Window;
+    namespace detail {
+        struct InputAccess;
+    }
 
     enum class Key : std::uint8_t {
         unknown,
@@ -49,7 +53,7 @@ namespace tgx {
     inline constexpr int mouse_button_count = static_cast<int>(MouseButton::x2) + 1;
 
     // Keyboard and mouse as of the last Window::poll_events(). Get it with
-    // window().input() or app->input(). Its state lives inside tgx.
+    // window().input() or app->input(). The Window updates its one instance.
     //
     //     const auto &input = app->input();
     //     if (input.down(tgx::Key::d)) { player.x += speed * dt; }
@@ -108,8 +112,17 @@ namespace tgx {
         [[nodiscard]] auto text() const noexcept -> std::string_view;
 
     private:
-        friend class Window;
+        friend struct detail::InputAccess;
 
         Input() noexcept = default;
+
+        std::array<std::uint8_t, key_count> keys_{};
+        std::array<std::uint8_t, mouse_button_count> buttons_{};
+        Vec2 mouse_{};
+        Vec2 mouse_delta_{};
+        // Until the poll after a cursor mode change has finished.
+        bool settling_{false};
+        Vec2 wheel_{};
+        std::string text_{};
     };
 }

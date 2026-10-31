@@ -3,15 +3,10 @@
 #include "tgx/core/assert.hpp"
 
 #include "base/utf8.hpp"
-#include "platform/glfw_keys.hpp"
 #include "platform/input_internal.hpp"
 
-#include <GLFW/glfw3.h>
-
-#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <utility>
 
 namespace {
@@ -25,96 +20,53 @@ namespace {
         bit_repeated = 8,
     };
 
-    // Filled by GLFW callbacks during a poll.
-    struct InputState {
-        std::array<std::uint8_t, tgx::key_count> keys{};
-        std::array<std::uint8_t, tgx::mouse_button_count> buttons{};
-        tgx::Vec2 mouse{};
-        tgx::Vec2 mouse_delta{};
-        // Through the poll after a cursor mode change: the cursor moves, but
-        // the move is GLFW's, not the player's.
-        bool settling{false};
-        tgx::Vec2 wheel{};
-        std::string text{};
-    };
-
-    InputState s_input{};
-
     // Asserted: a value cast from outside the enum would read past the
     // array.
-    [[nodiscard]] auto bits_of(tgx::Key key) noexcept -> std::uint8_t {
+    [[nodiscard]] auto index_of(tgx::Key key) noexcept -> std::size_t {
         TGX_ASSERT_MSG(std::to_underlying(key) < tgx::key_count, "key {}: not a Key", std::to_underlying(key));
 
-        return s_input.keys[std::to_underlying(key)];
+        return std::to_underlying(key);
     }
 
-    [[nodiscard]] auto bits_of(tgx::MouseButton button) noexcept -> std::uint8_t {
+    [[nodiscard]] auto index_of(tgx::MouseButton button) noexcept -> std::size_t {
         TGX_ASSERT_MSG(
             std::to_underlying(button) < tgx::mouse_button_count,
             "mouse button {}: not a MouseButton",
             std::to_underlying(button)
         );
 
-        return s_input.buttons[std::to_underlying(button)];
+        return std::to_underlying(button);
     }
 
     // A repeat is not a press and does not change down. Only repeated() sees
     // it.
-    auto set_edge(std::uint8_t &bits, int action) noexcept -> void {
-        if (action == GLFW_PRESS) {
+    auto set_edge(std::uint8_t &bits, tgx::detail::InputAction action) noexcept -> void {
+        using enum tgx::detail::InputAction;
+        if (action == press) {
             bits |= bit_down | bit_pressed | bit_repeated;
-        } else if (action == GLFW_REPEAT) {
+        } else if (action == repeat) {
             bits |= bit_repeated;
-        } else if (action == GLFW_RELEASE) {
+        } else if (action == release) {
             bits = static_cast<std::uint8_t>((bits & ~bit_down) | bit_released);
         }
-    }
-
-    auto on_key(GLFWwindow *, int code, int, int action, int) noexcept -> void {
-        if (const tgx::Key key = tgx::detail::to_key(code); key != tgx::Key::unknown) {
-            set_edge(s_input.keys[std::to_underlying(key)], action);
-        }
-    }
-
-    auto on_mouse_button(GLFWwindow *, int button, int action, int) noexcept -> void {
-        // GLFW uses the same order as MouseButton.
-        if (button >= 0 && button < tgx::mouse_button_count) {
-            set_edge(s_input.buttons[static_cast<std::size_t>(button)], action);
-        }
-    }
-
-    auto on_cursor(GLFWwindow *, double x, double y) noexcept -> void {
-        const tgx::Vec2 mouse{static_cast<float>(x), static_cast<float>(y)};
-        if (!s_input.settling) {
-            s_input.mouse_delta += mouse - s_input.mouse;
-        }
-        s_input.mouse = mouse;
-    }
-
-    auto on_scroll(GLFWwindow *, double x, double y) noexcept -> void {
-        s_input.wheel += {static_cast<float>(x), static_cast<float>(y)};
-    }
-
-    auto on_char(GLFWwindow *, unsigned int c) noexcept -> void {
-        tgx::detail::append_utf8(s_input.text, static_cast<char32_t>(c));
     }
 }
 
 namespace tgx {
     auto Input::down(Key key) const noexcept -> bool {
-        return (bits_of(key) & bit_down) != 0;
+        return (keys_[index_of(key)] & bit_down) != 0;
     }
 
     auto Input::pressed(Key key) const noexcept -> bool {
-        return (bits_of(key) & bit_pressed) != 0;
+        return (keys_[index_of(key)] & bit_pressed) != 0;
     }
 
     auto Input::released(Key key) const noexcept -> bool {
-        return (bits_of(key) & bit_released) != 0;
+        return (keys_[index_of(key)] & bit_released) != 0;
     }
 
     auto Input::repeated(Key key) const noexcept -> bool {
-        return (bits_of(key) & bit_repeated) != 0;
+        return (keys_[index_of(key)] & bit_repeated) != 0;
     }
 
     auto Input::axis(Key negative, Key positive) const noexcept -> float {
@@ -134,74 +86,87 @@ namespace tgx {
     }
 
     auto Input::down(MouseButton button) const noexcept -> bool {
-        return (bits_of(button) & bit_down) != 0;
+        return (buttons_[index_of(button)] & bit_down) != 0;
     }
 
     auto Input::pressed(MouseButton button) const noexcept -> bool {
-        return (bits_of(button) & bit_pressed) != 0;
+        return (buttons_[index_of(button)] & bit_pressed) != 0;
     }
 
     auto Input::released(MouseButton button) const noexcept -> bool {
-        return (bits_of(button) & bit_released) != 0;
+        return (buttons_[index_of(button)] & bit_released) != 0;
     }
 
     auto Input::mouse() const noexcept -> Vec2 {
-        return s_input.mouse;
+        return mouse_;
     }
 
     auto Input::mouse_delta() const noexcept -> Vec2 {
-        return s_input.mouse_delta;
+        return mouse_delta_;
     }
 
     auto Input::wheel() const noexcept -> Vec2 {
-        return s_input.wheel;
+        return wheel_;
     }
 
     auto Input::text() const noexcept -> std::string_view {
-        return s_input.text;
+        return text_;
     }
 
-    auto detail::attach_input(GLFWwindow *handle) noexcept -> void {
-        s_input = {};
-        // So the first move is not a jump from the corner.
-        reset_mouse(handle);
-
-        glfwSetKeyCallback(handle, on_key);
-        glfwSetMouseButtonCallback(handle, on_mouse_button);
-        glfwSetCursorPosCallback(handle, on_cursor);
-        glfwSetScrollCallback(handle, on_scroll);
-        glfwSetCharCallback(handle, on_char);
+    auto detail::InputAccess::reset(Input &input, Vec2 mouse) noexcept -> void {
+        input.keys_ = {};
+        input.buttons_ = {};
+        input.mouse_ = mouse;
+        input.mouse_delta_ = {};
+        input.settling_ = false;
+        input.wheel_ = {};
+        input.text_.clear();
     }
 
-    auto detail::reset_mouse(GLFWwindow *handle) noexcept -> void {
-        double x = 0.0, y = 0.0;
-        glfwGetCursorPos(handle, &x, &y);
-        s_input.mouse = {static_cast<float>(x), static_cast<float>(y)};
+    auto detail::InputAccess::key(Input &input, Key key, InputAction action) noexcept -> void {
+        if (key != Key::unknown) {
+            set_edge(input.keys_[index_of(key)], action);
+        }
     }
 
-    auto detail::settle_mouse(GLFWwindow *handle) noexcept -> void {
-        reset_mouse(handle);
-        s_input.settling = true;
+    auto detail::InputAccess::button(Input &input, MouseButton button, InputAction action) noexcept -> void {
+        set_edge(input.buttons_[index_of(button)], action);
     }
 
-    auto detail::detach_input() noexcept -> void {
-        s_input = {};
+    auto detail::InputAccess::cursor(Input &input, Vec2 position) noexcept -> void {
+        if (!input.settling_) {
+            input.mouse_delta_ += position - input.mouse_;
+        }
+        input.mouse_ = position;
     }
 
-    auto detail::begin_input_frame() noexcept -> void {
+    auto detail::InputAccess::scroll(Input &input, Vec2 offset) noexcept -> void {
+        input.wheel_ += offset;
+    }
+
+    auto detail::InputAccess::character(Input &input, char32_t codepoint) -> void {
+        append_utf8(input.text_, codepoint);
+    }
+
+    auto detail::InputAccess::settle_mouse(Input &input, Vec2 position) noexcept -> void {
+        input.mouse_ = position;
+        input.settling_ = true;
+    }
+
+    auto detail::InputAccess::begin_frame(Input &input) noexcept -> void {
         // Held keys and buttons stay down.
-        for (std::uint8_t &bits: s_input.keys) {
+        for (std::uint8_t &bits: input.keys_) {
             bits &= bit_down;
         }
-        for (std::uint8_t &bits: s_input.buttons) {
+        for (std::uint8_t &bits: input.buttons_) {
             bits &= bit_down;
         }
-        s_input.mouse_delta = {};
-        s_input.wheel = {};
-        s_input.text.clear();
+        input.mouse_delta_ = {};
+        input.wheel_ = {};
+        input.text_.clear();
     }
 
-    auto detail::end_input_frame() noexcept -> void {
-        s_input.settling = false;
+    auto detail::InputAccess::end_frame(Input &input) noexcept -> void {
+        input.settling_ = false;
     }
 }

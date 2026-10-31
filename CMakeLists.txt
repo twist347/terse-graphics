@@ -60,6 +60,7 @@ set(TGX_BASE_SOURCES
 set(TGX_PLATFORM_SOURCES
         src/platform/frame_pacer.cpp
         src/platform/input.cpp
+        src/platform/input_glfw.cpp
         src/platform/window.cpp
 )
 

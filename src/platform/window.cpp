@@ -7,7 +7,7 @@
 
 #include "base/log_internal.hpp"
 #include "platform/frame_pacer.hpp"
-#include "platform/input_internal.hpp"
+#include "platform/input_glfw.hpp"
 #include "platform/window_internal.hpp"
 
 #include <GLFW/glfw3.h>
@@ -343,8 +343,7 @@ namespace tgx {
     }
 
     auto Window::input() const noexcept -> const Input & {
-        static constexpr Input input{};
-        return input;
+        return detail::input();
     }
 
     auto Window::focused() const noexcept -> bool {

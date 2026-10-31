@@ -22,6 +22,8 @@
 
 ### Tests
 
+- Input transitions, short taps, repeats, cursor settling, UTF-8 text, GLFW
+  key translation and the installed input callbacks.
 - Vertex array allocation failures, cleanup, preservation of the previously
   bound layout and subsequent drawing.
 - Compile-time checks that `Window`, `Device` and `Audio` move but do not
