@@ -1,6 +1,6 @@
-# Linux: builds the library, examples and tests, warnings as errors, runs
-# them all (the GPU ones on Mesa's software renderer under a virtual X server)
-# and builds a project against the installed package and with tgx inside it.
+# Linux: builds the library and tests, plus examples with GCC Debug, with
+# warnings as errors. Runs the CPU and GPU tests (Mesa under Xvfb) and builds
+# a project against the installed package and with tgx inside it.
 # Then the tests again under AddressSanitizer and UBSan. One workflow per
 # platform, so each has a badge of its own in the README.
 name: Linux
@@ -43,6 +43,7 @@ jobs:
           -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }}
           -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
           -DTGX_WARNINGS_AS_ERRORS=ON
+          -DTGX_BUILD_EXAMPLES=${{ matrix.compiler.cc == 'gcc-15' && matrix.build_type == 'Debug' && 'ON' || 'OFF' }}
 
       - name: Build
         run: cmake --build build --parallel

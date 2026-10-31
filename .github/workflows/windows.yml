@@ -1,6 +1,6 @@
-# Windows: builds the library, examples and tests, warnings as errors,
-# runs the tests that need no display or sound card, and builds a project
-# against the installed package and with tgx inside it. One workflow per platform, so each has a
+# Windows: builds the library and tests, plus examples in Debug, with warnings
+# as errors. Runs the CPU tests and builds a project against the installed
+# package and with tgx inside it. One workflow per platform, so each has a
 # badge of its own in the README.
 name: Windows
 
@@ -23,7 +23,10 @@ jobs:
       # The Visual Studio generator builds every configuration from one
       # tree, so the configuration is picked at build and test time.
       - name: Configure
-        run: cmake -S . -B build -DTGX_WARNINGS_AS_ERRORS=ON
+        run: >
+          cmake -S . -B build
+          -DTGX_WARNINGS_AS_ERRORS=ON
+          -DTGX_BUILD_EXAMPLES=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }}
 
       - name: Build
         run: cmake --build build --parallel --config ${{ matrix.build_type }}

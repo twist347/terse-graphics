@@ -1,8 +1,7 @@
-# macOS: builds the library, examples and tests, warnings as errors, runs
-# the tests that need no display or sound card (GLFW asks for a hardware GL
-# renderer, which the runners lack), and builds a project against the
-# installed package and with tgx inside it. One workflow per platform, so
-# each has a badge of its own in the README.
+# macOS: builds the library and tests, plus examples in Debug, with warnings
+# as errors. Runs the CPU tests (the runners lack the hardware GL renderer
+# GLFW asks for) and builds a project against the installed package and with
+# tgx inside it. One workflow per platform, so each has a badge in the README.
 name: macOS
 
 on:
@@ -27,6 +26,7 @@ jobs:
           cmake -S . -B build
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -DTGX_WARNINGS_AS_ERRORS=ON
+          -DTGX_BUILD_EXAMPLES=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }}
 
       - name: Build
         run: cmake --build build --parallel
