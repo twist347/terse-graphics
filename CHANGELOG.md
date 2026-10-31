@@ -22,6 +22,7 @@
 
 ### Tests
 
+- CTest timeouts: 60 seconds for the CPU suite, 120 for the GPU suite.
 - Input transitions, short taps, repeats, cursor settling, UTF-8 text, GLFW
   key translation and the installed input callbacks.
 - Vertex array allocation failures, cleanup, preservation of the previously

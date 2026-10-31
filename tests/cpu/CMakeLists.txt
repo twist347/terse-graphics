@@ -6,7 +6,7 @@
 # (src/canvas/viewport.hpp), and what an App hands out (at compile time):
 # nothing here opens a window or an audio output, so it runs anywhere, CI
 # without a display or a sound card included.
-tgx_add_test(tgx_tests_cpu LABEL cpu INTERNAL SOURCES
+tgx_add_test(tgx_tests_cpu LABEL cpu TIMEOUT 60 INTERNAL SOURCES
         main.cpp
         app.cpp
         audio.cpp
