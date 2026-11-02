@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace tgx::detail {
-    struct Context;
+    class Context;
 
     // The layout the built-in shader reads, and a custom one must too
     // (Canvas::set_shader).
@@ -64,6 +64,13 @@ namespace tgx::detail {
         Batch(Batch &&) noexcept = default;
         auto operator=(Batch &&) noexcept -> Batch & = default;
 
+        auto push_vertex(const BatchVertex &vertex) noexcept -> void { vertices_.push_back(vertex); }
+
+        auto push_index(std::uint16_t index) noexcept -> void { indices_.push_back(index); }
+
+    private:
+        friend class Context;
+
         // Draws the waiting vertices first if the state differs or the new
         // ones do not fit. Returns the first new vertex's index. Push exactly
         // that many vertices and indices afterwards.
@@ -73,10 +80,6 @@ namespace tgx::detail {
             std::size_t vertex_count,
             std::size_t index_count
         ) noexcept -> std::uint16_t;
-
-        auto push_vertex(const BatchVertex &vertex) noexcept -> void { vertices_.push_back(vertex); }
-
-        auto push_index(std::uint16_t index) noexcept -> void { indices_.push_back(index); }
 
         // If any are waiting.
         auto flush(Context &context) noexcept -> void;
@@ -90,7 +93,6 @@ namespace tgx::detail {
         // Whether waiting vertices are drawn into the framebuffer.
         [[nodiscard]] auto uses_target(GlId framebuffer) const noexcept -> bool;
 
-    private:
         Batch(
             gl::Shader shader,
             std::int32_t u_projection,

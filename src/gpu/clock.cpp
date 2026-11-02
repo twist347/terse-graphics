@@ -5,19 +5,19 @@
 
 namespace tgx {
     auto Clock::delta() const noexcept -> float {
-        return detail::context().clock.delta;
+        return detail::context().timing().delta;
     }
 
     auto Clock::elapsed() const noexcept -> double {
-        return detail::context().clock.elapsed;
+        return detail::context().timing().elapsed;
     }
 
     auto Clock::fps() const noexcept -> float {
-        return detail::context().clock.fps;
+        return detail::context().timing().fps;
     }
 
     auto Clock::fps_updated() const noexcept -> bool {
-        return detail::context().clock.fps_updated;
+        return detail::context().timing().fps_updated;
     }
 
     auto detail::FrameClock::tick() noexcept -> void {

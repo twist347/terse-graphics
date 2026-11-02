@@ -153,8 +153,7 @@ namespace tgx::detail {
             glUniform1i(state_.u_texture, 0);
         }
 
-        ++context.frame.canvas_draws;
-        context.submit({
+        context.submit_batch({
             .target = state_.target,
             .program = program,
             .vertex_array = vertex_array_.id(),

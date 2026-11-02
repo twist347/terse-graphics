@@ -26,8 +26,6 @@
 static_assert(std::is_same_v<GLuint, tgx::GlId>);
 
 namespace {
-    tgx::detail::Context s_context{};
-
     auto apply_clear_color(tgx::Color color) noexcept -> void {
         const tgx::Vec4 unit = tgx::to_vec4(color);
         glClearColor(unit.x, unit.y, unit.z, unit.w);
@@ -195,35 +193,58 @@ namespace tgx {
         if (depth_type != GL_NONE) {
             GLint depth_bits = 0;
             glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depth_bits);
-            window_depth_bits = depth_bits;
+            window_depth_bits_ = depth_bits;
         }
-        detail::log_info("  depth:    {} bits", window_depth_bits);
-        apply_clear_color(clear_color);
-        apply_clear_depth(clear_depth);
+        detail::log_info("  depth:    {} bits", window_depth_bits_);
+        apply_clear_color(clear_color_);
+        apply_clear_depth(clear_depth_);
 
         // Set, not assumed: draws change the viewport only when theirs
         // differs. The whole framebuffer is the same from either corner.
-        gl_viewport = surface_of({}).viewport();
-        glViewport(0, 0, gl_viewport.width, gl_viewport.height);
+        gl_viewport_ = surface_of({}).viewport();
+        glViewport(0, 0, gl_viewport_.width, gl_viewport_.height);
 
         auto made = Batch::create();
         if (!made) {
             *this = {};
             return std::unexpected{made.error()};
         }
-        batch = std::make_unique<Batch>(std::move(*made));
+        batch_ = std::make_unique<Batch>(std::move(*made));
+
+        // On Wayland with a fractional scale, the buffer gets the size GLFW
+        // reports only at a swap. Bootstrap with a blank frame so the first
+        // app frame has the right size, without ticking its clock or stats.
+        clear({.color = colors::black});
+        swap_buffers();
+        frame_ = {};
         return {};
     }
 
     auto detail::Context::close() noexcept -> void {
         // The batch goes while GL and the rest are still whole.
-        batch.reset();
+        batch_.reset();
         *this = {};
     }
 
+    auto detail::Context::present() noexcept -> void {
+        flush();
+        swap_buffers();
+        clock_.tick();
+        last_frame_ = std::exchange(frame_, {});
+    }
+
+    auto detail::Context::reserve_geometry(
+        const BatchState &state,
+        std::size_t vertex_count,
+        std::size_t index_count
+    ) noexcept -> std::pair<Batch &, std::uint16_t> {
+        const std::uint16_t first = batch_->reserve(*this, state, vertex_count, index_count);
+        return {*batch_, first};
+    }
+
     auto detail::Context::flush() noexcept -> void {
-        if (batch) {
-            batch->flush(*this);
+        if (batch_) {
+            batch_->flush(*this);
         }
     }
 
@@ -236,22 +257,22 @@ namespace tgx {
             // A render target holds premultiplied colors, as Blend::alpha
             // leaves them; a straight transparent color would show brighter.
             if (const Color color = call.target.framebuffer != 0 ? call.color->premultiplied() : *call.color;
-                color != clear_color) {
-                clear_color = color;
-                apply_clear_color(clear_color);
+                color != clear_color_) {
+                clear_color_ = color;
+                apply_clear_color(clear_color_);
             }
             bits |= GL_COLOR_BUFFER_BIT;
         }
         if (call.depth) {
-            if (*call.depth != clear_depth) {
-                clear_depth = *call.depth;
-                apply_clear_depth(clear_depth);
+            if (*call.depth != clear_depth_) {
+                clear_depth_ = *call.depth;
+                apply_clear_depth(clear_depth_);
             }
             // Clearing depth obeys the depth write mask, which a draw may
             // have turned off.
-            if (!state.depth_write) {
+            if (!state_.depth_write) {
                 glDepthMask(GL_TRUE);
-                state.depth_write = true;
+                state_.depth_write = true;
             }
             bits |= GL_DEPTH_BUFFER_BIT;
         }
@@ -262,11 +283,16 @@ namespace tgx {
         // glClear ignores the viewport.
         bind_framebuffer(call.target.framebuffer);
         glClear(bits);
-        ++frame.clears;
+        ++frame_.clears;
     }
 
     auto detail::Context::draw(const DrawCall &call) noexcept -> void {
         flush();
+        submit(call);
+    }
+
+    auto detail::Context::submit_batch(const DrawCall &call) noexcept -> void {
+        ++frame_.canvas_draws;
         submit(call);
     }
 
@@ -280,16 +306,16 @@ namespace tgx {
         const int height = surface_of(call.target).pixels.height;
         const gl::Viewport flipped = from_bottom(call.viewport, height);
         bind_framebuffer(call.target.framebuffer);
-        if (flipped != gl_viewport) {
+        if (flipped != gl_viewport_) {
             glViewport(flipped.x, flipped.y, flipped.width, flipped.height);
-            gl_viewport = flipped;
+            gl_viewport_ = flipped;
         }
         if (call.scissor) {
             const gl::Viewport scissor = from_bottom(*call.scissor, height);
             glEnable(GL_SCISSOR_TEST);
             glScissor(scissor.x, scissor.y, scissor.width, scissor.height);
         }
-        apply_state(state, call.state);
+        apply_state(state_, call.state);
         use_program(call.program);
         for (std::uint32_t slot = 0; slot < gl::max_texture_slots; ++slot) {
             if (call.textures[slot] != 0) {
@@ -301,7 +327,7 @@ namespace tgx {
         const GLenum mode = to_gl(call.primitive);
         const auto count = static_cast<GLsizei>(call.count);
 
-        ++frame.draws;
+        ++frame_.draws;
         if (!call.index_type) {
             glDrawArrays(mode, static_cast<GLint>(call.first), count);
         } else {
@@ -340,73 +366,73 @@ namespace tgx {
     }
 
     auto detail::Context::bind_framebuffer(GlId next) noexcept -> void {
-        if (next != framebuffer) {
+        if (next != framebuffer_) {
             glBindFramebuffer(GL_FRAMEBUFFER, next);
-            framebuffer = next;
-            ++frame.target_switches;
+            framebuffer_ = next;
+            ++frame_.target_switches;
         }
     }
 
     auto detail::Context::before_delete_framebuffer(GlId id) noexcept -> void {
-        if (batch && batch->uses_target(id)) {
+        if (batch_ && batch_->uses_target(id)) {
             flush();
         }
-        if (id == framebuffer) {
-            framebuffer = 0;
+        if (id == framebuffer_) {
+            framebuffer_ = 0;
         }
     }
 
     auto detail::Context::use_program(GlId next) noexcept -> void {
-        if (next != program) {
+        if (next != program_) {
             glUseProgram(next);
-            program = next;
-            ++frame.shader_switches;
+            program_ = next;
+            ++frame_.shader_switches;
         }
     }
 
     auto detail::Context::edit_program(GlId id) noexcept -> void {
-        if (batch && batch->uses_shader(id)) {
+        if (batch_ && batch_->uses_shader(id)) {
             flush();
         }
         use_program(id);
     }
 
     auto detail::Context::before_delete_program(GlId id) noexcept -> void {
-        if (batch && batch->uses_shader(id)) {
+        if (batch_ && batch_->uses_shader(id)) {
             flush();
         }
-        if (id == program) {
-            program = 0;
+        if (id == program_) {
+            program_ = 0;
         }
     }
 
     auto detail::Context::bind_vertex_array(GlId next) noexcept -> void {
-        if (next != vertex_array) {
+        if (next != vertex_array_) {
             glBindVertexArray(next);
-            vertex_array = next;
+            vertex_array_ = next;
         }
     }
 
     auto detail::Context::forget_vertex_array(GlId id) noexcept -> void {
-        if (id == vertex_array) {
-            vertex_array = 0;
+        if (id == vertex_array_) {
+            vertex_array_ = 0;
         }
     }
 
     auto detail::Context::bind_texture(std::uint32_t slot, GlId texture) noexcept -> void {
-        if (slot != active_slot) {
+        if (slot != active_slot_) {
             glActiveTexture(GL_TEXTURE0 + slot);
-            active_slot = slot;
+            active_slot_ = slot;
         }
-        if (texture != textures[slot]) {
+        if (texture != textures_[slot]) {
             glBindTexture(GL_TEXTURE_2D, texture);
-            textures[slot] = texture;
-            ++frame.texture_switches;
+            textures_[slot] = texture;
+            ++frame_.texture_switches;
         }
     }
 
     auto detail::Context::edit_texture(GlId texture) noexcept -> void {
-        if (batch && batch->uses_texture(texture)) {
+        if (batch_ && batch_->uses_texture(texture)) {
             flush();
         }
         // Any slot would do: no binding target is free of draws.
@@ -414,13 +440,14 @@ namespace tgx {
     }
 
     auto detail::Context::before_delete_texture(GlId texture) noexcept -> void {
-        if (batch && batch->uses_texture(texture)) {
+        if (batch_ && batch_->uses_texture(texture)) {
             flush();
         }
-        std::ranges::replace(textures, texture, GLuint{0});
+        std::ranges::replace(textures_, texture, GLuint{0});
     }
 
     auto detail::context() noexcept -> Context & {
-        return s_context;
+        static Context current{};
+        return current;
     }
 }

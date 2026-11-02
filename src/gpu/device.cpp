@@ -71,13 +71,6 @@ namespace tgx {
             return std::unexpected{opened.error()};
         }
 
-        // One blank frame now: on Wayland with a fractional scale, the buffer
-        // gets the size GLFW reports only at a swap, so the first frame would
-        // be cut off and flipped with the wrong height. Not present(): it is
-        // not an app frame, and the clock does not tick.
-        context.clear({.color = colors::black});
-        detail::swap_buffers();
-        context.frame = {};
         return Device{};
     }
 
@@ -110,11 +103,7 @@ namespace tgx {
     }
 
     auto Device::present() noexcept -> void {
-        detail::Context &context = detail::context();
-        context.flush();
-        detail::swap_buffers();
-        context.clock.tick();
-        context.last_frame = std::exchange(context.frame, {});
+        detail::context().present();
     }
 
     auto Device::clock() const noexcept -> const Clock & {
@@ -123,11 +112,11 @@ namespace tgx {
     }
 
     auto Device::restart_clock() noexcept -> void {
-        detail::context().clock.restart();
+        detail::context().restart_clock();
     }
 
     auto Device::stats() const noexcept -> FrameStats {
-        return detail::context().last_frame;
+        return detail::context().stats();
     }
 
     auto Device::draw(const gl::Shader &shader, const gl::VertexArray &vertices) noexcept -> void {

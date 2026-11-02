@@ -67,10 +67,7 @@ namespace {
         std::size_t vertex_count,
         std::size_t index_count
     ) noexcept -> std::pair<Batch &, std::uint16_t> {
-        tgx::detail::Context &context = tgx::detail::context();
-        Batch &batch = *context.batch;
-        const std::uint16_t first = batch.reserve(context, state, vertex_count, index_count);
-        return {batch, first};
+        return tgx::detail::context().reserve_geometry(state, vertex_count, index_count);
     }
 
     auto push_indices(Batch &batch, std::uint16_t first, std::initializer_list<std::size_t> offsets) noexcept -> void {
@@ -750,7 +747,7 @@ namespace tgx {
 
     auto Canvas::fps(Vec2 position, float size) noexcept -> void {
         // Rounded first, so "30 fps" is never orange.
-        const float value = std::round(detail::context().clock.fps);
+        const float value = std::round(detail::context().timing().fps);
         const Color color = value >= 30.f ? colors::green
             : value >= 15.f ? colors::orange
             : colors::red;
