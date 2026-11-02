@@ -7,11 +7,11 @@
 #include "tgx/gl/version.hpp"
 
 #include "base/default_font.hpp"
+#include "gpu/canvas_shader.hpp"
 #include "gpu/gl/shader_internal.hpp"
 
 #include <glad/gl.h>
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -78,7 +78,7 @@ namespace tgx::detail {
             TGX_ASSERT_MSG(false, "the 2D batch shader failed: {}", shader.error());
             return std::unexpected{Error::platform};
         }
-        const std::int32_t u_projection = gl::detail::location(shader->uniform<Mat4>("u_projection"));
+        const auto bindings = canvas_shader_bindings(&*shader);
         shader->set(shader->uniform<gl::TextureSlot>("u_texture"), {0});
 
         auto vertex_buffer = gl::Buffer<BatchVertex>::create(batch_max_vertices);
@@ -90,11 +90,7 @@ namespace tgx::detail {
             return std::unexpected{index_buffer.error()};
         }
 
-        const std::array layout{
-            gl::VertexAttribute::of(0, &BatchVertex::position),
-            gl::VertexAttribute::of(1, &BatchVertex::uv),
-            gl::VertexAttribute::of(2, &BatchVertex::color),
-        };
+        const auto layout = canvas_vertex_layout();
         auto vertex_array = gl::VertexArray::create<BatchVertex>(layout);
         if (!vertex_array) {
             return std::unexpected{vertex_array.error()};
@@ -109,7 +105,7 @@ namespace tgx::detail {
 
         return BatchGpu{
             std::move(*shader),
-            u_projection,
+            bindings.u_projection,
             std::move(*vertex_buffer),
             std::move(*index_buffer),
             std::move(*vertex_array),

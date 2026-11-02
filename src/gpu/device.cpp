@@ -11,6 +11,7 @@
 #include "tgx/gl/vertex_array.hpp"
 
 #include "gpu/context.hpp"
+#include "gpu/gl/shader_reflection.hpp"
 #include "gpu/gl/vertex_array_internal.hpp"
 #include "gpu/gl_debug.hpp"
 #include "gpu/surface.hpp"
@@ -39,6 +40,11 @@ namespace {
         const tgx::gl::DrawParams &params
     ) noexcept -> void {
         for (const auto &sampler: tgx::gl::detail::samplers(shader)) {
+            TGX_ASSERT_MSG(
+                sampler.gl_type == GL_SAMPLER_2D,
+                "sampler '{}' is {}; Device::draw supports only sampler2D",
+                sampler.name, tgx::gl::detail::glsl_name(sampler.gl_type)
+            );
             // From GL, not tracked: the canvas and layout(binding) set it too.
             GLint slot = 0;
             glGetUniformiv(shader.id(), sampler.location, &slot);
@@ -131,7 +137,7 @@ namespace tgx {
     ) noexcept -> void {
         TGX_ASSERT_MSG(vertices.vertex_count() > 0, "drawing from a vertex array with no vertex buffer");
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
-            gl::detail::check_vertex_inputs(shader, vertices);
+            gl::detail::check_vertex_inputs(shader, vertices.attributes());
             check_textures(shader, params);
         }
 

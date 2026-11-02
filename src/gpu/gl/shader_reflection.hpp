@@ -14,7 +14,7 @@ namespace tgx::gl::detail {
 
     [[nodiscard]] auto collect_samplers(std::span<const ShaderUniform> uniforms) -> std::vector<ShaderSampler>;
 
-    // Only for the vertex input assert in Device::draw.
+    // Only for the vertex input asserts in Device::draw and Canvas.
     [[nodiscard]] auto collect_vertex_inputs(GlId program) -> std::vector<VertexInput>;
 
     // For assert messages: "vec4" for GL_FLOAT_VEC4.

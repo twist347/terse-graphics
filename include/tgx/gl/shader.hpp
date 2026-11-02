@@ -50,15 +50,17 @@ namespace tgx::gl {
             ComponentKind kind{ComponentKind::floating};
         };
 
-        // An active sampler2D uniform. Its slot is read from GL when needed,
-        // so layout(binding = N) and any setter count.
+        // An active sampler uniform. Its slot is read from GL when needed,
+        // so layout(binding = N) and any setter count. Keep its GLSL type to
+        // reject samplers that cannot read tgx's textures.
         struct ShaderSampler {
             std::string name{};
             std::int32_t location{-1};
+            std::uint32_t gl_type{0};
         };
 
-        // For Device::draw to check against the vertex array. Empty without
-        // asserts.
+        // For Device::draw and Canvas to check against their vertex layout.
+        // Empty without asserts.
         [[nodiscard]] auto vertex_inputs(const Shader &shader) noexcept -> std::span<const VertexInput>;
 
         // For Device::draw to check that every slot read has a texture.

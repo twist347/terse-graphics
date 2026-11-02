@@ -68,6 +68,7 @@ set(TGX_PLATFORM_SOURCES
 set(TGX_GPU_SOURCES
         src/gpu/batch.cpp
         src/gpu/batch_gpu.cpp
+        src/gpu/canvas_shader.cpp
         src/gpu/clock.cpp
         src/gpu/context.cpp
         src/gpu/device.cpp

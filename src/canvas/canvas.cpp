@@ -12,6 +12,7 @@
 #include "canvas/text.hpp"
 #include "canvas/viewport.hpp"
 #include "gpu/batch.hpp"
+#include "gpu/canvas_shader.hpp"
 #include "gpu/context.hpp"
 #include "gpu/surface.hpp"
 
@@ -255,29 +256,10 @@ namespace tgx {
     }
 
     auto Canvas::set_shader(const gl::Shader *shader) noexcept -> void {
-        program_ = shader ? shader->id() : 0;
-        u_projection_ = -1;
-        u_texture_ = -1;
-        if (!shader) {
-            return;
-        }
-
-        // The only required uniform; the lookup asserts it is a mat4.
-        u_projection_ = gl::detail::location(shader->uniform<Mat4>("u_projection"));
-
-        // Optional. The batch skips Device::draw's checks, so samplers are
-        // checked here.
-        const auto samplers = gl::detail::samplers(*shader);
-        for (const auto &sampler: samplers) {
-            TGX_ASSERT_MSG(
-                sampler.name == "u_texture",
-                "sampler '{}': a canvas shader gets no texture but u_texture",
-                sampler.name
-            );
-        }
-        if (!samplers.empty()) {
-            u_texture_ = gl::detail::location(shader->uniform<gl::TextureSlot>("u_texture"));
-        }
+        const auto bindings = detail::canvas_shader_bindings(shader);
+        program_ = bindings.program;
+        u_projection_ = bindings.u_projection;
+        u_texture_ = bindings.u_texture;
     }
 
     auto Canvas::clear(Color color) noexcept -> void {

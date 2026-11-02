@@ -179,9 +179,10 @@ namespace tgx {
         //     uniform mat4 u_projection;                  // canvas coordinates to clip space
         //     uniform sampler2D u_texture;                // optional; white for shapes, glyphs for text
         //
-        // u_texture must be its only sampler (asserted). Other uniforms are
-        // yours. Setting one, or destroying the shader, first draws the waiting
-        // shapes with the old values.
+        // Active inputs must be compatible with this layout (asserted).
+        // u_projection must be an active mat4, and u_texture must be the only
+        // sampler if present (asserted). Other uniforms are yours. Setting one,
+        // or destroying the shader, first draws waiting shapes with old values.
         auto set_shader(const gl::Shader *shader) noexcept -> void;
 
         // Fills the whole window or target, ignoring the viewport and the

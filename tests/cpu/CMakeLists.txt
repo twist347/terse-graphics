@@ -23,6 +23,7 @@ tgx_add_test(tgx_tests_cpu LABEL cpu TIMEOUT 60 INTERNAL SOURCES
         math.cpp
         paths.cpp
         random.cpp
+        shader_reflection.cpp
         text.cpp
         timer.cpp
         viewport.cpp

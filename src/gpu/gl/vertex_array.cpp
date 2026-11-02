@@ -165,8 +165,7 @@ namespace tgx::gl {
         index_count_ = index_count;
     }
 
-    auto detail::check_vertex_inputs(const Shader &shader, const VertexArray &vertices) noexcept -> void {
-        const auto attributes = vertices.attributes();
+    auto detail::check_vertex_inputs(const Shader &shader, std::span<const VertexAttribute> attributes) noexcept -> void {
         for (const auto &input: vertex_inputs(shader)) {
             for (std::uint32_t slot = 0; slot < input.slots; ++slot) {
                 const std::uint32_t location = input.location + slot;

@@ -89,7 +89,8 @@ namespace tgx::gl {
         // the like.
         std::optional<Viewport> viewport{};
         // By slot (gl::TextureSlot). Every slot a sampler reads needs a
-        // texture. Empty slots are left unchanged.
+        // texture. Only sampler2D is supported (asserted). Empty slots are
+        // left unchanged.
         //
         //     device.draw(shader, quad, {.textures = {&texture}});
         std::array<const Texture *, max_texture_slots> textures{};

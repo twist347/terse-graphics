@@ -51,6 +51,7 @@ namespace tgx::detail {
     class Batch {
     public:
         Batch();
+
         Batch(const Batch &) = delete;
         auto operator=(const Batch &) -> Batch & = delete;
         Batch(Batch &&) noexcept = default;

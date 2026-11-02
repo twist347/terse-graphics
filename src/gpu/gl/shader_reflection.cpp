@@ -12,6 +12,50 @@
 namespace {
     using tgx::gl::detail::ComponentKind;
 
+    // Every sampler type in GL 3.3. Also used for diagnostics, so collecting
+    // a type and naming it cannot get out of sync.
+    [[nodiscard]] constexpr auto sampler_name(GLenum type) noexcept -> const char * {
+        switch (type) {
+            case GL_SAMPLER_1D: return "sampler1D";
+            case GL_SAMPLER_2D: return "sampler2D";
+            case GL_SAMPLER_3D: return "sampler3D";
+            case GL_SAMPLER_CUBE: return "samplerCube";
+            case GL_SAMPLER_1D_SHADOW: return "sampler1DShadow";
+            case GL_SAMPLER_2D_SHADOW: return "sampler2DShadow";
+            case GL_SAMPLER_1D_ARRAY: return "sampler1DArray";
+            case GL_SAMPLER_2D_ARRAY: return "sampler2DArray";
+            case GL_SAMPLER_1D_ARRAY_SHADOW: return "sampler1DArrayShadow";
+            case GL_SAMPLER_2D_ARRAY_SHADOW: return "sampler2DArrayShadow";
+            case GL_SAMPLER_CUBE_SHADOW: return "samplerCubeShadow";
+            case GL_SAMPLER_BUFFER: return "samplerBuffer";
+            case GL_SAMPLER_2D_RECT: return "sampler2DRect";
+            case GL_SAMPLER_2D_RECT_SHADOW: return "sampler2DRectShadow";
+            case GL_SAMPLER_2D_MULTISAMPLE: return "sampler2DMS";
+            case GL_SAMPLER_2D_MULTISAMPLE_ARRAY: return "sampler2DMSArray";
+            case GL_INT_SAMPLER_1D: return "isampler1D";
+            case GL_INT_SAMPLER_2D: return "isampler2D";
+            case GL_INT_SAMPLER_3D: return "isampler3D";
+            case GL_INT_SAMPLER_CUBE: return "isamplerCube";
+            case GL_INT_SAMPLER_1D_ARRAY: return "isampler1DArray";
+            case GL_INT_SAMPLER_2D_ARRAY: return "isampler2DArray";
+            case GL_INT_SAMPLER_BUFFER: return "isamplerBuffer";
+            case GL_INT_SAMPLER_2D_RECT: return "isampler2DRect";
+            case GL_INT_SAMPLER_2D_MULTISAMPLE: return "isampler2DMS";
+            case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return "isampler2DMSArray";
+            case GL_UNSIGNED_INT_SAMPLER_1D: return "usampler1D";
+            case GL_UNSIGNED_INT_SAMPLER_2D: return "usampler2D";
+            case GL_UNSIGNED_INT_SAMPLER_3D: return "usampler3D";
+            case GL_UNSIGNED_INT_SAMPLER_CUBE: return "usamplerCube";
+            case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY: return "usampler1DArray";
+            case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: return "usampler2DArray";
+            case GL_UNSIGNED_INT_SAMPLER_BUFFER: return "usamplerBuffer";
+            case GL_UNSIGNED_INT_SAMPLER_2D_RECT: return "usampler2DRect";
+            case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE: return "usampler2DMS";
+            case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY: return "usampler2DMSArray";
+            default: return nullptr;
+        }
+    }
+
     [[nodiscard]] constexpr auto to_component_kind(GLenum type) noexcept -> ComponentKind {
         switch (type) {
             case GL_INT:
@@ -96,8 +140,8 @@ namespace tgx::gl {
     auto detail::collect_samplers(std::span<const ShaderUniform> uniforms) -> std::vector<ShaderSampler> {
         std::vector<ShaderSampler> samplers{};
         for (const auto &uniform: uniforms) {
-            if (uniform.gl_type == GL_SAMPLER_2D) {
-                samplers.push_back({uniform.name, uniform.location});
+            if (sampler_name(uniform.gl_type)) {
+                samplers.push_back({uniform.name, uniform.location, uniform.gl_type});
             }
         }
         return samplers;
@@ -120,6 +164,9 @@ namespace tgx::gl {
     }
 
     auto detail::glsl_name(std::uint32_t type) noexcept -> const char * {
+        if (const char *name = sampler_name(type)) {
+            return name;
+        }
         switch (type) {
             case GL_FLOAT: return "float";
             case GL_FLOAT_VEC2: return "vec2";
@@ -146,7 +193,6 @@ namespace tgx::gl {
             case GL_FLOAT_MAT3x4: return "mat3x4";
             case GL_FLOAT_MAT4x2: return "mat4x2";
             case GL_FLOAT_MAT4x3: return "mat4x3";
-            case GL_SAMPLER_2D: return "sampler2D";
             default: return "another type";
         }
     }

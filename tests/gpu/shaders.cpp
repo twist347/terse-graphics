@@ -6,6 +6,7 @@
 #include <doctest/doctest.h>
 #include <glad/gl.h>
 
+#include <array>
 #include <string>
 #include <utility>
 
@@ -39,9 +40,11 @@ namespace {
         layout(location = 1) in vec2 in_uv;
         layout(location = 2) in vec4 in_color;
         uniform mat4 u_projection;
+        out vec2 uv;
         out vec4 color;
         void main() {
             gl_Position = u_projection * vec4(in_position, 0.0, 1.0);
+            uv = in_uv;
             color = in_color;
         }
     )";
@@ -131,6 +134,45 @@ TEST_CASE("shader linking reports conflicting uniform types") {
     CHECK(glGetError() == GL_NO_ERROR);
 }
 
+TEST_CASE("linked sampler uniforms remain visible when tgx cannot supply their texture type") {
+    struct Case {
+        const char *fragment;
+        GLenum type;
+    };
+    const std::array cases{
+        Case{TGX_GLSL_VERSION R"(
+            uniform samplerCube u_texture;
+            out vec4 out_color;
+            void main() { out_color = texture(u_texture, vec3(0.0, 0.0, 1.0)); }
+        )", GL_SAMPLER_CUBE},
+        Case{TGX_GLSL_VERSION R"(
+            uniform sampler2DShadow u_texture;
+            out vec4 out_color;
+            void main() { out_color = vec4(texture(u_texture, vec3(0.5))); }
+        )", GL_SAMPLER_2D_SHADOW},
+        Case{TGX_GLSL_VERSION R"(
+            uniform isampler2D u_texture;
+            out vec4 out_color;
+            void main() { out_color = vec4(texelFetch(u_texture, ivec2(0), 0)); }
+        )", GL_INT_SAMPLER_2D},
+        Case{TGX_GLSL_VERSION R"(
+            uniform usampler2DMS u_texture;
+            out vec4 out_color;
+            void main() { out_color = vec4(texelFetch(u_texture, ivec2(0), 0)); }
+        )", GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE},
+    };
+    for (const auto &test: cases) {
+        CAPTURE(test.fragment);
+        const auto linked = shader(test.fragment);
+        const auto samplers = tgx::gl::detail::samplers(linked);
+        REQUIRE(samplers.size() == 1);
+        CHECK(samplers[0].name == "u_texture");
+        CHECK(samplers[0].gl_type == test.type);
+        CHECK(samplers[0].location == glGetUniformLocation(linked.id(), "u_texture"));
+        CHECK(glGetError() == GL_NO_ERROR);
+    }
+}
+
 TEST_CASE("a canvas shader for the shapes after it, the built-in one back after that") {
     const tgx::RenderTarget target = tgx_test::target({64, 64});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
@@ -145,6 +187,42 @@ TEST_CASE("a canvas shader for the shapes after it, the built-in one back after 
     const tgx::Image image = target.read();
     CHECK(image[10, 10] == tgx::colors::cyan);
     CHECK(image[30, 10] == tgx::colors::red);
+}
+
+TEST_CASE("canvas shaders accept the batch layout and optimized-out inputs, with an optional sampler") {
+    const auto target = tgx_test::target({12, 4});
+    auto canvas = tgx_test::canvas_on(target);
+    auto textured = shader(TGX_GLSL_VERSION R"(
+        in vec2 uv;
+        in vec4 color;
+        uniform sampler2D u_texture;
+        out vec4 out_color;
+        void main() { out_color = texture(u_texture, uv) * color; }
+    )");
+    const auto position_only = shader(TGX_GLSL_VERSION R"(
+        out vec4 out_color;
+        void main() { out_color = vec4(0.0, 1.0, 0.0, 1.0); }
+    )");
+
+    // Canvas must set its sampler to slot 0, regardless of its old value.
+    textured.set(textured.uniform<tgx::gl::TextureSlot>("u_texture"), {3});
+    canvas.clear(tgx::colors::black);
+    canvas.set_shader(&textured);
+    canvas.rect({0, 0, 4, 4}, tgx::colors::red);
+    // The linked program reads only position; UV, color and sampler are absent.
+    canvas.set_shader(&position_only);
+    canvas.rect({4, 0, 4, 4}, tgx::colors::red);
+    canvas.set_shader(nullptr);
+    canvas.rect({8, 0, 4, 4}, tgx::colors::yellow);
+
+    const auto image = target.read();
+    CHECK(image[2, 2] == tgx::colors::red);
+    CHECK(image[6, 2] == tgx::colors::green);
+    CHECK(image[10, 2] == tgx::colors::yellow);
+    GLint slot = -1;
+    glGetUniformiv(textured.id(), glGetUniformLocation(textured.id(), "u_texture"), &slot);
+    CHECK(slot == 0);
+    CHECK(glGetError() == GL_NO_ERROR);
 }
 
 TEST_CASE("a uniform set while shapes drawn with the shader wait") {
