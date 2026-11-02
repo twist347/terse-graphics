@@ -15,10 +15,19 @@ TEST_CASE("circles get as many segments as keep them round") {
     CHECK(segments_for(1e30f) == tgx::detail::max_segments);
     CHECK(segments_for(10.f) <= segments_for(100.f));
 
-    // Within a quarter pixel of the true circle.
-    constexpr float radius = 100.f;
-    const auto n = static_cast<float>(segments_for(radius));
-    CHECK(radius * (1.f - std::cos(std::numbers::pi_v<float> / n)) <= tgx::detail::circle_tolerance);
+    // Enough segments for the tolerance, but one fewer would miss it.
+    for (const float radius: {1.f, 10.f, 100.f, 1000.f}) {
+        CAPTURE(radius);
+        const auto count = segments_for(radius);
+        const auto n = static_cast<double>(count);
+        const auto error = [radius](double segments) {
+            return static_cast<double>(radius) * (1.0 - std::cos(std::numbers::pi / segments));
+        };
+        CHECK(error(n) <= static_cast<double>(tgx::detail::circle_tolerance));
+        if (count > tgx::detail::min_segments) {
+            CHECK(error(n - 1.0) > static_cast<double>(tgx::detail::circle_tolerance));
+        }
+    }
 }
 
 TEST_CASE("arcs") {

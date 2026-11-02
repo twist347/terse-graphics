@@ -2,10 +2,11 @@
 # and render targets, checked by the pixels read back. Needs a window with a GL
 # 3.3 context, so it runs where there is a display: locally, and on Linux CI
 # under Xvfb with Mesa's software renderer.
-tgx_add_test(tgx_tests_gpu LABEL gpu TIMEOUT 120 SOURCES
+tgx_add_test(tgx_tests_gpu LABEL gpu TIMEOUT 120 INTERNAL SOURCES
         main.cpp
         buffers.cpp
         clip.cpp
+        context.cpp
         gl.cpp
         input.cpp
         order.cpp

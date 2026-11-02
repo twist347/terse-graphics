@@ -10,6 +10,9 @@
 
 ### Fixed
 
+- **Window depth checks use the buffer the driver provided.** Its presence
+  and bit depth are queried at device setup and logged; depth clears and
+  draws no longer assume the window has a depth buffer.
 - **`Window`, `Device` and `Audio` can no longer be assigned.** In
   `device = tgx::Device::create(*window)` the new device was made first, and
   then the old one released the state the two share: the next draw crashed.
@@ -22,6 +25,11 @@
 
 ### Tests
 
+- GPU test queries (help, lists, counts and `--no-run`) need no display.
+- Save-directory tests use temporary data folders on every platform.
+- Color rounding, easing between endpoints, UTF-8 boundaries, circle
+  segment counts and the center of a four-color gradient.
+- Window depth detection, including a reported missing attachment.
 - CTest timeouts: 60 seconds for the CPU suite, 120 for the GPU suite.
 - Input transitions, short taps, repeats, cursor settling, UTF-8 text, GLFW
   key translation and the installed input callbacks.

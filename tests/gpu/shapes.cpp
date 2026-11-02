@@ -220,6 +220,8 @@ TEST_CASE("rect_gradient, top to bottom and by the corners") {
     CHECK(tgx_test::nearly(image[63, 0], tgx::colors::green, 16));
     CHECK(tgx_test::nearly(image[63, 63], tgx::colors::blue, 16));
     CHECK(tgx_test::nearly(image[0, 63], tgx::colors::white, 16));
+    // The center is the average of all four colors, not one diagonal's pair.
+    CHECK(tgx_test::nearly(image[32, 32], tgx::Color{128, 128, 128, 255}, 4));
 }
 
 TEST_CASE("triangle_gradient, a color at each corner") {

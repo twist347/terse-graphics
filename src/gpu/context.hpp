@@ -58,6 +58,8 @@ namespace tgx::detail {
     // is already set costs nothing, and holds the Canvas's batch. Main thread
     // only.
     struct Context {
+        // The default framebuffer's actual depth, queried at open().
+        int window_depth_bits{0};
         gl::RenderState state{};
         Color clear_color{0, 0, 0, 0};
         float clear_depth{1.f};
@@ -93,6 +95,10 @@ namespace tgx::detail {
 
         // Drops the batch's shapes (their frame is over) and all state.
         auto close() noexcept -> void;
+
+        [[nodiscard]] auto has_depth(const Target &target) const noexcept -> bool {
+            return target.framebuffer == 0 ? window_depth_bits > 0 : target.depth;
+        }
 
         // Draws the batch, if any.
         auto flush() noexcept -> void;

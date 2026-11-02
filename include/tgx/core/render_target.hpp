@@ -95,8 +95,8 @@ namespace tgx::detail {
         GlId framebuffer{0};
         GlId texture{0};
         Size size{};
-        // Window::create asks for one.
-        bool depth{true};
+        // For a render target. Context checks the window's actual depth.
+        bool depth{false};
 
         [[nodiscard]] constexpr auto operator==(const Target &) const noexcept -> bool = default;
     };

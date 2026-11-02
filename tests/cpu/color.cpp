@@ -29,6 +29,12 @@ TEST_CASE("Color::hsv") {
     CHECK(tgx::Color::hsv(-120, 1, 1) == tgx::colors::blue);
     CHECK(tgx::Color::hsv(0, 0, 1) == tgx::colors::white);
     CHECK(tgx::Color::hsv(0, 1, 0) == tgx::colors::black);
+    // Fractional channels round to the nearest byte, and s/v are clamped.
+    CHECK(tgx::Color::hsv(30, 1, 1) == tgx::Color{255, 128, 0, 255});
+    CHECK(tgx::Color::hsv(0, 0.5f, 0.5f) == tgx::Color{128, 64, 64, 255});
+    CHECK(tgx::Color::hsv(0, -1, 2) == tgx::colors::white);
+    CHECK(tgx::Color::hsv(0, 2, 1) == tgx::colors::red);
+    CHECK(tgx::Color::hsv(0, 1, -1) == tgx::colors::black);
 }
 
 TEST_CASE("alpha") {
@@ -39,6 +45,9 @@ TEST_CASE("alpha") {
     CHECK(tgx::colors::red.fade(-1.f).a == 0);
     CHECK(tgx::Color{255, 255, 255, 128}.premultiplied() == tgx::Color{128, 128, 128, 128});
     CHECK(tgx::colors::white.premultiplied() == tgx::colors::white);
+    CHECK(tgx::Color{1, 2, 3, 128}.premultiplied() == tgx::Color{1, 1, 2, 128});
+    CHECK(tgx::Color{1, 2, 3, 127}.premultiplied() == tgx::Color{0, 1, 1, 127});
+    CHECK(tgx::Color{10, 20, 30, 0}.premultiplied() == tgx::colors::transparent);
 }
 
 TEST_CASE("Color lerp and to_vec4") {

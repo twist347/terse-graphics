@@ -1,6 +1,5 @@
-// The GPU tests' main: makes the one App of the run before any test, as there
-// is one window and one Device per process, and fails the run outright when
-// there is no display or GL 3.3 to make it with.
+// The GPU tests' main: makes the one App before running tests. Listing tests
+// and other doctest queries need no display; running needs GL 3.3.
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
@@ -19,6 +18,12 @@ auto tgx_test::app() -> tgx::App & {
 }
 
 int main(int argc, char **argv) {
+    doctest::Context context{argc, argv};
+    context.setAsDefaultForAssertsOutOfTestCases();
+    if (context.shouldExit() || doctest::getContextOptions()->no_run) {
+        return context.run();
+    }
+
     // The GL info, so a run's log shows which driver it checked.
     tgx::set_log_level(tgx::LogLevel::info);
     auto app = tgx::App::create({.size = {640, 360}, .title = "tgx gpu tests", .vsync = false});
@@ -29,6 +34,5 @@ int main(int argc, char **argv) {
     s_app = &*app;
     tgx::set_log_level(tgx::LogLevel::warn);
 
-    doctest::Context context{argc, argv};
     return context.run();
 }

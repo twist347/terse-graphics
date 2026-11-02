@@ -7,12 +7,15 @@
 #include "tgx/core/error.hpp"
 #include "tgx/core/math.hpp"
 
+#include "tgx/gl/draw.hpp"
+
 #include <doctest/doctest.h>
 
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
+#include <optional>
 #include <random>
 #include <string>
 #include <string_view>
@@ -93,6 +96,19 @@ struct doctest::StringMaker<tgx::Vec4> {
 };
 
 template<>
+struct doctest::StringMaker<tgx::Mat4> {
+    static auto convert(const tgx::Mat4 &matrix) -> String {
+        return tgx_test::string(std::format(
+            "columns: [{}, {}, {}, {}]",
+            StringMaker<tgx::Vec4>::convert(matrix.columns[0]).c_str(),
+            StringMaker<tgx::Vec4>::convert(matrix.columns[1]).c_str(),
+            StringMaker<tgx::Vec4>::convert(matrix.columns[2]).c_str(),
+            StringMaker<tgx::Vec4>::convert(matrix.columns[3]).c_str()
+        ));
+    }
+};
+
+template<>
 struct doctest::StringMaker<tgx::Size> {
     static auto convert(tgx::Size s) -> String { return tgx_test::string(std::format("{}x{}", s.width, s.height)); }
 };
@@ -101,6 +117,22 @@ template<>
 struct doctest::StringMaker<tgx::Rect> {
     static auto convert(tgx::Rect r) -> String {
         return tgx_test::string(std::format("{{{}, {}, {}, {}}}", r.x, r.y, r.width, r.height));
+    }
+};
+
+template<>
+struct doctest::StringMaker<std::optional<tgx::Rect>> {
+    static auto convert(const std::optional<tgx::Rect> &rect) -> String {
+        return rect ? StringMaker<tgx::Rect>::convert(*rect) : String{"nullopt"};
+    }
+};
+
+template<>
+struct doctest::StringMaker<tgx::gl::Viewport> {
+    static auto convert(tgx::gl::Viewport viewport) -> String {
+        return tgx_test::string(std::format(
+            "{{{}, {}, {}, {}}}", viewport.x, viewport.y, viewport.width, viewport.height
+        ));
     }
 };
 

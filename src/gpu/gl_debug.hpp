@@ -6,7 +6,7 @@ namespace tgx::detail {
     auto log_context_info() noexcept -> void;
 
     // Turns on KHR_debug where the context has it, so the driver's errors
-    // and warnings go to the log. Logged last in the context info: with the
-    // callback off, driver silence means nothing.
+    // and warnings go to the log. With the callback off, driver silence
+    // means nothing.
     auto install_debug_callback() noexcept -> void;
 }

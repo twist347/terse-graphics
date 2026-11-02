@@ -51,6 +51,17 @@ TEST_CASE("UTF-8 out: 1 to 4 bytes, read back by their lead") {
     CHECK(encoded(U'\u00e9') == "\xc3\xa9");
     CHECK(encoded(U'\u20ac') == "\xe2\x82\xac");
     CHECK(encoded(U'\U0001f600') == "\xf0\x9f\x98\x80");
+    CHECK(encoded(0) == std::string(1, '\0'));
+    CHECK(encoded(0x7f) == "\x7f");
+    CHECK(encoded(0x80) == "\xc2\x80");
+    CHECK(encoded(0x7ff) == "\xdf\xbf");
+    CHECK(encoded(0x800) == "\xe0\xa0\x80");
+    CHECK(encoded(0xffff) == "\xef\xbf\xbf");
+    CHECK(encoded(0x10000) == "\xf0\x90\x80\x80");
+    CHECK(encoded(0x10ffff) == "\xf4\x8f\xbf\xbf");
+    std::string appended{"prefix"};
+    tgx::detail::append_utf8(appended, 0x10000);
+    CHECK(appended == "prefix\xf0\x90\x80\x80");
     for (const char32_t c: {U'a', U'\u00e9', U'\u20ac', U'\U0001f600'}) {
         const std::string text = encoded(c);
         CHECK(tgx::detail::sequence_length(static_cast<unsigned char>(text[0])) == text.size());
@@ -72,6 +83,7 @@ TEST_CASE("for_each_glyph: one glyph a character") {
     // A cut-off sequence does not swallow what follows; a stray
     // continuation is a '?' of its own.
     CHECK(glyphs_of("\xe2\x82" "a") == V{unknown, glyph('a')});
+    CHECK(glyphs_of("a\xe2\x82") == V{glyph('a'), unknown});
     CHECK(glyphs_of("\x80" "a") == V{unknown, glyph('a')});
 }
 

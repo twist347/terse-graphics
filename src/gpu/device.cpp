@@ -85,8 +85,8 @@ namespace tgx {
         const detail::Target target = detail::target_of(params.target);
         // GL silently ignores a clear of a missing buffer.
         TGX_ASSERT_MSG(
-            !params.depth || target.depth,
-            "clearing the depth of a render target made without one"
+            !params.depth || detail::context().has_depth(target),
+            "clearing a target without a depth buffer"
         );
 
         detail::context().clear({
@@ -165,8 +165,8 @@ namespace tgx {
         const detail::Target target = detail::target_of(params.target);
         // Without a depth buffer every fragment passes, silently.
         TGX_ASSERT_MSG(
-            params.state.depth == gl::Depth::none || target.depth,
-            "a depth test drawing into a render target made without depth"
+            params.state.depth == gl::Depth::none || detail::context().has_depth(target),
+            "a depth test drawing into a target without a depth buffer"
         );
         const gl::Viewport viewport = params.viewport.value_or(detail::surface_of(target).viewport());
         // GL draws nothing, and reports it only on a debug context.

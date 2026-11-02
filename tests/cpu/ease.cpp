@@ -37,6 +37,15 @@ TEST_CASE("easing") {
             CHECK(curve(2.f) == doctest::Approx(1.f).epsilon(1e-6));
         }
         CHECK(family.in_out(0.5f) == doctest::Approx(0.5f));
+        for (const float t: {0.1f, 0.25f, 0.4f}) {
+            CAPTURE(t);
+            CHECK(family.in_out(t) == doctest::Approx(1.f - family.in_out(1.f - t)).epsilon(1e-5));
+            // Back changes the overshoot, elastic the oscillation period.
+            if (std::string_view{family.name} != "back" && std::string_view{family.name} != "elastic") {
+                CHECK(family.in_out(t) == doctest::Approx(family.in(2.f * t) / 2.f).epsilon(1e-5));
+                CHECK(family.in_out(1.f - t) == doctest::Approx(0.5f + family.out(1.f - 2.f * t) / 2.f).epsilon(1e-5));
+            }
+        }
 
         bool steady = true;
         bool beyond = false;
@@ -62,6 +71,10 @@ TEST_CASE("easing") {
     CHECK(ease::linear(3.f) == 1.f);
     CHECK(ease::out_cubic(0.5f) > 0.5f);
     CHECK(ease::in_cubic(0.5f) < 0.5f);
+    CHECK(ease::in_out_back(0.25f) == doctest::Approx(-0.09968184f));
+    CHECK(ease::in_out_back(0.75f) == doctest::Approx(1.09968184f));
+    CHECK(ease::in_out_elastic(0.25f) == doctest::Approx(0.011969444f).epsilon(1e-5));
+    CHECK(ease::in_out_elastic(0.75f) == doctest::Approx(0.98803056f).epsilon(1e-5));
     static_assert(ease::in_quad(0.f) == 0.f && ease::in_quad(1.f) == 1.f);
     static_assert(ease::out_back(0.f) == 0.f && ease::out_bounce(1.f) > 0.999f);
 }

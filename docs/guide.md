@@ -668,6 +668,7 @@ report needs:
 [tgx] info:   textures: up to 32768x32768
 [tgx] info:   msaa:     off
 [tgx] info:   debug:    on
+[tgx] info:   depth:    24 bits
 [tgx] info: audio: Built-in Audio Analog Stereo via PulseAudio, 48000 Hz, 2 channels
 ```
 

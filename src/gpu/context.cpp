@@ -9,6 +9,7 @@
 #include "tgx/gl/texture_slot.hpp"
 #include "tgx/gl/vertex_array.hpp"
 
+#include "base/log_internal.hpp"
 #include "gpu/batch.hpp"
 #include "gpu/gl_pixels.hpp"
 #include "platform/window_internal.hpp"
@@ -188,6 +189,15 @@ namespace tgx {
         glUseProgram(0);
         glBindVertexArray(0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        GLint depth_type = GL_NONE;
+        glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &depth_type);
+        // A size query on an absent attachment would be GL_INVALID_OPERATION.
+        if (depth_type != GL_NONE) {
+            GLint depth_bits = 0;
+            glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH, GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE, &depth_bits);
+            window_depth_bits = depth_bits;
+        }
+        detail::log_info("  depth:    {} bits", window_depth_bits);
         apply_clear_color(clear_color);
         apply_clear_depth(clear_depth);
 

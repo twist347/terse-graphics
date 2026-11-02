@@ -4,8 +4,8 @@
 # (src/canvas/geometry.hpp), input transitions and key translation
 # (src/platform/input_internal.hpp and glfw_keys.hpp), where a canvas lands
 # (src/canvas/viewport.hpp), and what an App hands out (at compile time):
-# nothing here opens a window or an audio output, so it runs anywhere, CI
-# without a display or a sound card included.
+# no window is needed. Playback is checked only when an audio output opens;
+# the rest runs in CI without a display or a sound card too.
 tgx_add_test(tgx_tests_cpu LABEL cpu TIMEOUT 60 INTERNAL SOURCES
         main.cpp
         app.cpp
