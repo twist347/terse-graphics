@@ -25,7 +25,7 @@ light and a scanline shader, all made in code.*
 - **Canvas**: shapes, gradients, sprites, nine-slice frames and text in a built-in pixel font,
   under a 2D camera, clipped to a rect, batched into as few draws as the GPU allows.
 - **Render targets**: pixel art scaled up crisp, post effects, screenshots.
-- **Audio**: sounds and streamed music, WAV, OGG, MP3 or FLAC.
+- **Audio**: sounds and streamed music, WAV, Ogg Vorbis, MP3 or FLAC.
 - **Images and textures**: PNG, JPEG, BMP, TGA, GIF in, PNG out.
 - **Utilities**: GPU-ready math with glm's conventions, collisions, a seeded
   `Random`, timers and easing curves.

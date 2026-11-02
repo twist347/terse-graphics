@@ -88,7 +88,8 @@ namespace tgx {
     //
     // The Device draws the batch before its own draws and clears, and at
     // present(). Consecutive shapes with the same target, viewport, size,
-    // camera, clip, texture, blend and shader become one draw.
+    // camera, clip, texture, blend and shader become one draw until the batch
+    // fills.
     //
     // A Canvas owns no GPU resources, only settings. Copy it for each set of
     // settings instead of switching back and forth; all copies share one batch:

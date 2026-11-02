@@ -44,13 +44,13 @@ is listed here, and `find_package(tgx 0.1)` accepts only 0.1.x.
 - **Input** — keys, mouse buttons, the wheel, typed text, `axis` and
   `direction`
 - **Canvas** — rects (rounded too), circles, sectors, rings, ellipses,
-  triangles, quads, polygons, lines and strips, gradients, outlines, sprites, nine-slice, text in a built-in pixel font;
-  `Camera`, viewport, clip rect, blend modes, letterboxed logical size;
-  batched draws
+  triangles, polygons, lines and strips, gradients, outlines, sprites,
+  nine-slice, text in a built-in pixel font; `Camera2D`, viewport, clip rect,
+  blend modes, letterboxed logical size; batched draws
 - **Render targets** — pixel art scaled up, post effects, reading pixels back
 - **Images and textures** — PNG, JPEG, BMP, TGA, GIF in, PNG out; filter,
   wrap, updates
-- **Audio** — `Sound` (WAV, OGG, MP3, FLAC, and tones made in code),
+- **Audio** — `Sound` (WAV, Ogg Vorbis, MP3, FLAC, and tones made in code),
   streamed `Music`, `Playback` to pause or stop one play, pitch, pan, volume
 - **Utilities** — `Vec2/3/4`, `Mat4`, `Rect`, `Color`, collisions, `Random`
   (PCG32), easing, `remap`, `smoothstep`, `wrap`, `Result` errors, logging,

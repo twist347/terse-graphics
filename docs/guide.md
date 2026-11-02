@@ -75,7 +75,7 @@ In `tgx`:
   partial updates. Screenshots with `device().read()`.
 - **Audio**: `Sound`s held in memory and played at once, many at a time, with
   volume, pan and pitch; `Music` streamed from its file, with play, pause,
-  seek and looping. WAV, OGG Vorbis, MP3 and FLAC, or samples made in code.
+  seek and looping. WAV, Ogg Vorbis, MP3 and FLAC, or samples made in code.
   Without an output device it stays silent and everything else works.
 - **Render targets**: `RenderTarget`, a texture to draw into instead of the
   window, with the Canvas or a draw of your own; then drawn like any texture
@@ -301,15 +301,19 @@ they found it (see [Rules](#rules)).
 `device().stats()` counts the last frame's GL work: draws (and how many were
 the canvas's batches), clears, and switches of shader, texture and target. Many
 canvas draws for few shapes mean the batch keeps breaking: on a change of
-target, viewport, size, camera, clip, texture, blend or shader.
+target, viewport, size, camera, clip, texture, blend or shader, or when its
+buffers fill.
 
 Textures load from image files in one call; `Image` is for pixels made in code
 or read on the CPU, rows top to bottom. A sprite needs only a position: by
 default it is the whole texture at its own size.
 
+`Texture::load` can fail with `Error::io` or `Error::decode` while loading the
+image, or `Error::unsupported`, `Error::out_of_memory` or `Error::platform`
+while creating the texture.
+
 ```cpp
 auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
-// Error::io or Error::decode on failure; Image::load + Texture::create is the long way
 
 canvas.sprite(*player, {pos});
 canvas.sprite(*atlas, {
@@ -374,14 +378,14 @@ const tgx::Rect button = tgx::Rect::from_center({640, 500}, {200, 60});
 ```
 
 The font shares its texture with the shapes, so text and shapes drawn in a row
-are one draw. It is baked into the library by `tools/bake_font.py` from
+can share a draw. It is baked into the library by `tools/bake_font.py` from
 `thirdparty/unscii/`.
 
 Shapes in a row with the same target, viewport, size, camera, clip, texture,
-blend and shader go out as one draw; a change of any of them starts the next. So many
-sprites from one texture (an atlas) cost one draw. A texture updated or
-destroyed while its sprites wait has them drawn first; moving one changes
-nothing.
+blend and shader go out as one draw until the batch fills; a change of any of
+them starts the next. Sprites from one texture (an atlas) share draws. A
+texture updated or destroyed while its sprites wait has them drawn first;
+moving one changes nothing.
 
 Gradients come for rectangles (top to bottom, or a color in each corner),
 triangles (a color in each corner) and circles (center to edge):
@@ -707,18 +711,28 @@ with `-DTGX_ASSERTS=ON` or `OFF`. The setting reaches everything that links
 the one it was built with (with Visual Studio, which installs each
 configuration on its own, the app's configuration picks it).
 
-In another CMake project: `add_subdirectory(terse-graphics)` (or
-FetchContent) and link `tgx::tgx`. Examples and tests are then off. The
-vendored libraries build as `tgx_glad`, `tgx_miniaudio` and so on, apart from
-the project's own, and go inside the tgx library itself, as raylib's do: there
-is one library to link. It is position-independent, so it also links into a
-shared library of your own, such as a plugin. That library gets its own copy
-of tgx, with its own state: it makes its own `App` and does not see the
-program's. Game code reloaded while the game runs has to share the game's
-tgx, which needs a shared build, on the [roadmap](roadmap.md). stb and
-miniaudio are compiled with internal linkage, so the app may link its own
-copies of them. A `glfw` target the project already has (3.4 or newer) is
-used instead of tgx's copy.
+In another CMake project:
+
+```cmake
+add_subdirectory(terse-graphics SYSTEM)
+target_link_libraries(game PRIVATE tgx::tgx)
+```
+
+`SYSTEM` treats tgx's public headers as system headers when compiling your
+targets, suppressing most warnings from those headers. tgx's own warning
+flags still apply when building the library. FetchContent also works.
+Examples and tests are off when tgx is added to another project.
+
+The dependency targets use the `tgx_` prefix (`tgx_glad`, `tgx_miniaudio` and
+so on), except for `glfw`. The bundled code goes inside the tgx library
+itself, as raylib's does: there is one library to link. It is
+position-independent, so it also links into a shared library of your own,
+such as a plugin. That library gets its own copy of tgx, with its own state:
+it makes its own `App` and does not see the program's. Game code reloaded
+while the game runs has to share the game's tgx, which needs a shared build,
+on the [roadmap](roadmap.md). stb and miniaudio symbols have internal linkage
+or a `tgx_` prefix, so the app may link its own copies of them. A `glfw`
+target the project already has (3.4 or newer) is used instead of tgx's copy.
 
 Or installed, as a package:
 
@@ -734,10 +748,10 @@ target_link_libraries(game PRIVATE tgx::tgx)
 The package is the headers, the one library and its CMake files; it asks the
 system only for threads (and for GLFW, if tgx was built with one found by
 `find_package(glfw3)`). Install each configuration into a prefix of its own.
-`TGX_INSTALL` (on when tgx is the project being built) turns the install
-off. The version is written once, in `tgx/core/version.hpp`, and CMake reads it from
-there: `TGX_VERSION_MAJOR`, `_MINOR`, `_PATCH`, `TGX_VERSION_STRING`
-(`"0.1.0"`), and `TGX_VERSION` as one number for
+`TGX_INSTALL` is on when tgx is the project being built; `-DTGX_INSTALL=OFF`
+turns the install off. The version is written once, in `tgx/core/version.hpp`,
+and CMake reads it from there: `TGX_VERSION_MAJOR`, `_MINOR`, `_PATCH`,
+`TGX_VERSION_STRING` (`"0.1.0"`), and `TGX_VERSION` as one number for
 `#if TGX_VERSION_AT_LEAST(0, 2, 0)`. `tests/install` is such a project; CI builds it on every platform against
 the package, and with `-DTGX_SOURCE_DIR` through `add_subdirectory`. Before 1.0 a package fits only programs written for the same
 minor version.

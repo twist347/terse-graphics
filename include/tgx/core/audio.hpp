@@ -104,7 +104,7 @@ namespace tgx {
     // thread, destroy on the thread that plays it.
     class Sound {
     public:
-        // WAV, OGG Vorbis, MP3 or FLAC. Fails with Error::io if the file
+        // WAV, Ogg Vorbis, MP3 or FLAC. Fails with Error::io if the file
         // cannot be read, Error::decode if it is not one of those formats.
         [[nodiscard]] static auto load(const std::filesystem::path &path) -> Result<Sound>;
 
@@ -174,7 +174,7 @@ namespace tgx {
     class Music {
     public:
         // Stopped at the start. Formats and errors as in Sound::load. If the
-        // stream cannot report its length (OGG Vorbis; any format on Windows
+        // stream cannot report its length (Ogg Vorbis; any format on Windows
         // or with the Audio silent), the whole file is read once to measure it.
         [[nodiscard]] static auto load(const std::filesystem::path &path) -> Result<Music>;
 
@@ -208,8 +208,8 @@ namespace tgx {
 
         [[nodiscard]] auto volume() const noexcept -> float;
 
-        // Playing or not. Past the end: the end, or wrapped around when
-        // looping.
+        // Finite seconds, not below 0, playing or not. Past the end: the end,
+        // or wrapped around when looping.
         auto seek(double seconds) noexcept -> void;
 
         // In seconds.

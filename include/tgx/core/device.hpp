@@ -45,7 +45,7 @@ namespace tgx {
         int draws{0};
         // Of draws, those of Canvas shapes: one per batch. A batch ends where
         // the target, viewport, size, camera, clip, texture, blend or shader
-        // changes.
+        // changes, or when the batch fills.
         int canvas_draws{0};
         int clears{0};
         // Another shader made current.

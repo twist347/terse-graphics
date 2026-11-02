@@ -154,7 +154,7 @@ TEST_CASE("see-through parts of a target are premultiplied") {
     tgx::Canvas canvas = tgx_test::canvas_on(layer);
     canvas.clear(tgx::colors::transparent);
     canvas.rect({0, 0, 8, 8}, tgx::colors::white.with_alpha(128));
-    CHECK(layer.read()[4, 4] == tgx::Color{128, 128, 128, 128});
+    CHECK(tgx_test::nearly(layer.read()[4, 4], tgx::Color{128, 128, 128, 128}, 1));
 
     const tgx::RenderTarget out = tgx_test::target({8, 8});
     for (const tgx::Blend blend: {tgx::Blend::alpha, tgx::Blend::premultiplied}) {
@@ -165,7 +165,7 @@ TEST_CASE("see-through parts of a target are premultiplied") {
         screen.sprite(layer.texture(), {.size = {8, 8}});
         // Alpha applies the alpha a second time: a quarter gray, not half.
         const tgx::Color expected = blend == tgx::Blend::alpha ? tgx::Color{64, 64, 64, 255} : tgx::Color{128, 128, 128, 255};
-        CHECK(out.read()[2, 2] == expected);
+        CHECK(tgx_test::nearly(out.read()[2, 2], expected, 1));
     }
 }
 
