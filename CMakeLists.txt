@@ -67,11 +67,14 @@ set(TGX_PLATFORM_SOURCES
 # GL: the Device, textures, render targets, the Canvas's batch, tgx::gl.
 set(TGX_GPU_SOURCES
         src/gpu/batch.cpp
+        src/gpu/batch_gpu.cpp
         src/gpu/clock.cpp
         src/gpu/context.cpp
         src/gpu/device.cpp
         src/gpu/gl_debug.cpp
+        src/gpu/gl_state.cpp
         src/gpu/render_target.cpp
+        src/gpu/surface.cpp
         src/gpu/texture.cpp
         src/gpu/gl/buffer.cpp
         src/gpu/gl/shader.cpp

@@ -13,6 +13,7 @@
 #include "gpu/context.hpp"
 #include "gpu/gl/vertex_array_internal.hpp"
 #include "gpu/gl_debug.hpp"
+#include "gpu/surface.hpp"
 #include "platform/window_internal.hpp"
 
 #include <glad/gl.h>

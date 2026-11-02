@@ -2,25 +2,19 @@
 
 #include "tgx/core/blend.hpp"
 #include "tgx/core/color.hpp"
-#include "tgx/core/error.hpp"
 #include "tgx/core/handle.hpp"
 #include "tgx/core/math.hpp"
 #include "tgx/core/render_target.hpp"
-#include "tgx/core/texture.hpp"
 
-#include "tgx/gl/buffer.hpp"
 #include "tgx/gl/draw.hpp"
-#include "tgx/gl/shader.hpp"
-#include "tgx/gl/vertex_array.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace tgx::detail {
-    class Context;
-
     // The layout the built-in shader reads, and a custom one must too
     // (Canvas::set_shader).
     struct BatchVertex {
@@ -52,66 +46,43 @@ namespace tgx::detail {
         [[nodiscard]] auto operator==(const BatchState &) const noexcept -> bool = default;
     };
 
-    // Vertices waiting to be drawn together. Filled by the Canvas, owned and
-    // flushed by the Context before its own drawing, so call order holds.
+    // CPU geometry waiting to be drawn together. Context decides when to
+    // draw it before a state change, a capacity boundary or another operation.
     class Batch {
     public:
-        [[nodiscard]] static auto create() -> Result<Batch>;
-
+        Batch();
         Batch(const Batch &) = delete;
         auto operator=(const Batch &) -> Batch & = delete;
-
         Batch(Batch &&) noexcept = default;
         auto operator=(Batch &&) noexcept -> Batch & = default;
 
-        auto push_vertex(const BatchVertex &vertex) noexcept -> void { vertices_.push_back(vertex); }
-
-        auto push_index(std::uint16_t index) noexcept -> void { indices_.push_back(index); }
-
-    private:
-        friend class Context;
-
-        // Draws the waiting vertices first if the state differs or the new
-        // ones do not fit. Returns the first new vertex's index. Push exactly
-        // that many vertices and indices afterwards.
-        [[nodiscard]] auto reserve(
-            Context &context,
+        [[nodiscard]] auto can_append(
             const BatchState &state,
             std::size_t vertex_count,
             std::size_t index_count
-        ) noexcept -> std::uint16_t;
+        ) const noexcept -> bool;
 
-        // If any are waiting.
-        auto flush(Context &context) noexcept -> void;
+        // After can_append succeeds. Returns the first new vertex's index.
+        // Push exactly the requested counts before the next operation.
+        [[nodiscard]] auto start(const BatchState &state) noexcept -> std::uint16_t;
 
-        // Whether waiting vertices are drawn with the texture or into it (a
-        // render target's texture), or with the program.
+        auto push_vertex(const BatchVertex &vertex) noexcept -> void { vertices_.push_back(vertex); }
+        auto push_index(std::uint16_t index) noexcept -> void { indices_.push_back(index); }
+
+        [[nodiscard]] auto empty() const noexcept -> bool { return indices_.empty(); }
+        [[nodiscard]] auto state() const noexcept -> const BatchState & { return state_; }
+        [[nodiscard]] auto vertices() const noexcept -> std::span<const BatchVertex> { return vertices_; }
+        [[nodiscard]] auto indices() const noexcept -> std::span<const std::uint16_t> { return indices_; }
+
+        auto clear() noexcept -> void;
+
+        // Whether waiting vertices read the texture, draw into it (a render
+        // target's texture), or use the program/framebuffer.
         [[nodiscard]] auto uses_texture(GlId texture) const noexcept -> bool;
-
         [[nodiscard]] auto uses_shader(GlId program) const noexcept -> bool;
-
-        // Whether waiting vertices are drawn into the framebuffer.
         [[nodiscard]] auto uses_target(GlId framebuffer) const noexcept -> bool;
 
-        Batch(
-            gl::Shader shader,
-            std::int32_t u_projection,
-            gl::Buffer<BatchVertex> vertex_buffer,
-            gl::Buffer<std::uint16_t> index_buffer,
-            gl::VertexArray vertex_array,
-            Texture builtin
-        );
-
-        gl::Shader shader_;
-        // The built-in shader's.
-        std::int32_t u_projection_{};
-        gl::Buffer<BatchVertex> vertex_buffer_;
-        gl::Buffer<std::uint16_t> index_buffer_;
-        gl::VertexArray vertex_array_;
-        // The default font and a white block that shapes sample, so text
-        // and shapes in a row share one shader and one draw.
-        Texture builtin_;
-
+    private:
         std::vector<BatchVertex> vertices_{};
         std::vector<std::uint16_t> indices_{};
         BatchState state_{};

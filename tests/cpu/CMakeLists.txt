@@ -10,6 +10,7 @@ tgx_add_test(tgx_tests_cpu LABEL cpu TIMEOUT 60 INTERNAL SOURCES
         main.cpp
         app.cpp
         audio.cpp
+        batch.cpp
         camera.cpp
         collision.cpp
         color.cpp

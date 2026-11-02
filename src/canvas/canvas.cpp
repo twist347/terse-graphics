@@ -13,6 +13,7 @@
 #include "canvas/viewport.hpp"
 #include "gpu/batch.hpp"
 #include "gpu/context.hpp"
+#include "gpu/surface.hpp"
 
 #include <algorithm>
 #include <array>

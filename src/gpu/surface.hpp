@@ -4,9 +4,9 @@
 
 #include "tgx/gl/draw.hpp"
 
-// Not in viewport.hpp: the Context returns it, and the Context is below the
-// canvas.
 namespace tgx::detail {
+    struct Target;
+
     // Sizes of the window or render target being drawn into. The only place
     // that tells the window from a render target.
     struct Surface {
@@ -21,4 +21,6 @@ namespace tgx::detail {
             return {0, 0, pixels.width, pixels.height};
         }
     };
+
+    [[nodiscard]] auto surface_of(const Target &target) noexcept -> Surface;
 }
