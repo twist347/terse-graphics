@@ -7,6 +7,7 @@
 
 #include <array>
 #include <cstddef>
+#include <ostream>
 #include <string_view>
 
 TEST_CASE("sampler reflection keeps unsupported texture types and ignores ordinary uniforms") {
