@@ -209,6 +209,30 @@ TEST_CASE("a texture made by size is dynamic, and filled by update") {
     CHECK(target.read()[4, 4] == tgx::colors::green);
 }
 
+TEST_CASE("a texture update changes only the requested offset rectangle") {
+    auto texture = tgx_test::texture(
+        tgx::Image::create({4, 4}, tgx::colors::blue),
+        {.filter = tgx::TextureFilter::nearest, .access = tgx::TextureAccess::dynamic}
+    );
+    auto patch = tgx::Image::create({1, 2}, tgx::colors::red);
+    patch[0, 1] = tgx::colors::green;
+    texture.update(2, 1, patch);
+
+    const auto target = tgx_test::target({4, 4});
+    auto canvas = tgx_test::canvas_on(target);
+    canvas.sprite(texture, {});
+    const auto image = target.read();
+    for (int y = 0; y < 4; ++y) {
+        for (int x = 0; x < 4; ++x) {
+            CAPTURE(x);
+            CAPTURE(y);
+            const auto expected = x == 2 && y == 1 ? tgx::colors::red
+                : x == 2 && y == 2 ? tgx::colors::green : tgx::colors::blue;
+            CHECK(image[x, y] == expected);
+        }
+    }
+}
+
 TEST_CASE("Texture::load: a file drawn as saved, a missing one an io error") {
     const tgx_test::TempFile file{"texture.png"};
     REQUIRE(tgx::Image::from_pixels({2, 2}, std::array{

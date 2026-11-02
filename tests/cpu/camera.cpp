@@ -4,6 +4,8 @@
 
 #include <doctest/doctest.h>
 
+#include <numbers>
+
 using tgx_test::nearly;
 
 TEST_CASE("the default camera shows the world as it is") {
@@ -26,4 +28,18 @@ TEST_CASE("to_world undoes to_screen, and matrix() agrees with it") {
         const tgx::Vec4 m = camera.matrix() * tgx::Vec4{p.x, p.y, 0, 1};
         CHECK(nearly({m.x, m.y}, camera.to_screen(p)));
     }
+}
+
+TEST_CASE("camera rotation is clockwise on the screen") {
+    const tgx::Camera2D clockwise{.target = {10, 20}, .offset = {100, 200}, .rotation = std::numbers::pi_v<float> / 2.f, .zoom = 2};
+    CHECK(nearly(clockwise.to_screen({13, 20}), {100, 206}));
+    CHECK(nearly(clockwise.to_screen({10, 23}), {94, 200}));
+    CHECK(nearly(clockwise.to_world({100, 206}), {13, 20}));
+    CHECK(nearly(clockwise.matrix() * tgx::Vec4{13, 20, 0, 1}, {100, 206, 0, 1}));
+
+    auto counterclockwise = clockwise;
+    counterclockwise.rotation = -clockwise.rotation;
+    CHECK(nearly(counterclockwise.to_screen({13, 20}), {100, 194}));
+    CHECK(nearly(counterclockwise.to_world({100, 194}), {13, 20}));
+    CHECK(nearly(counterclockwise.matrix() * tgx::Vec4{13, 20, 0, 1}, {100, 194, 0, 1}));
 }

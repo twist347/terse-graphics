@@ -6,9 +6,11 @@
 #include "gpu.hpp"
 
 #include <doctest/doctest.h>
+#include <glad/gl.h>
 
 #include <array>
 #include <cstdint>
+#include <string_view>
 #include <utility>
 
 namespace {
@@ -56,6 +58,17 @@ TEST_CASE("textures in slots, each sampler reading its own") {
 
 TEST_CASE("a slot set in the shader with layout(binding)") {
     // An extension; macOS lacks it.
+    GLint extensions = 0;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &extensions);
+    bool supported = false;
+    for (GLint i = 0; i < extensions; ++i) {
+        const auto *name = reinterpret_cast<const char *>(glGetStringi(GL_EXTENSIONS, static_cast<GLuint>(i)));
+        supported = supported || std::string_view{name} == "GL_ARB_shading_language_420pack";
+    }
+    if (!supported) {
+        MESSAGE("skipped: no GL_ARB_shading_language_420pack");
+        return;
+    }
     auto shader = tgx::gl::Shader::from_source(
         TGX_GLSL_VERSION R"(
             layout(location = 0) in vec2 in_position;
@@ -68,10 +81,7 @@ TEST_CASE("a slot set in the shader with layout(binding)") {
             void main() { out_color = texture(u_a, vec2(0.5)); }
         )"
     );
-    if (!shader) {
-        MESSAGE("skipped: no GL_ARB_shading_language_420pack");
-        return;
-    }
+    REQUIRE(shader.has_value());
     const tgx::RenderTarget target = tgx_test::target({8, 8});
     const auto cover = tgx_test::Cover::create();
     const tgx::Texture red = tgx_test::plain(tgx::colors::red);
@@ -167,6 +177,23 @@ TEST_CASE("depth: less, less_equal, no write, and none after a test") {
     device.clear({.target = &target, .depth = 0.f});
     CHECK(draw(green, {.depth = Depth::less}) == tgx::colors::red);
     CHECK(draw(green, {}) == tgx::colors::green);
+}
+
+TEST_CASE("clearing depth restores writes after a draw with depth_write false") {
+    const auto target = tgx_test::target({8, 8}, true);
+    const auto cover = tgx_test::Cover::create();
+    const auto red = colored(tgx::colors::red);
+    const auto green = colored(tgx::colors::green);
+    auto &device = tgx_test::app().device();
+    device.clear({.target = &target, .color = tgx::colors::black, .depth = 1.f});
+    device.draw(red, cover.vertices, {.target = &target, .state = {.depth = tgx::gl::Depth::less, .depth_write = false}});
+    device.clear({.target = &target, .depth = 0.f});
+    device.draw(green, cover.vertices, {.target = &target, .state = {.depth = tgx::gl::Depth::less}});
+    CHECK(target.read()[4, 4] == tgx::colors::red);
+
+    device.clear({.target = &target, .depth = 1.f});
+    device.draw(green, cover.vertices, {.target = &target, .state = {.depth = tgx::gl::Depth::less}});
+    CHECK(target.read()[4, 4] == tgx::colors::green);
 }
 
 TEST_CASE("every vertex format, read at its offset") {

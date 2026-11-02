@@ -25,6 +25,15 @@
 
 ### Tests
 
+- Known text pixels, indexed draw ranges for 16- and 32-bit indices,
+  texture update offsets, target switch counts, camera rotation direction
+  and depth clears after draws that disable depth writes.
+- Shader compile and link failures, stage labels and replacement of logs.
+- Unexpected GL/GLFW warnings and errors fail the GPU run. Debug contexts
+  are requested in Release too; expected shader compiler messages are scoped
+  to the invalid shader calls.
+- The FPS-limit test checks a series of frames, allowing a short frame
+  after a late one and arbitrary scheduler delays.
 - GPU test queries (help, lists, counts and `--no-run`) need no display.
 - Save-directory tests use temporary data folders on every platform.
 - Color rounding, easing between endpoints, UTF-8 boundaries, circle

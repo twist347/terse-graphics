@@ -83,3 +83,39 @@ TEST_CASE("a draw of first and count") {
     device.draw(cover.shader, drawn, {.target = &target, .first = 1, .count = 0});
     CHECK(target.read()[8, 8] == tgx::colors::black);
 }
+
+TEST_CASE("indexed first and count select a triangle, in index elements") {
+    constexpr std::array corners{Vertex{{-1, -1}}, Vertex{{1, -1}}, Vertex{{1, 1}}, Vertex{{-1, 1}}};
+    const auto buffer = tgx_test::required(tgx::gl::Buffer<Vertex>::create(corners));
+    const auto cover = tgx_test::Cover::create();
+    const auto target = tgx_test::target({16, 16});
+    auto &device = tgx_test::app().device();
+    const auto check = [&]<typename Index>() {
+        CAPTURE(sizeof(Index));
+        constexpr std::array<Index, 6> indices{0, 1, 2, 0, 2, 3};
+        const auto index_buffer = tgx_test::required(tgx::gl::Buffer<Index>::create(indices));
+        auto drawn = tgx_test::Cover::layout();
+        drawn.set_vertex_buffer(buffer);
+        drawn.set_index_buffer(index_buffer);
+
+        device.clear({.target = &target, .color = tgx::colors::black});
+        device.draw(cover.shader, drawn, {.target = &target, .first = 3, .count = 3});
+        auto image = target.read();
+        CHECK(image[3, 3] == tgx::colors::green);
+        CHECK(image[12, 12] == tgx::colors::black);
+
+        device.clear({.target = &target, .color = tgx::colors::black});
+        device.draw(cover.shader, drawn, {.target = &target, .first = 0, .count = 3});
+        image = target.read();
+        CHECK(image[3, 3] == tgx::colors::black);
+        CHECK(image[12, 12] == tgx::colors::green);
+
+        device.clear({.target = &target, .color = tgx::colors::black});
+        device.draw(cover.shader, drawn, {.target = &target, .first = 3, .count = 0});
+        image = target.read();
+        CHECK(image[3, 3] == tgx::colors::black);
+        CHECK(image[12, 12] == tgx::colors::black);
+    };
+    check.operator()<std::uint16_t>();
+    check.operator()<std::uint32_t>();
+}

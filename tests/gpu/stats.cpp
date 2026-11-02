@@ -55,6 +55,29 @@ TEST_CASE("Device::stats: a frame of nothing counts nothing") {
     CHECK(stats.target_switches == 0);
 }
 
+TEST_CASE("Device::stats counts actual target switches across waiting batches") {
+    auto &device = tgx_test::app().device();
+    const auto a = tgx_test::target({8, 8});
+    const auto b = tgx_test::target({8, 8});
+    auto first = tgx_test::canvas_on(a);
+    auto second = tgx_test::canvas_on(b);
+    device.clear({.target = &a, .color = tgx::colors::black});
+    device.present();
+
+    first.rect({0, 0, 8, 8}, tgx::colors::red);
+    second.rect({0, 0, 8, 8}, tgx::colors::green);
+    first.rect({0, 0, 4, 8}, tgx::colors::blue);
+    device.present();
+    const auto stats = device.stats();
+    CHECK(stats.target_switches == 2);
+    CHECK(stats.draws == 3);
+    CHECK(stats.canvas_draws == 3);
+    const auto image = a.read();
+    CHECK(image[1, 4] == tgx::colors::blue);
+    CHECK(image[6, 4] == tgx::colors::red);
+    CHECK(b.read()[4, 4] == tgx::colors::green);
+}
+
 TEST_CASE("Device::stats: lines too short to have a direction draw nothing") {
     auto &device = tgx_test::app().device();
     const tgx::RenderTarget target = tgx_test::target({8, 8});

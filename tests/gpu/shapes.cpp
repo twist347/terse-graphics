@@ -478,6 +478,42 @@ TEST_CASE("poly: a square with a corner up, and its frame") {
     CHECK(image[edge + 2, edge + 2] == tgx::colors::white);
 }
 
+TEST_CASE("text draws known glyph pixels, tint, spacing, newlines and sizes") {
+    // The built-in H at 8x16, top row first, high bit at the left.
+    constexpr std::array<std::uint8_t, 16> h{
+        0x00, 0x00, 0x66, 0x66, 0x66, 0x66, 0x66, 0x7e,
+        0x66, 0x66, 0x66, 0x66, 0x66, 0x00, 0x00, 0x00,
+    };
+    constexpr tgx::Color tint{40, 160, 220, 255};
+    const auto target = tgx_test::target({64, 80});
+    auto canvas = tgx_test::canvas_on(target);
+    for (const int scale: {1, 2}) {
+        CAPTURE(scale);
+        canvas.clear(tgx::colors::black);
+        canvas.text({3, 5}, "HH\nH", tint, static_cast<float>(16 * scale));
+        const auto image = target.read();
+        int mismatches = 0;
+        int ink = 0;
+        for (int y = 0; y < 80; ++y) {
+            for (int x = 0; x < 64; ++x) {
+                const int local_x = x - 3;
+                const int local_y = y - 5;
+                bool filled = false;
+                if (local_x >= 0 && local_y >= 0 && local_y < 32 * scale
+                    && local_x < (local_y < 16 * scale ? 16 : 8) * scale) {
+                    const auto row = static_cast<std::size_t>((local_y / scale) % 16);
+                    const int column = (local_x / scale) % 8;
+                    filled = (h[row] & (0x80 >> column)) != 0;
+                }
+                mismatches += image[x, y] != (filled ? tint : tgx::colors::black);
+                ink += image[x, y] == tint;
+            }
+        }
+        CHECK(mismatches == 0);
+        CHECK(ink == 138 * scale * scale);
+    }
+}
+
 TEST_CASE("text anchored: the same pixels as placed by hand, line by line") {
     const tgx::RenderTarget target = tgx_test::target({256, 128});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
