@@ -32,9 +32,6 @@ taken up; what is done leaves this file (the [guide](guide.md) and the
 
 Looked at and left until there is a need:
 
-- `Image::save`: create a unique temporary file exclusively beside the
-  destination. The fixed `.tgx-partial` name can overwrite an existing sibling
-  file and makes concurrent saves interfere.
 - Header weight. `<format>` (through the asserts) sets a floor every header
   pays, and programs include `tgx/tgx.hpp` anyway, so splitting headers buys
   little.

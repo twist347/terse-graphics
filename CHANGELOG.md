@@ -10,6 +10,9 @@
 
 ### Fixed
 
+- **`Image::save` no longer shares a fixed temporary file.** Each save creates
+  its own file exclusively beside the destination, so an existing
+  `.tgx-partial` sibling is left alone and concurrent saves do not interfere.
 - **Window depth checks use the buffer the driver provided.** Its presence
   and bit depth are queried at device setup and logged; depth clears and
   draws no longer assume the window has a depth buffer.

@@ -7,7 +7,10 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include <span>
+#include <string>
+#include <thread>
 #include <type_traits>
 #include <utility>
 
@@ -88,26 +91,64 @@ TEST_CASE("Image::save writes what Image::load reads back") {
     REQUIRE_FALSE(nowhere.has_value());
     CHECK(nowhere.error() == tgx::Error::io);
 
-    // Written beside the file first: nothing of that is left behind.
-    std::filesystem::path partial = file.path;
-    partial += ".tgx-partial";
-    CHECK_FALSE(std::filesystem::exists(partial));
 }
 
-TEST_CASE("a failed Image::save leaves the old file as it was") {
-    const tgx_test::TempFile file{"keep.png"};
-    REQUIRE(tgx::Image::create({2, 2}, tgx::colors::red).save(file.path).has_value());
+TEST_CASE("Image::save leaves an existing partial-looking sibling alone") {
+    const tgx_test::TempFile directory{"save-partial"};
+    std::filesystem::create_directory(directory.path);
+    const std::filesystem::path file = directory.path / "save.png";
+    std::filesystem::path sibling = file;
+    sibling += ".tgx-partial";
+    {
+        std::ofstream out{sibling, std::ios::binary};
+        out << "keep";
+    }
 
-    // A directory where the save writes first makes it fail.
-    std::filesystem::path partial = file.path;
-    partial += ".tgx-partial";
-    std::filesystem::create_directory(partial);
-    const auto failed = tgx::Image::create({2, 2}, tgx::colors::blue).save(file.path);
-    std::filesystem::remove(partial);
+    REQUIRE(tgx::Image::create({2, 2}, tgx::colors::red).save(file).has_value());
+    std::ifstream in{sibling, std::ios::binary};
+    std::string contents{};
+    in >> contents;
+    CHECK(contents == "keep");
 
-    REQUIRE_FALSE(failed.has_value());
-    CHECK(failed.error() == tgx::Error::io);
-    const auto old = tgx::Image::load(file.path);
-    REQUIRE(old.has_value());
-    CHECK((*old)[1, 1] == tgx::colors::red);
+    std::size_t entries = 0;
+    for (const auto &entry: std::filesystem::directory_iterator{directory.path}) {
+        CHECK(entry.is_regular_file());
+        ++entries;
+    }
+    CHECK(entries == 2);
+}
+
+TEST_CASE("concurrent Image::save calls use separate partial files") {
+    const tgx_test::TempFile directory{"save-concurrent"};
+    std::filesystem::create_directory(directory.path);
+    const std::filesystem::path file = directory.path / "save.png";
+    const auto red = tgx::Image::create({2, 2}, tgx::colors::red);
+    const auto blue = tgx::Image::create({2, 2}, tgx::colors::blue);
+    std::array saved{true, true};
+    const auto save = [&](const tgx::Image &image, bool &success) {
+        for (int i = 0; i < 24; ++i) {
+            if (!image.save(file)) {
+                success = false;
+                return;
+            }
+        }
+    };
+    std::thread first{[&] { save(red, saved[0]); }};
+    std::thread second{[&] { save(blue, saved[1]); }};
+    first.join();
+    second.join();
+
+    CHECK(saved[0]);
+    CHECK(saved[1]);
+    const auto back = tgx::Image::load(file);
+    REQUIRE(back.has_value());
+    const tgx::Color pixel = (*back)[1, 1];
+    CHECK((pixel == tgx::colors::red || pixel == tgx::colors::blue));
+
+    std::size_t entries = 0;
+    for (const auto &entry: std::filesystem::directory_iterator{directory.path}) {
+        CHECK(entry.is_regular_file());
+        ++entries;
+    }
+    CHECK(entries == 1);
 }
