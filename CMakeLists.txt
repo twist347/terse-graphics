@@ -86,6 +86,7 @@ set(TGX_GPU_SOURCES
 # Shapes and text, as vertices for the batch.
 set(TGX_CANVAS_SOURCES
         src/canvas/canvas.cpp
+        src/canvas/font.cpp
 )
 
 set(TGX_AUDIO_SOURCES

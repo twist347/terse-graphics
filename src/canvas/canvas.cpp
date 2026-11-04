@@ -191,6 +191,32 @@ namespace {
         const float shrink = total > room ? room / total : 1.f;
         return {first * scale * shrink, second * scale * shrink};
     }
+
+    auto push_text_layout(
+        const BatchState &state,
+        const tgx::detail::TextLayout &layout,
+        const tgx::detail::FontData &font,
+        tgx::Color color
+    ) noexcept -> void {
+        const auto uv = [&](tgx::Vec2 texel) {
+            return tgx::Vec2{
+                texel.x / static_cast<float>(font.atlas_size.width),
+                texel.y / static_cast<float>(font.atlas_size.height),
+            };
+        };
+        layout.for_each([&](const tgx::detail::PositionedGlyph &placed) noexcept {
+            if (placed.glyph->blank) {
+                return;
+            }
+            const tgx::Rect atlas = placed.glyph->atlas;
+            push_quad(
+                state,
+                tgx::detail::corners(placed.position, placed.position + placed.size),
+                tgx::detail::corners(uv(atlas.position()), uv(tgx::Vec2{atlas.right(), atlas.bottom()})),
+                each_corner(color)
+            );
+        });
+    }
 }
 
 namespace tgx {
@@ -668,64 +694,13 @@ namespace tgx {
     }
 
     auto Canvas::text(Vec2 position, std::string_view text, Color color, float size, Vec2 anchor) noexcept -> void {
-        if (anchor != Vec2{}) {
-            // Line by line, each shifted by its own width.
-            float y = position.y - std::round(measure_text(text, size).y * anchor.y);
-            std::size_t begin = 0;
-            while (true) {
-                const std::size_t end = text.find('\n', begin);
-                const std::string_view line = text.substr(begin, end == std::string_view::npos ? end : end - begin);
-                const float x = position.x - std::round(measure_text(line, size).x * anchor.x);
-                this->text({x, y}, line, color, size);
-                if (end == std::string_view::npos) {
-                    return;
-                }
-                y += size;
-                begin = end + 1;
-            }
-        }
-
-        const float scale = size / static_cast<float>(font::line_height);
-        const BatchState state = state_for(0);
-
-        Vec2 pen = position;
-        detail::for_each_glyph(text, [&](std::size_t glyph_index) noexcept {
-            if (glyph_index == detail::newline_glyph) {
-                pen = {position.x, pen.y + size};
-                return;
-            }
-
-            const font::Glyph glyph = font::glyphs[glyph_index];
-            const float width = static_cast<float>(glyph.width) * scale;
-            if (glyph_index != detail::space_glyph) {
-                const float u0 = static_cast<float>(glyph.x) / font::atlas_width;
-                const float u1 = static_cast<float>(glyph.x + glyph.width) / font::atlas_width;
-                push_quad(
-                    state,
-                    detail::corners(pen, pen + Vec2{width, size}),
-                    detail::corners({u0, 0.f}, {u1, 1.f}),
-                    each_corner(color)
-                );
-            }
-            pen.x += width;
-        });
+        const detail::FontData &font_data = detail::default_font_data();
+        const detail::TextLayout layout{font_data, text, size, position, anchor};
+        push_text_layout(state_for(0), layout, font_data, color);
     }
 
     auto Canvas::measure_text(std::string_view text, float size) noexcept -> Vec2 {
-        const float scale = size / static_cast<float>(font::line_height);
-        float widest = 0.f;
-        float line = 0.f;
-        float lines = 1.f;
-        detail::for_each_glyph(text, [&](std::size_t glyph_index) noexcept {
-            if (glyph_index == detail::newline_glyph) {
-                line = 0.f;
-                lines += 1.f;
-            } else {
-                line += static_cast<float>(font::glyphs[glyph_index].width) * scale;
-                widest = std::max(widest, line);
-            }
-        });
-        return {widest, lines * size};
+        return detail::TextLayout{detail::default_font_data(), text, size}.extent();
     }
 
     auto Canvas::fps(Vec2 position, float size) noexcept -> void {

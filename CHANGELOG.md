@@ -4,6 +4,9 @@
 
 ### Changed
 
+- **Text measurement and drawing share a font-independent layout.** Glyph
+  metrics and built-in atlas construction are separated from the GPU batch;
+  the public API and the built-in font's output are unchanged.
 - **`gl::VertexArray::create` returns `Result<VertexArray>`.** Both overloads
   report driver failures as `Error::out_of_memory` or `Error::platform`.
   Check the result and dereference it before attaching buffers or drawing.

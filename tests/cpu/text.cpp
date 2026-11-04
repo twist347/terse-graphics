@@ -7,26 +7,29 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstddef>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace {
-    // The glyphs for_each_glyph gives, as indices.
-    [[nodiscard]] auto glyphs_of(std::string_view text) -> std::vector<std::size_t> {
-        std::vector<std::size_t> glyphs;
-        tgx::detail::for_each_glyph(text, [&](std::size_t index) noexcept { glyphs.push_back(index); });
+    // The codepoints the layout places, including blank glyphs and tabs.
+    [[nodiscard]] auto glyphs_of(std::string_view text) -> std::vector<char32_t> {
+        std::vector<char32_t> glyphs;
+        const tgx::detail::TextLayout layout{tgx::detail::default_font_data(), text, 16};
+        layout.for_each([&](const tgx::detail::PositionedGlyph &placed) {
+            glyphs.push_back(placed.glyph->codepoint);
+        });
         return glyphs;
     }
 
-    [[nodiscard]] constexpr auto glyph(char c) noexcept -> std::size_t {
-        return static_cast<std::size_t>(c - ' ');
+    [[nodiscard]] constexpr auto glyph(char c) noexcept -> char32_t {
+        return static_cast<unsigned char>(c);
     }
 
-    constexpr std::size_t newline = tgx::detail::newline_glyph;
-    constexpr std::size_t space = tgx::detail::space_glyph;
-    constexpr std::size_t unknown = glyph('?');
+    constexpr char32_t space = U' ';
+    constexpr char32_t unknown = U'?';
 }
 
 TEST_CASE("UTF-8 sequence lengths from the lead byte") {
@@ -68,13 +71,12 @@ TEST_CASE("UTF-8 out: 1 to 4 bytes, read back by their lead") {
     }
 }
 
-TEST_CASE("for_each_glyph: one glyph a character") {
-    using V = std::vector<std::size_t>;
+TEST_CASE("TextLayout: one glyph a character") {
+    using V = std::vector<char32_t>;
     CHECK(glyphs_of("") == V{});
     CHECK(glyphs_of("a~ ") == V{glyph('a'), glyph('~'), space});
-    // Line breaks: "\r\n" is one, a lone '\r' none.
-    CHECK(glyphs_of("a\nb") == V{glyph('a'), newline, glyph('b')});
-    CHECK(glyphs_of("a\r\nb") == V{glyph('a'), newline, glyph('b')});
+    CHECK(glyphs_of("a\nb") == V{glyph('a'), glyph('b')});
+    CHECK(glyphs_of("a\r\nb") == V{glyph('a'), glyph('b')});
     CHECK(glyphs_of("a\rb") == V{glyph('a'), glyph('b')});
     // Missing from the font: a control character, two-, three- and four-byte
     // characters, each one '?'.
@@ -85,16 +87,52 @@ TEST_CASE("for_each_glyph: one glyph a character") {
     CHECK(glyphs_of("\xe2\x82" "a") == V{unknown, glyph('a')});
     CHECK(glyphs_of("a\xe2\x82") == V{glyph('a'), unknown});
     CHECK(glyphs_of("\x80" "a") == V{unknown, glyph('a')});
+    // Overlong controls, surrogates and values past Unicode are not characters.
+    CHECK(glyphs_of("\xc0\x8a") == V{unknown});
+    CHECK(glyphs_of("\xed\xa0\x80") == V{unknown});
+    CHECK(glyphs_of("\xf4\x90\x80\x80") == V{unknown});
 }
 
-TEST_CASE("for_each_glyph: a tab pads to the next stop of four") {
-    using V = std::vector<std::size_t>;
+TEST_CASE("TextLayout: a tab pads to the next stop of four") {
+    using V = std::vector<char32_t>;
     CHECK(glyphs_of("\t") == V{space, space, space, space});
     CHECK(glyphs_of("abc\td") == V{glyph('a'), glyph('b'), glyph('c'), space, glyph('d')});
     // A wide character is one column.
     CHECK(glyphs_of("\xc3\xa9\t") == V{unknown, space, space, space});
     // Columns count from the line's start.
-    CHECK(glyphs_of("ab\n\t") == V{glyph('a'), glyph('b'), newline, space, space, space, space});
+    CHECK(glyphs_of("ab\n\t") == V{glyph('a'), glyph('b'), space, space, space, space});
+}
+
+TEST_CASE("TextLayout uses font metrics, not the built-in font's") {
+    constexpr std::array glyphs{
+        tgx::detail::Glyph{.codepoint = U' ', .atlas = {0, 0, 2, 10}, .advance = 2, .blank = true},
+        tgx::detail::Glyph{.codepoint = U'?', .atlas = {2, 0, 2, 10}, .advance = 4},
+        tgx::detail::Glyph{.codepoint = U'a', .atlas = {4, 0, 4, 8}, .bearing = {1, 2}, .advance = 5},
+        tgx::detail::Glyph{.codepoint = U'b', .atlas = {8, 0, 3, 10}, .bearing = {-1, 1}, .advance = 7},
+    };
+    const tgx::detail::FontData font{
+        .atlas_size = {16, 10},
+        .line_height = 10,
+        .glyphs = glyphs,
+        .fallback = 1,
+    };
+    const tgx::detail::TextLayout layout{font, "ab\na", 20, {100, 50}, {0.5f, 0.5f}};
+    CHECK(layout.extent() == tgx::Vec2{24, 40});
+
+    std::vector<tgx::detail::PositionedGlyph> placed;
+    layout.for_each([&](const tgx::detail::PositionedGlyph &glyph) { placed.push_back(glyph); });
+    REQUIRE(placed.size() == 3);
+    CHECK(placed[0].glyph->codepoint == U'a');
+    CHECK(placed[0].position == tgx::Vec2{90, 34});
+    CHECK(placed[0].size == tgx::Vec2{8, 16});
+    CHECK(placed[0].glyph == &glyphs[2]);
+    CHECK(placed[1].glyph->codepoint == U'b');
+    CHECK(placed[1].position == tgx::Vec2{96, 32});
+    CHECK(placed[1].size == tgx::Vec2{6, 20});
+    CHECK(placed[2].position == tgx::Vec2{97, 54});
+
+    // A codepoint outside the sparse set uses the font's fallback metrics.
+    CHECK(tgx::detail::measure_text(font, "\xc3\xa9", 20) == tgx::Vec2{8, 20});
 }
 
 // Measuring needs only the built-in font's widths: no window, no GL.

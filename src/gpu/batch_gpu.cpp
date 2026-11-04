@@ -6,35 +6,17 @@
 #include "tgx/gl/draw.hpp"
 #include "tgx/gl/version.hpp"
 
-#include "base/default_font.hpp"
+#include "canvas/font.hpp"
 #include "gpu/canvas_shader.hpp"
 #include "gpu/gl/shader_internal.hpp"
 
 #include <glad/gl.h>
 
-#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <utility>
 
 namespace {
-    // The default font, white on transparent, and the white block shapes
-    // sample.
-    [[nodiscard]] auto builtin_atlas() -> tgx::Image {
-        namespace font = tgx::detail::default_font;
-
-        auto image = tgx::Image::create({font::atlas_width, font::atlas_height});
-        for (int y = 0; y < font::atlas_height; ++y) {
-            for (int x = 0; x < font::atlas_width; ++x) {
-                const auto byte = font::bits[static_cast<std::size_t>(y * font::row_bytes + x / 8)];
-                if ((byte & (0x80 >> (x % 8))) != 0) {
-                    image[x, y] = tgx::colors::white;
-                }
-            }
-        }
-        return image;
-    }
-
     constexpr const char *vertex_source = TGX_GLSL_VERSION R"(
         layout(location = 0) in vec2 in_position;
         layout(location = 1) in vec2 in_uv;
@@ -98,7 +80,7 @@ namespace tgx::detail {
         vertex_array->set_vertex_buffer(*vertex_buffer);
         vertex_array->set_index_buffer(*index_buffer);
 
-        auto builtin = Texture::create(builtin_atlas(), {.filter = TextureFilter::nearest});
+        auto builtin = Texture::create(make_default_font_atlas(), {.filter = TextureFilter::nearest});
         if (!builtin) {
             return std::unexpected{builtin.error()};
         }
