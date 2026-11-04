@@ -87,6 +87,7 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `14_cursor`     | The cursor's shapes, hidden, and captured for mouse look.          |
 | `15_nine_slice` | One small frame at any size: a panel, buttons, a bar cut in three. |
 | `16_clip`       | Shapes cut to a rect: a list scrolled in a panel, a world turning behind a window, a bar filling up. |
+| `17_dynamic_texture` | An `Image` painted with the mouse and copied into a dynamic `Texture`, scaled with nearest filtering. |
 
 | `examples/gl/`     | Shows                                                           |
 |--------------------|-----------------------------------------------------------------|
