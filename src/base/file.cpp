@@ -9,6 +9,7 @@
 #include <format>
 #include <fstream>
 #include <ios>
+#include <mutex>
 #include <system_error>
 #include <utility>
 
@@ -52,6 +53,8 @@ namespace {
             }
             file = nullptr;
 
+            static std::mutex commit_mutex;
+            const std::lock_guard lock{commit_mutex};
             std::error_code err{};
             std::filesystem::rename(path, destination, err);
             if (err) {
