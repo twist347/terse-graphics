@@ -75,15 +75,16 @@ namespace {
             );
             // C11 x: create exclusively, never truncate an existing file.
 #ifdef _WIN32
-            partial.file = _wfopen(partial.path.c_str(), L"wbx");
+            const int open_error = _wfopen_s(&partial.file, partial.path.c_str(), L"wbx");
 #else
             partial.file = std::fopen(partial.path.c_str(), "wbx");
+            const int open_error = partial.file ? 0 : errno;
 #endif
             if (partial.file) {
                 partial.owned = true;
                 return partial;
             }
-            if (errno != EEXIST) {
+            if (open_error != EEXIST) {
                 return {};
             }
         }
