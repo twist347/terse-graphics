@@ -14,8 +14,7 @@ taken up; what is done leaves this file (the [guide](guide.md) and the
 - Input and window: gamepads, the clipboard, files dropped on the window,
   monitors, the window's position, icon and size limits.
 - Text: TTF fonts, letter spacing, wrapping to a width.
-- Images on the CPU: crop, resize, flip, draw into, generate (gradients,
-  checks, noise).
+- Images on the CPU: draw into, generate (gradients, checks, noise).
 - Audio: sound generated on the fly.
 - Shapes: splines and Bezier curves, outlines of circle sectors and rings.
 - Collisions: rotated rectangles and convex polygons (SAT).

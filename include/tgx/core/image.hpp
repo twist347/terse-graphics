@@ -6,12 +6,18 @@
 #include "tgx/core/math.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <span>
 #include <utility>
 #include <vector>
 
 namespace tgx {
+    enum class ImageFilter : std::int32_t {
+        nearest,
+        linear,
+    };
+
     // RGBA8 pixels in memory, rows top to bottom like image files. Empty by
     // default.
     class Image {
@@ -37,6 +43,19 @@ namespace tgx {
         // Error::out_of_memory when encoding fails, and with
         // Error::unsupported at 2 GiB of pixels or more.
         [[nodiscard]] auto save(const std::filesystem::path &path) const -> Result<void>;
+
+        // A copy of a whole-pixel rectangle. (x, y) and size must fit inside
+        // the image (asserted). An empty size gives an empty image.
+        [[nodiscard]] auto crop(int x, int y, Size size) const -> Image;
+
+        // A resized copy. Pixel centers are sampled; linear interpolates all
+        // four straight RGBA channels. An empty source gives transparent
+        // pixels; an empty destination is empty.
+        [[nodiscard]] auto resize(Size size, ImageFilter filter = ImageFilter::linear) const -> Image;
+
+        // In place, mirrored left-right or top-bottom.
+        auto flip_horizontal() noexcept -> void;
+        auto flip_vertical() noexcept -> void;
 
         [[nodiscard]] auto size() const noexcept -> Size { return size_; }
 

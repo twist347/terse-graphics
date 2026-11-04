@@ -14,6 +14,8 @@
 #include <stb/stb_image_write.h>
 #include "base/vendor_end.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
@@ -55,6 +57,86 @@ namespace tgx {
         );
 
         return Image{size, std::vector<Color>(pixels.begin(), pixels.end())};
+    }
+
+    auto Image::crop(int x, int y, Size size) const -> Image {
+        TGX_ASSERT_MSG(
+            x >= 0 && y >= 0 && size.width >= 0 && size.height >= 0
+                && size.width <= size_.width && x <= size_.width - size.width
+                && size.height <= size_.height && y <= size_.height - size.height,
+            "crop ({}, {}) of {}x{} from a {}x{} image",
+            x, y, size.width, size.height, size_.width, size_.height
+        );
+
+        auto result = Image::create(size);
+        if (size.empty()) {
+            return result;
+        }
+        for (int row = 0; row < size.height; ++row) {
+            std::memcpy(
+                result.pixels().data() + static_cast<std::size_t>(row) * size.width,
+                pixels_.data() + static_cast<std::size_t>(y + row) * size_.width + x,
+                static_cast<std::size_t>(size.width) * sizeof(Color)
+            );
+        }
+        return result;
+    }
+
+    auto Image::resize(Size size, ImageFilter filter) const -> Image {
+        auto result = Image::create(size);
+        if (size.empty() || empty()) {
+            return result;
+        }
+
+        const double scale_x = static_cast<double>(size_.width) / size.width;
+        const double scale_y = static_cast<double>(size_.height) / size.height;
+        for (int y = 0; y < size.height; ++y) {
+            for (int x = 0; x < size.width; ++x) {
+                if (filter == ImageFilter::nearest) {
+                    const int source_x = std::min(static_cast<int>((x + 0.5) * scale_x), size_.width - 1);
+                    const int source_y = std::min(static_cast<int>((y + 0.5) * scale_y), size_.height - 1);
+                    result[x, y] = (*this)[source_x, source_y];
+                    continue;
+                }
+
+                const auto source_x = static_cast<float>((x + 0.5) * scale_x - 0.5);
+                const auto source_y = static_cast<float>((y + 0.5) * scale_y - 0.5);
+                const auto left = static_cast<int>(std::floor(source_x));
+                const auto top = static_cast<int>(std::floor(source_y));
+                const float tx = source_x - static_cast<float>(left);
+                const float ty = source_y - static_cast<float>(top);
+                const int right = left + 1;
+                const int bottom = top + 1;
+
+                const int x0 = std::clamp(left, 0, size_.width - 1);
+                const int x1 = std::clamp(right, 0, size_.width - 1);
+                const int y0 = std::clamp(top, 0, size_.height - 1);
+                const int y1 = std::clamp(bottom, 0, size_.height - 1);
+                const Color upper = lerp((*this)[x0, y0], (*this)[x1, y0], tx);
+                const Color lower = lerp((*this)[x0, y1], (*this)[x1, y1], tx);
+                result[x, y] = lerp(upper, lower, ty);
+            }
+        }
+        return result;
+    }
+
+    auto Image::flip_horizontal() noexcept -> void {
+        for (int y = 0; y < size_.height; ++y) {
+            for (int x = 0; x < size_.width / 2; ++x) {
+                std::swap((*this)[x, y], (*this)[size_.width - 1 - x, y]);
+            }
+        }
+    }
+
+    auto Image::flip_vertical() noexcept -> void {
+        const auto pixels = this->pixels();
+        const auto width = static_cast<std::size_t>(size_.width);
+        for (int top = 0, bottom = size_.height - 1; top < bottom; ++top, --bottom) {
+            std::ranges::swap_ranges(
+                pixels.subspan(static_cast<std::size_t>(top) * width, width),
+                pixels.subspan(static_cast<std::size_t>(bottom) * width, width)
+            );
+        }
     }
 
     auto Image::load(const std::filesystem::path &path) -> Result<Image> {

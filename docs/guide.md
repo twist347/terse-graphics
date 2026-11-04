@@ -71,9 +71,10 @@ In `tgx`:
   `closest_point` (of a segment or a rect), `raycast` (distance to a rect) and
   `sweep` (the first contact of a moving rect).
 - **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
-  JPEG, BMP, TGA or GIF, or made in code, saved as PNG) and `Texture` made
-  from it, with nearest or linear filtering, wrapping, optional mipmaps and
-  partial updates. Screenshots with `device().read()`.
+  JPEG, BMP, TGA or GIF, or made in code, saved as PNG, cropped, resized with
+  nearest/linear filtering and flipped) and `Texture` made from it, with
+  nearest or linear filtering, wrapping, optional mipmaps and partial updates.
+  Screenshots with `device().read()`.
 - **Audio**: `Sound`s held in memory and played at once, many at a time, with
   volume, pan and pitch; `Music` streamed from its file, with play, pause,
   seek, looping, volume, pan and pitch. WAV, Ogg Vorbis, MP3 and FLAC, or
@@ -311,6 +312,16 @@ texture, blend or shader, or when its buffers fill.
 Textures load from image files or encoded bytes in one call; `Image` is for
 pixels made in code or read on the CPU, rows top to bottom. A sprite needs only
 a position: by default it is the whole texture at its own size.
+
+Images also crop whole-pixel rectangles, resize with nearest or bilinear
+sampling, and flip in place:
+
+```cpp
+auto icon = image.crop(16, 16, {32, 32});
+auto thumbnail = image.resize({160, 120});   // linear by default
+auto sharp = image.resize({640, 360}, tgx::ImageFilter::nearest);
+image.flip_horizontal();                     // flip_vertical() too
+```
 
 `Texture::load` can fail with `Error::io` or `Error::decode` while loading the
 image, or `Error::unsupported`, `Error::out_of_memory` or `Error::platform`

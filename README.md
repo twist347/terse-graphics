@@ -24,7 +24,7 @@ light and a scanline shader, all made in code.*
   under a 2D camera, clipped to a rect, batched into as few draws as the GPU allows.
 - **Render targets**: pixel art scaled up crisp, post effects, screenshots.
 - **Audio**: sounds and streamed music, WAV, Ogg Vorbis, MP3 or FLAC.
-- **Images and textures**: PNG, JPEG, BMP, TGA, GIF in, PNG out.
+- **Images and textures**: PNG, JPEG, BMP, TGA, GIF in, PNG out; crop, nearest/linear resize and flips.
 - **Utilities**: GPU-ready math with glm's conventions, collisions, a seeded
   `Random`, timers and easing curves.
 - **`tgx::gl`**: your own shaders, typed buffers and uniforms, in the same

@@ -4,6 +4,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <filesystem>
@@ -46,6 +47,84 @@ TEST_CASE("Image made in code") {
     constexpr std::array pixels{tgx::colors::red, tgx::colors::green};
     const auto copy = tgx::Image::from_pixels({2, 1}, pixels);
     CHECK(copy[1, 0] == tgx::colors::green);
+}
+
+TEST_CASE("Image::crop copies a whole-pixel rectangle") {
+    const auto image = tgx::Image::from_pixels({3, 2}, std::array{
+        tgx::colors::red, tgx::colors::green, tgx::colors::blue,
+        tgx::colors::cyan, tgx::colors::magenta, tgx::colors::yellow,
+    });
+    const auto cropped = image.crop(1, 0, {2, 2});
+    CHECK(cropped.size() == tgx::Size{2, 2});
+    CHECK(std::ranges::equal(cropped.pixels(), std::array{
+        tgx::colors::green, tgx::colors::blue, tgx::colors::magenta, tgx::colors::yellow,
+    }));
+    CHECK(image.crop(3, 2, {0, 0}).empty());
+}
+
+TEST_CASE("Image::resize nearest keeps blocks of source pixels") {
+    const auto image = tgx::Image::from_pixels({2, 2}, std::array{
+        tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white,
+    });
+    const auto resized = image.resize({4, 4}, tgx::ImageFilter::nearest);
+    for (int y = 0; y < 4; ++y) {
+        for (int x = 0; x < 4; ++x) {
+            const tgx::Color expected = y < 2
+                ? (x < 2 ? tgx::colors::red : tgx::colors::green)
+                : (x < 2 ? tgx::colors::blue : tgx::colors::white);
+            CHECK(resized[x, y] == expected);
+        }
+    }
+    CHECK(image.resize({1, 1}, tgx::ImageFilter::nearest)[0, 0] == tgx::colors::white);
+    CHECK(image.resize({}).empty());
+}
+
+TEST_CASE("Image::resize linear interpolates straight RGBA at pixel centers") {
+    const auto image = tgx::Image::from_pixels({2, 2}, std::array{
+        tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white,
+    });
+    const auto resized = image.resize({3, 3});
+    CHECK(resized[0, 0] == tgx::colors::red);
+    CHECK(resized[2, 0] == tgx::colors::green);
+    CHECK(resized[0, 2] == tgx::colors::blue);
+    CHECK(resized[2, 2] == tgx::colors::white);
+    CHECK(resized[1, 0] == tgx::Color{128, 128, 0, 255});
+    CHECK(resized[0, 1] == tgx::Color{128, 0, 128, 255});
+    CHECK(resized[1, 1] == tgx::Color{128, 128, 128, 255});
+
+    const auto alpha = tgx::Image::from_pixels({1, 2}, std::array{
+        tgx::Color{255, 0, 0, 0}, tgx::colors::blue,
+    }).resize({3, 1});
+    CHECK(alpha[1, 0] == tgx::Color{128, 0, 128, 128});
+
+    const auto empty = tgx::Image{}.resize({2, 2});
+    CHECK(empty.size() == tgx::Size{2, 2});
+    CHECK(empty[1, 1] == tgx::colors::transparent);
+}
+
+TEST_CASE("Image flips mirror pixels in place") {
+    const auto source = tgx::Image::from_pixels({3, 2}, std::array{
+        tgx::colors::red, tgx::colors::green, tgx::colors::blue,
+        tgx::colors::cyan, tgx::colors::magenta, tgx::colors::yellow,
+    });
+
+    auto horizontal = source;
+    horizontal.flip_horizontal();
+    CHECK(std::ranges::equal(horizontal.pixels(), std::array{
+        tgx::colors::blue, tgx::colors::green, tgx::colors::red,
+        tgx::colors::yellow, tgx::colors::magenta, tgx::colors::cyan,
+    }));
+    horizontal.flip_horizontal();
+    CHECK(std::ranges::equal(horizontal.pixels(), source.pixels()));
+
+    auto vertical = source;
+    vertical.flip_vertical();
+    CHECK(std::ranges::equal(vertical.pixels(), std::array{
+        tgx::colors::cyan, tgx::colors::magenta, tgx::colors::yellow,
+        tgx::colors::red, tgx::colors::green, tgx::colors::blue,
+    }));
+    vertical.flip_vertical();
+    CHECK(std::ranges::equal(vertical.pixels(), source.pixels()));
 }
 
 TEST_CASE("Image::decode") {

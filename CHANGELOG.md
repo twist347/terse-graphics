@@ -15,6 +15,9 @@
   `transpose`, `Rect` adds `expanded` and `inset`; `raycast` gives the distance
   to a rect and `sweep` the first contact of a moving rect. `FrameStats` counts
   Canvas vertices, indices and uploaded bytes.
+- **Images can be cropped, resized and flipped on the CPU.** `Image::crop`
+  copies a whole-pixel rectangle, `resize` offers nearest and bilinear sampling,
+  and the two flip operations mirror pixels in place.
 
 ### Changed
 
