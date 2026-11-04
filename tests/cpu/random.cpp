@@ -109,6 +109,9 @@ TEST_CASE("chance, points and directions") {
 namespace {
     template<typename Items>
     concept Pickable = requires(tgx::Random random, Items &&items) { random.pick(std::forward<Items>(items)); };
+
+    template<typename Items>
+    concept Shufflable = requires(tgx::Random random, Items &&items) { random.shuffle(std::forward<Items>(items)); };
 }
 
 TEST_CASE("pick takes from arrays and vectors alike") {
@@ -125,4 +128,21 @@ TEST_CASE("pick takes from arrays and vectors alike") {
     static_assert(!Pickable<std::vector<int>>);
     static_assert(Pickable<std::vector<int> &>);
     static_assert(Pickable<std::span<const int>>);
+}
+
+TEST_CASE("shuffle is a permutation fixed by the seed") {
+    std::array items{0, 1, 2, 3, 4, 5};
+    tgx::Random{42}.shuffle(items);
+    // Worked out from the PCG32 and next_int sequences, not std::shuffle.
+    CHECK(items == std::array{5, 3, 0, 1, 2, 4});
+
+    std::vector<int> a{1, 2, 3, 4};
+    std::vector<int> b = a;
+    tgx::Random{7}.shuffle(a);
+    tgx::Random{7}.shuffle(b);
+    CHECK(a == b);
+
+    static_assert(Shufflable<std::vector<int> &>);
+    static_assert(Shufflable<std::span<int>>);
+    static_assert(!Shufflable<std::span<const int>>);
 }

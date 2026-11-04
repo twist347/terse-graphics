@@ -75,8 +75,9 @@ In `tgx`:
   partial updates. Screenshots with `device().read()`.
 - **Audio**: `Sound`s held in memory and played at once, many at a time, with
   volume, pan and pitch; `Music` streamed from its file, with play, pause,
-  seek and looping. WAV, Ogg Vorbis, MP3 and FLAC, or samples made in code.
-  Without an output device it stays silent and everything else works.
+  seek, looping, volume, pan and pitch. WAV, Ogg Vorbis, MP3 and FLAC, or
+  samples made in code. Without an output device it stays silent and
+  everything else works.
 - **Render targets**: `RenderTarget`, a texture to draw into instead of the
   window, with the Canvas or a draw of your own; then drawn like any texture
   (pixel art scaled up, a whole frame through a shader) or read back into an
@@ -91,9 +92,9 @@ In `tgx`:
   `smoothstep`, `wrap` (whatever goes around: an angle, a screen edge),
   `to_vec2` (a `Size` for math), `Rect::position()` and `size()`.
 - **Random**: `tgx::Random`, a seeded value with floats, ints, chances, points
-  in a rect, directions and picks; the same seed gives the same numbers on
-  every run, and the same integers on every platform (floats may differ in
-  the last bits).
+  in a rect, directions, picks and shuffles; the same seed gives the same
+  numbers on every run, and the same integers and shuffles on every platform
+  (floats may differ in the last bits).
 - **Timers**: `tgx::Timer`, a value ticked by `clock().delta()`: `once`
   (a delay), `once_ready` (a cooldown that lets the first use through),
   `every` (waves, animation frames; keeps its rate at any frame rate), with
@@ -304,16 +305,17 @@ canvas draws for few shapes mean the batch keeps breaking: on a change of
 target, viewport, size, camera, clip, texture, blend or shader, or when its
 buffers fill.
 
-Textures load from image files in one call; `Image` is for pixels made in code
-or read on the CPU, rows top to bottom. A sprite needs only a position: by
-default it is the whole texture at its own size.
+Textures load from image files or encoded bytes in one call; `Image` is for
+pixels made in code or read on the CPU, rows top to bottom. A sprite needs only
+a position: by default it is the whole texture at its own size.
 
 `Texture::load` can fail with `Error::io` or `Error::decode` while loading the
 image, or `Error::unsupported`, `Error::out_of_memory` or `Error::platform`
-while creating the texture.
+while creating the texture. `Texture::decode` does the same without file I/O.
 
 ```cpp
 auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
+auto embedded = tgx::Texture::decode(png_bytes, {.filter = tgx::TextureFilter::nearest});
 
 canvas.sprite(*player, {pos});
 canvas.sprite(*atlas, {
@@ -406,11 +408,12 @@ code (`Sound::from_samples`). Up to 64 plays sound at once; past that the one
 playing longest is cut off. Destroying a sound stops what of it still plays.
 
 `play` returns a `Playback`, which controls that one play and leaves the other
-plays of the sound alone. Once the play is over it does nothing, so it can be
-kept as long as you like:
+plays of the sound alone. Its volume, pan and pitch can change while it plays.
+Once the play is over it does nothing, so it can be kept as long as you like:
 
 ```cpp
 tgx::Playback engine = app->audio().play(*hum);
+engine.set_volume(0.7f);           // set_pan(), set_pitch()
 engine.pause();                    // resume(), stop(), playing()
 app->audio().stop(*hum);           // every play of the sound
 ```
@@ -427,11 +430,13 @@ auto crash = tgx::Sound::tone({.waveform = tgx::Waveform::noise, .frequency = 40
 ```
 
 Music streams from its file while it plays, and needs nothing called every
-frame:
+frame. Volume, pan and pitch are set on the stream:
 
 ```cpp
 auto music = tgx::Music::load("theme.ogg");
 music->set_looping(true);
+music->set_pan(-0.3f);
+music->set_pitch(1.1f);
 music->play();                     // pause(), stop(), seek(seconds), position(), duration()
 ```
 
@@ -574,8 +579,8 @@ glfwSetWindowOpacity(app->window().native_handle(), 0.9f);
   texture the driver has no room for comes back as `Error::out_of_memory`. Host
   memory running out is not reported: the functions that allocate as much as
   their input asks for (`Image::create`, `from_pixels`, `load`, `decode`;
-  `Sound::load`, `decode`, `from_samples`, `tone`; `Music::load`; `Texture::load`;
-  `Device::read`, `RenderTarget::read`; `gl::Shader::from_source`) may throw
+  `Sound::load`, `decode`, `from_samples`, `tone`; `Music::load`; `Texture::load`,
+  `decode`; `Device::read`, `RenderTarget::read`; `gl::Shader::from_source`) may throw
   `std::bad_alloc`, and everywhere else, `noexcept` included, it ends the
   program.
 - **One `Window`, one `Device`, one `Audio`.** They are one per process by

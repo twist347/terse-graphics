@@ -168,6 +168,8 @@ namespace tgx::detail {
         // Last set. Kept for a silent stream too.
         bool looping{false};
         float volume{1.f};
+        float pan{0.f};
+        float pitch{1.f};
 
         MusicStream() noexcept = default;
         MusicStream(const MusicStream &) = delete;
@@ -186,6 +188,10 @@ namespace {
     // asserts.
     [[maybe_unused, nodiscard]] auto valid_volume(float volume) noexcept -> bool {
         return std::isfinite(volume) && volume >= 0.f;
+    }
+
+    [[maybe_unused, nodiscard]] auto valid_pitch(float pitch) noexcept -> bool {
+        return std::isfinite(pitch) && pitch > 0.f;
     }
 
     // nullptr when the Music was moved from or the Audio is silent.
@@ -457,6 +463,38 @@ namespace tgx {
         return stream_ ? stream_->volume : 1.f;
     }
 
+    auto Music::set_pan(float pan) noexcept -> void {
+        TGX_ASSERT_MSG(!std::isnan(pan), "pan {}: not a number", pan);
+
+        if (!stream_) {
+            return;
+        }
+        stream_->pan = std::clamp(pan, -1.f, 1.f);
+        if (ma_sound *sound = live_sound(stream_)) {
+            ma_sound_set_pan(sound, stream_->pan);
+        }
+    }
+
+    auto Music::pan() const noexcept -> float {
+        return stream_ ? stream_->pan : 0.f;
+    }
+
+    auto Music::set_pitch(float pitch) noexcept -> void {
+        TGX_ASSERT_MSG(valid_pitch(pitch), "pitch {}: not a speed to play at", pitch);
+
+        if (!stream_) {
+            return;
+        }
+        stream_->pitch = pitch;
+        if (ma_sound *sound = live_sound(stream_)) {
+            ma_sound_set_pitch(sound, pitch);
+        }
+    }
+
+    auto Music::pitch() const noexcept -> float {
+        return stream_ ? stream_->pitch : 1.f;
+    }
+
     auto Music::seek(double seconds) noexcept -> void {
         TGX_ASSERT_MSG(std::isfinite(seconds) && seconds >= 0.0, "seek({}): not a second of it", seconds);
 
@@ -522,6 +560,30 @@ namespace tgx {
         }
     }
 
+    auto Playback::set_volume(float volume) noexcept -> void {
+        TGX_ASSERT_MSG(valid_volume(volume), "volume {}: not 0 or more", volume);
+
+        if (Voice *voice = voice_of(voice_, play_)) {
+            ma_sound_set_volume(&voice->sound, volume);
+        }
+    }
+
+    auto Playback::set_pan(float pan) noexcept -> void {
+        TGX_ASSERT_MSG(!std::isnan(pan), "pan {}: not a number", pan);
+
+        if (Voice *voice = voice_of(voice_, play_)) {
+            ma_sound_set_pan(&voice->sound, std::clamp(pan, -1.f, 1.f));
+        }
+    }
+
+    auto Playback::set_pitch(float pitch) noexcept -> void {
+        TGX_ASSERT_MSG(valid_pitch(pitch), "pitch {}: not a speed to play at", pitch);
+
+        if (Voice *voice = voice_of(voice_, play_)) {
+            ma_sound_set_pitch(&voice->sound, pitch);
+        }
+    }
+
     auto Playback::playing() const noexcept -> bool {
         const Voice *voice = voice_of(voice_, play_);
         return voice && ma_sound_is_playing(&voice->sound);
@@ -564,11 +626,7 @@ namespace tgx {
 
     auto Audio::play(const Sound &sound, const PlayParams &params) noexcept -> Playback {
         // miniaudio would silently keep the old pitch.
-        TGX_ASSERT_MSG(
-            std::isfinite(params.pitch) && params.pitch > 0.f,
-            "pitch {}: not a speed to play at",
-            params.pitch
-        );
+        TGX_ASSERT_MSG(valid_pitch(params.pitch), "pitch {}: not a speed to play at", params.pitch);
         TGX_ASSERT_MSG(valid_volume(params.volume), "volume {}: not 0 or more", params.volume);
         TGX_ASSERT_MSG(!std::isnan(params.pan), "pan {}: not a number", params.pan);
 

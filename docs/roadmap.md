@@ -26,7 +26,7 @@ taken up; what is done leaves this file (the [guide](guide.md) and the
   call them, a SOVERSION; game code reloaded while the game runs needs it to
   share the game's tgx), clang-cl on Windows, a pkg-config file for builds
   without CMake.
-- Loading from memory: `Texture::decode`, `Music::decode`.
+- Loading from memory: `Music::decode`.
 
 ## Deferred
 

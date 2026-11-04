@@ -4,8 +4,10 @@
 #include "tgx/core/handle.hpp"
 #include "tgx/core/math.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <span>
 
 namespace tgx {
     class Image;
@@ -69,6 +71,13 @@ namespace tgx {
         //     auto player = tgx::Texture::load("player.png", {.filter = tgx::TextureFilter::nearest});
         [[nodiscard]] static auto load(
             const std::filesystem::path &path,
+            const TextureParams &params = {}
+        ) -> Result<Texture>;
+
+        // Image::decode and create() in one call, e.g. for an embedded asset.
+        // Fails like either, except that bytes in memory give no Error::io.
+        [[nodiscard]] static auto decode(
+            std::span<const std::byte> encoded,
             const TextureParams &params = {}
         ) -> Result<Texture>;
 

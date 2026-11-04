@@ -8,17 +8,19 @@
 #include <concepts>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <numbers>
 #include <ranges>
+#include <utility>
 
 namespace tgx {
     // Random numbers for games, as a plain value. Keep one per sequence, e.g.
     // one for the level layout and one for effects, so the layout replays the
     // same whatever the effects do.
     //
-    // The same seed gives the same numbers on every run. The integers
-    // (next_u32, next_int, pick) are the same on every platform and compiler
-    // too: the generator (PCG32) and the distributions are tgx's own, unlike
+    // The same seed gives the same numbers on every run. The integers, picks
+    // and shuffles are the same on every platform and compiler too: the
+    // generator (PCG32) and the distributions are tgx's own, unlike
     // <random>'s. Floats may differ between platforms in the last bits. Not
     // for anything secret.
     //
@@ -114,6 +116,20 @@ namespace tgx {
 
             const int last = static_cast<int>(std::ranges::size(items)) - 1;
             return std::ranges::begin(items)[next_int(0, last)];
+        }
+
+        // Fisher-Yates in place, using next_int: a seed gives the same order
+        // on every platform. Works with arrays, vectors and writable spans.
+        template<std::ranges::random_access_range Items>
+            requires std::ranges::sized_range<Items> && std::permutable<std::ranges::iterator_t<Items>>
+        auto shuffle(Items &&items) -> void {
+            TGX_ASSERT_MSG(std::in_range<int>(std::ranges::size(items)), "too many items to shuffle");
+
+            const int count = static_cast<int>(std::ranges::size(items));
+            const auto first = std::ranges::begin(items);
+            for (int end = count; end > 1; --end) {
+                std::ranges::iter_swap(first + (end - 1), first + next_int(0, end - 1));
+            }
         }
 
     private:

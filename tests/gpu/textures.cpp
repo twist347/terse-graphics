@@ -3,6 +3,7 @@
 
 #include "gpu.hpp"
 
+#include "base/file.hpp"
 #include "support.hpp"
 
 #include <doctest/doctest.h>
@@ -233,7 +234,7 @@ TEST_CASE("a texture update changes only the requested offset rectangle") {
     }
 }
 
-TEST_CASE("Texture::load: a file drawn as saved, a missing one an io error") {
+TEST_CASE("Texture::load and decode: the same pixels from a path and memory") {
     const tgx_test::TempFile file{"texture.png"};
     REQUIRE(tgx::Image::from_pixels({2, 2}, std::array{
         tgx::colors::red, tgx::colors::green, tgx::colors::blue, tgx::colors::white,
@@ -243,18 +244,33 @@ TEST_CASE("Texture::load: a file drawn as saved, a missing one an io error") {
     CHECK(loaded->size() == tgx::Size{2, 2});
     CHECK(loaded->params().filter == tgx::TextureFilter::nearest);
 
-    const tgx::RenderTarget target = tgx_test::target({16, 16});
+    const auto encoded = tgx::detail::read_file(file.path);
+    REQUIRE(encoded.has_value());
+    const auto decoded = tgx::Texture::decode(*encoded, {.filter = tgx::TextureFilter::nearest});
+    REQUIRE(decoded.has_value());
+    CHECK(decoded->size() == loaded->size());
+    CHECK(decoded->params().filter == tgx::TextureFilter::nearest);
+
+    const tgx::RenderTarget target = tgx_test::target({32, 16});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
     canvas.sprite(*loaded, {.size = {16, 16}});
+    canvas.sprite(*decoded, {.position = {16, 0}, .size = {16, 16}});
     const tgx::Image image = target.read();
-    CHECK(image[4, 4] == tgx::colors::red);
-    CHECK(image[12, 4] == tgx::colors::green);
-    CHECK(image[4, 12] == tgx::colors::blue);
-    CHECK(image[12, 12] == tgx::colors::white);
+    for (const int x: {4, 20}) {
+        CHECK(image[x, 4] == tgx::colors::red);
+        CHECK(image[x + 8, 4] == tgx::colors::green);
+        CHECK(image[x, 12] == tgx::colors::blue);
+        CHECK(image[x + 8, 12] == tgx::colors::white);
+    }
 
     const auto missing = tgx::Texture::load(tgx_test::temp_path("no_such_texture.png"));
     REQUIRE_FALSE(missing.has_value());
     CHECK(missing.error() == tgx::Error::io);
+
+    constexpr std::array garbage{std::byte{1}, std::byte{2}, std::byte{3}};
+    const auto bad = tgx::Texture::decode(garbage);
+    REQUIRE_FALSE(bad.has_value());
+    CHECK(bad.error() == tgx::Error::decode);
 }
 
 TEST_CASE("wrap: a src twice the texture's width, clamped, tiled, mirrored") {

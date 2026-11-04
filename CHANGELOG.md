@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- **`Texture::decode` creates a texture from encoded image bytes.** It combines
+  `Image::decode` and `Texture::create` for embedded assets.
+- **`Random::shuffle` shuffles a range in place.** Its Fisher-Yates sequence is
+  fixed by the seed and is the same on every platform.
+- **Music and individual plays have more playback controls.** `Music` adds pan
+  and pitch; `Playback::set_volume`, `set_pan` and `set_pitch` change one live
+  play without affecting the other plays of its sound.
+
 ### Changed
 
 - **Text measurement and drawing share a font-independent layout.** Glyph

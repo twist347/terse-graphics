@@ -81,6 +81,12 @@ namespace tgx {
 
         auto resume() noexcept -> void;
 
+        // Changes only this play, while it is still live. Values are as in
+        // PlayParams; pan is clamped to [-1, 1].
+        auto set_volume(float volume) noexcept -> void;
+        auto set_pan(float pan) noexcept -> void;
+        auto set_pitch(float pitch) noexcept -> void;
+
         // False once paused, ended, stopped or cut off.
         [[nodiscard]] auto playing() const noexcept -> bool;
 
@@ -207,6 +213,17 @@ namespace tgx {
         auto set_volume(float volume) noexcept -> void;
 
         [[nodiscard]] auto volume() const noexcept -> float;
+
+        // -1 left, 0 center (default), 1 right. Clamped to that.
+        auto set_pan(float pan) noexcept -> void;
+
+        [[nodiscard]] auto pan() const noexcept -> float;
+
+        // 1 as recorded (default), 2 an octave higher and twice as fast.
+        // Above 0.
+        auto set_pitch(float pitch) noexcept -> void;
+
+        [[nodiscard]] auto pitch() const noexcept -> float;
 
         // Finite seconds, not below 0, playing or not. Past the end: the end,
         // or wrapped around when looping.

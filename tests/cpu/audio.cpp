@@ -175,14 +175,40 @@ TEST_CASE("Music without an Audio loads, measures and stays quiet") {
     // Settings hold even with nothing to play them on.
     CHECK_FALSE(music->looping());
     CHECK(music->volume() == 1.f);
+    CHECK(music->pan() == 0.f);
+    CHECK(music->pitch() == 1.f);
     music->set_looping(true);
     music->set_volume(0.5f);
+    music->set_pan(-2.f);
+    music->set_pitch(1.5f);
     CHECK(music->looping());
     CHECK(music->volume() == 0.5f);
+    CHECK(music->pan() == -1.f);
+    CHECK(music->pitch() == 1.5f);
 
     const auto missing = tgx::Music::load("there/is/no/such/music.ogg");
     REQUIRE_FALSE(missing.has_value());
     CHECK(missing.error() == tgx::Error::io);
+}
+
+TEST_CASE("Music pitch and pan apply to a live stream") {
+    auto audio = tgx::Audio::create();
+    if (!audio.active()) {
+        MESSAGE("no output device: live stream settings not checked");
+        return;
+    }
+
+    const tgx_test::TempFile file{"live-music.wav"};
+    {
+        std::ofstream out{file.path, std::ios::binary};
+        out.write(reinterpret_cast<const char *>(wav.data()), static_cast<std::streamsize>(wav.size()));
+    }
+    auto music = tgx::Music::load(file.path);
+    REQUIRE(music.has_value());
+    music->set_pan(2.f);
+    music->set_pitch(0.75f);
+    CHECK(music->pan() == 1.f);
+    CHECK(music->pitch() == 0.75f);
 }
 
 TEST_CASE("a Playback stops or pauses its own play") {
@@ -190,6 +216,9 @@ TEST_CASE("a Playback stops or pauses its own play") {
     none.pause();
     none.resume();
     none.stop();
+    none.set_volume(0.5f);
+    none.set_pan(0.5f);
+    none.set_pitch(1.5f);
     CHECK_FALSE(none.playing());
 
     auto audio = tgx::Audio::create();
@@ -205,6 +234,10 @@ TEST_CASE("a Playback stops or pauses its own play") {
     tgx::Playback a = audio.play(sound);
     const tgx::Playback b = audio.play(sound);
     CHECK(a.playing());
+    a.set_volume(0.5f);
+    a.set_pan(2.f);
+    a.set_pitch(1.5f);
+    CHECK(b.playing());
 
     a.pause();
     CHECK_FALSE(a.playing());

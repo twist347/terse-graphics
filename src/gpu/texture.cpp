@@ -95,6 +95,12 @@ namespace tgx {
         });
     }
 
+    auto Texture::decode(std::span<const std::byte> encoded, const TextureParams &params) -> Result<Texture> {
+        return Image::decode(encoded).and_then([&](const Image &image) {
+            return create(image, params);
+        });
+    }
+
     auto Texture::create(
         Size size,
         const TextureParams &params
