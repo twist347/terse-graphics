@@ -40,15 +40,15 @@ namespace tgx {
                 if (speed == 0.f) {
                     return at >= low && at <= high;
                 }
-                float near = (low - at) / speed;
-                float far = (high - at) / speed;
-                if (near > far) {
-                    const float temporary = near;
-                    near = far;
-                    far = temporary;
+                float closer = (low - at) / speed;
+                float further = (high - at) / speed;
+                if (closer > further) {
+                    const float temporary = closer;
+                    closer = further;
+                    further = temporary;
                 }
-                enter = std::max(enter, near);
-                leave = std::min(leave, far);
+                enter = std::max(enter, closer);
+                leave = std::min(leave, further);
                 return enter <= leave;
             };
             if (!axis(origin.x, direction.x, rect.x, rect.right())
