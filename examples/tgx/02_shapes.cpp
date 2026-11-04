@@ -94,8 +94,13 @@ int main() {
         canvas.ellipse_lines({1152, 635}, {110, 30}, tgx::colors::light_gray, 6, -0.3f);
 
         // All the shapes above share one texture, shader and blend: one draw.
+        // The stats describe the previous frame, which had the same shapes.
         const tgx::FrameStats stats = app->device().stats();
-        canvas.text({10, 30}, std::format("{} draws", stats.draws), tgx::colors::white);
+        const std::string work = std::format(
+            "{} draws | {} Canvas batches | {} vertices | {} indices | {} bytes uploaded",
+            stats.draws, stats.canvas_draws, stats.canvas_vertices, stats.canvas_indices, stats.canvas_upload_bytes
+        );
+        canvas.text({10, 30}, work, tgx::colors::white);
         canvas.fps({10, 10});
 
         app->swap_buffers();

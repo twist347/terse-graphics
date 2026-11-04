@@ -72,7 +72,7 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `examples/tgx/` | Shows                                                              |
 |-----------------|--------------------------------------------------------------------|
 | `01_window`     | The bare loop: a window cleared to one color.                      |
-| `02_shapes`     | The `Canvas` shapes, one call each: filled, outlined, see-through; smooth edges with MSAA. |
+| `02_shapes`     | The `Canvas` shapes, one call each: filled, outlined, see-through; smooth edges with MSAA and frame stats. |
 | `03_texture`    | An `Image` made pixel by pixel, as a `Texture`, drawn as a sprite. |
 | `04_sprite`     | The `Sprite` fields: part of an atlas, mirrored, tinted, turned.   |
 | `05_moving`     | Movement, a `Timer` and easing by `clock().delta()`, the same at any frame rate; vsync and an fps limit toggled. |
@@ -81,9 +81,9 @@ header there is to include, and builds as `<folder>_<name>`, e.g.
 | `08_blend`      | Alpha and additive blending side by side.                          |
 | `09_input`      | Keyboard and mouse: held keys, presses, the wheel, the mouse in the world. |
 | `10_text`       | Text in the built-in font: sizes, lines, centering, a field to type in. |
-| `11_collision`  | Collision checks: a point in a shape, shapes overlapping, the part rects share, the nearest point of a rect. |
+| `11_collision`  | Collision checks, the nearest point, a ray's first hit and a rect swept to a wall. |
 | `12_pixel_art`  | A render target: the world at 320x180, scaled up into sharp square pixels. |
-| `13_audio`      | Notes made in code, played at five pitches and panned; a long note paused and stopped on its own; music streamed from a file. |
+| `13_audio`      | Notes made in code, played at five pitches and panned; live pan for a long note and streamed music. |
 | `14_cursor`     | The cursor's shapes, hidden, and captured for mouse look.          |
 | `15_nine_slice` | One small frame at any size: a panel, buttons, a bar cut in three. |
 | `16_clip`       | Shapes cut to a rect: a list scrolled in a panel, a world turning behind a window, a bar filling up. |

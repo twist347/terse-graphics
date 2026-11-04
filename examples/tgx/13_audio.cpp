@@ -1,7 +1,8 @@
 // Sound: a note made in code, played at five pitches with keys 1 to 5,
 // panned to where the mouse is. Space plays a long note that P pauses and
-// resumes and S stops, leaving the others alone. Given a music file (OGG, MP3, FLAC or WAV) on
-// the command line, M plays and pauses it while it streams from the disk:
+// resumes and S stops, leaving the others alone. The long note and music keep
+// following the mouse while playing. Given a music file (OGG, MP3, FLAC or WAV)
+// on the command line, M plays and pauses it while it streams from the disk:
 //
 //     tgx_13_audio theme.ogg
 
@@ -74,6 +75,11 @@ int main(int argc, char **argv) {
 
         // -1 at the left edge of the window, 1 at the right; play() clamps it.
         const float pan = tgx::remap(input.mouse().x, 0, tgx::to_vec2(canvas.size()).x, -1, 1);
+        // Moving the mouse also moves sounds that are already playing.
+        hum.set_pan(pan);
+        if (music) {
+            music->set_pan(pan);
+        }
 
         for (std::size_t i = 0; i < keys.size(); ++i) {
             if (input.pressed(keys[i])) {
