@@ -29,9 +29,19 @@ namespace {
     }
 
     constexpr auto default_glyphs = make_default_glyphs();
+    // Glyphs are one row filling the atlas height, so v goes from 0 to 1.
+    static_assert(tgx::detail::default_font::atlas_height == tgx::detail::default_font::line_height);
 }
 
 namespace tgx::detail {
+    auto default_solid_uv() noexcept -> Vec2 {
+        namespace baked = default_font;
+        return {
+            (static_cast<float>(baked::white_x) + baked::white_size / 2.f) / baked::atlas_width,
+            (baked::white_size / 2.f) / baked::atlas_height,
+        };
+    }
+
     auto FontData::glyph(char32_t codepoint) const noexcept -> const Glyph & {
         if (!glyphs.empty()) {
             const char32_t first = glyphs.front().codepoint;

@@ -29,6 +29,7 @@ namespace tgx::detail {
     };
 
     [[nodiscard]] auto default_font_data() noexcept -> const FontData &;
+    [[nodiscard]] auto default_solid_uv() noexcept -> Vec2;
 
     // The default glyphs, white on transparent, and the white block for shapes.
     [[nodiscard]] auto make_default_font_atlas() -> Image;

@@ -36,7 +36,7 @@ namespace tgx::detail {
             gl::Buffer<BatchVertex> vertex_buffer,
             gl::Buffer<std::uint16_t> index_buffer,
             gl::VertexArray vertex_array,
-            Texture builtin
+            Texture canvas_atlas
         );
 
         gl::Shader shader_;
@@ -46,6 +46,6 @@ namespace tgx::detail {
         gl::VertexArray vertex_array_;
         // The default font and a white block that shapes sample, so text
         // and shapes in a row share one shader and one draw.
-        Texture builtin_;
+        Texture canvas_atlas_;
     };
 }

@@ -7,7 +7,6 @@
 #include "tgx/gl/draw.hpp"
 #include "tgx/gl/shader.hpp"
 
-#include "base/default_font.hpp"
 #include "canvas/geometry.hpp"
 #include "canvas/text.hpp"
 #include "canvas/viewport.hpp"
@@ -37,8 +36,6 @@ namespace {
         && tgx::detail::max_segments * 6 <= tgx::detail::batch_max_indices
     );
 
-    namespace font = tgx::detail::default_font;
-
     // The same value at each corner of a quad.
     template<typename T>
     [[nodiscard]] constexpr auto each_corner(T value) noexcept -> std::array<T, 4> {
@@ -52,15 +49,7 @@ namespace {
     }
 
     // Shapes sample the white block's center; its neighbors are white too.
-    constexpr tgx::Vec2 white_uv{
-        (static_cast<float>(font::white_x) + font::white_size / 2.f) / font::atlas_width,
-        (font::white_size / 2.f) / font::atlas_height,
-    };
-
-    // Glyphs are one row filling the atlas height, so v goes from 0 to 1.
-    static_assert(font::atlas_height == font::line_height);
-    // Text at the default size keeps the font's pixels square.
-    static_assert(tgx::Canvas::default_text_size == font::line_height);
+    const tgx::Vec2 white_uv = tgx::detail::default_solid_uv();
 
     // The Device's batch, with room for this many more vertices and indices
     // with the state, and the index of the first new vertex.

@@ -80,9 +80,9 @@ namespace tgx::detail {
         vertex_array->set_vertex_buffer(*vertex_buffer);
         vertex_array->set_index_buffer(*index_buffer);
 
-        auto builtin = Texture::create(make_default_font_atlas(), {.filter = TextureFilter::nearest});
-        if (!builtin) {
-            return std::unexpected{builtin.error()};
+        auto canvas_atlas = Texture::create(make_default_font_atlas(), {.filter = TextureFilter::nearest});
+        if (!canvas_atlas) {
+            return std::unexpected{canvas_atlas.error()};
         }
 
         return BatchGpu{
@@ -91,7 +91,7 @@ namespace tgx::detail {
             std::move(*vertex_buffer),
             std::move(*index_buffer),
             std::move(*vertex_array),
-            std::move(*builtin),
+            std::move(*canvas_atlas),
         };
     }
 
@@ -122,7 +122,7 @@ namespace tgx::detail {
             .state = {.blend = state.blend},
             .viewport = state.viewport,
             .scissor = state.clip,
-            .textures = {state.texture != 0 ? state.texture : builtin_.id()},
+            .textures = {state.texture != 0 ? state.texture : canvas_atlas_.id()},
         };
     }
 
@@ -132,13 +132,13 @@ namespace tgx::detail {
         gl::Buffer<BatchVertex> vertex_buffer,
         gl::Buffer<std::uint16_t> index_buffer,
         gl::VertexArray vertex_array,
-        Texture builtin
+        Texture canvas_atlas
     )
         : shader_{std::move(shader)},
           u_projection_{u_projection},
           vertex_buffer_{std::move(vertex_buffer)},
           index_buffer_{std::move(index_buffer)},
           vertex_array_{std::move(vertex_array)},
-          builtin_{std::move(builtin)} {
+          canvas_atlas_{std::move(canvas_atlas)} {
     }
 }

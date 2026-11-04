@@ -138,6 +138,7 @@ TEST_CASE("TextLayout uses font metrics, not the built-in font's") {
 // Measuring needs only the built-in font's widths: no window, no GL.
 TEST_CASE("Canvas::measure_text") {
     using tgx::Canvas;
+    CHECK(Canvas::default_text_size == tgx::detail::default_font_data().line_height);
     // The built-in font is 8x16 a character.
     // Empty text is a line with nothing on it yet, as after a '\n'.
     CHECK(Canvas::measure_text("") == tgx::Vec2{0, 16});
