@@ -117,3 +117,35 @@ TEST_CASE("intersection") {
     CHECK_FALSE(tgx::intersection({0, 0}, {10, 0}, {0, 1}, {10, 1}).has_value());
     CHECK_FALSE(tgx::intersection({0, 0}, {10, 0}, {5, 0}, {15, 0}).has_value());
 }
+
+TEST_CASE("raycast gives the distance to the first rect contact") {
+    constexpr tgx::Rect rect{10, 10, 10, 10};
+    CHECK(tgx::raycast(rect, {0, 15}, {1, 0}) == doctest::Approx(10));
+    // Direction is a direction, not necessarily a unit vector.
+    CHECK(tgx::raycast(rect, {0, 15}, {2, 0}) == doctest::Approx(10));
+    CHECK(tgx::raycast(rect, {15, 15}, {-1, 0}) == 0.f);
+    CHECK(tgx::raycast(rect, {10, 10}, {1, 0}) == 0.f);
+    CHECK_FALSE(tgx::raycast(rect, {0, 15}, {-1, 0}).has_value());
+    CHECK_FALSE(tgx::raycast(rect, {0, 0}, {1, 0}).has_value());
+    CHECK_FALSE(tgx::raycast(rect, {0, 15}, {}).has_value());
+    CHECK_FALSE(tgx::raycast({}, {0, 0}, {1, 0}).has_value());
+}
+
+TEST_CASE("sweep gives the fraction of a rect's movement to contact") {
+    constexpr tgx::Rect moving{0, 0, 2, 2};
+    constexpr tgx::Rect wall{10, 0, 2, 2};
+    const auto hit = tgx::sweep(moving, {10, 0}, wall);
+    REQUIRE(hit.has_value());
+    CHECK(*hit == doctest::Approx(0.8f));
+    CHECK(tgx::sweep(moving, {20, 0}, wall) == doctest::Approx(0.4f));
+    CHECK(tgx::sweep(moving, {4, 0}, wall) == std::nullopt);
+    CHECK(tgx::sweep(moving, {10, 10}, wall) == std::nullopt);
+    CHECK(tgx::sweep({9, 0, 4, 4}, {}, wall) == 0.f);
+
+    // Touching counts only if the movement goes into the wall.
+    constexpr tgx::Rect touching{2, 0, 2, 2};
+    CHECK(tgx::sweep(moving, {1, 0}, touching) == 0.f);
+    CHECK_FALSE(tgx::sweep(moving, {-1, 0}, touching).has_value());
+    CHECK_FALSE(tgx::sweep(moving, {0, 1}, touching).has_value());
+    CHECK_FALSE(tgx::sweep({}, {10, 0}, wall).has_value());
+}

@@ -25,6 +25,38 @@ namespace tgx {
         [[nodiscard]] constexpr auto valid(Rect rect) noexcept -> bool { return rect.width >= 0.f && rect.height >= 0.f; }
 
         [[nodiscard]] constexpr auto valid(Circle circle) noexcept -> bool { return valid_length(circle.radius); }
+
+        // Fraction of direction at the first contact with a nonempty rect.
+        // The rect is closed here: touching its edge is a hit. 0 when the
+        // origin is inside. The callers validate the rect.
+        [[nodiscard]] constexpr auto ray_fraction(Rect rect, Vec2 origin, Vec2 direction) noexcept -> std::optional<float> {
+            if (direction == Vec2{}) {
+                return std::nullopt;
+            }
+
+            float enter = 0.f;
+            float leave = std::numeric_limits<float>::infinity();
+            const auto axis = [&](float at, float speed, float low, float high) constexpr {
+                if (speed == 0.f) {
+                    return at >= low && at <= high;
+                }
+                float near = (low - at) / speed;
+                float far = (high - at) / speed;
+                if (near > far) {
+                    const float temporary = near;
+                    near = far;
+                    far = temporary;
+                }
+                enter = std::max(enter, near);
+                leave = std::min(leave, far);
+                return enter <= leave;
+            };
+            if (!axis(origin.x, direction.x, rect.x, rect.right())
+                || !axis(origin.y, direction.y, rect.y, rect.bottom())) {
+                return std::nullopt;
+            }
+            return enter;
+        }
     }
 
     // Left and top edges are inside, right and bottom outside, so a point
@@ -164,6 +196,84 @@ namespace tgx {
             return {};
         }
         return {left, top, right - left, bottom - top};
+    }
+
+    // Distance from origin to the first contact with rect along the infinite
+    // ray origin + direction * t, t >= 0. direction need not be unit. An
+    // origin inside gives 0; an empty rect or zero direction gives none.
+    [[nodiscard]] inline auto raycast(Rect rect, Vec2 origin, Vec2 direction) noexcept -> std::optional<float> {
+        TGX_ASSERT_MSG(detail::valid(rect), "rect of size {}x{}", rect.width, rect.height);
+
+        if (rect.empty()) {
+            return std::nullopt;
+        }
+        const auto fraction = detail::ray_fraction(rect, origin, direction);
+        if (!fraction) {
+            return std::nullopt;
+        }
+        return *fraction * length(direction);
+    }
+
+    // The fraction of movement, in [0, 1], at which the moving rect first
+    // touches stationary. Initial overlap gives 0. Touching initially counts
+    // only when movement goes into the other rect, not away or alongside.
+    // No touch during the movement, or an empty rect, gives none.
+    [[nodiscard]] constexpr auto sweep(Rect moving, Vec2 movement, Rect stationary) noexcept -> std::optional<float> {
+        TGX_ASSERT_MSG(detail::valid(moving), "rect of size {}x{}", moving.width, moving.height);
+        TGX_ASSERT_MSG(detail::valid(stationary), "rect of size {}x{}", stationary.width, stationary.height);
+
+        if (moving.empty() || stationary.empty()) {
+            return std::nullopt;
+        }
+        if (overlaps(moving, stationary)) {
+            return 0.f;
+        }
+
+        // The top-left follows a ray into the stationary rect expanded by the
+        // moving rect's size on the sides its top-left can approach.
+        const Rect expanded{
+            stationary.x - moving.width, stationary.y - moving.height,
+            stationary.width + moving.width, stationary.height + moving.height,
+        };
+        const auto hit = detail::ray_fraction(expanded, moving.position(), movement);
+        if (!hit || *hit > 1.f) {
+            return std::nullopt;
+        }
+        if (*hit > 0.f) {
+            return hit;
+        }
+
+        // A closed raycast also reports touching when the movement separates
+        // the rects. At time 0, accept only motion into the touching side.
+        bool approaching = false;
+        if (moving.right() == stationary.x) {
+            if (movement.x < 0.f) {
+                return std::nullopt;
+            }
+            approaching = movement.x > 0.f;
+        }
+        if (stationary.right() == moving.x) {
+            if (movement.x > 0.f) {
+                return std::nullopt;
+            }
+            approaching = movement.x < 0.f;
+        }
+        if (moving.bottom() == stationary.y) {
+            if (movement.y < 0.f) {
+                return std::nullopt;
+            }
+            approaching = approaching || movement.y > 0.f;
+        }
+        if (stationary.bottom() == moving.y) {
+            if (movement.y > 0.f) {
+                return std::nullopt;
+            }
+            approaching = approaching || movement.y < 0.f;
+        }
+        if (!approaching) {
+            return std::nullopt;
+        }
+        return 0.f;
     }
 
     // Where the segments a1 a2 and b1 b2 cross, ends included. Parallel

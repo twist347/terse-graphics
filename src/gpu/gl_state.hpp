@@ -61,6 +61,12 @@ namespace tgx::detail {
         auto clear(const ClearCall &call) noexcept -> void;
         auto draw(const DrawCall &call) noexcept -> void;
 
+        auto count_canvas_upload(std::size_t vertices, std::size_t indices, std::size_t bytes) noexcept -> void {
+            work_.canvas_vertices += vertices;
+            work_.canvas_indices += indices;
+            work_.canvas_upload_bytes += bytes;
+        }
+
         // Rows top to bottom (GL gives them bottom up).
         [[nodiscard]] auto read(const Target &target) -> Image;
 

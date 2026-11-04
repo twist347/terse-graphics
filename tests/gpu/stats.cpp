@@ -2,6 +2,8 @@
 
 #include "gpu.hpp"
 
+#include "gpu/batch.hpp"
+
 #include <doctest/doctest.h>
 
 #include <array>
@@ -49,10 +51,35 @@ TEST_CASE("Device::stats: a frame of nothing counts nothing") {
     const tgx::FrameStats stats = device.stats();
     CHECK(stats.draws == 0);
     CHECK(stats.canvas_draws == 0);
+    CHECK(stats.canvas_vertices == 0);
+    CHECK(stats.canvas_indices == 0);
+    CHECK(stats.canvas_upload_bytes == 0);
     CHECK(stats.clears == 0);
     CHECK(stats.shader_switches == 0);
     CHECK(stats.texture_switches == 0);
     CHECK(stats.target_switches == 0);
+}
+
+TEST_CASE("Device::stats counts Canvas geometry uploaded by all batches") {
+    auto &device = tgx_test::app().device();
+    const tgx::RenderTarget target = tgx_test::target({8, 8});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+
+    canvas.rect({0, 0, 2, 2}, tgx::colors::red);
+    device.present();
+    tgx::FrameStats stats = device.stats();
+    CHECK(stats.canvas_vertices == 4);
+    CHECK(stats.canvas_indices == 6);
+    CHECK(stats.canvas_upload_bytes == 4 * sizeof(tgx::detail::BatchVertex) + 6 * sizeof(std::uint16_t));
+
+    canvas.rect({0, 0, 2, 2}, tgx::colors::red);
+    canvas.rect({2, 2, 2, 2}, tgx::colors::blue);
+    device.present();
+    stats = device.stats();
+    CHECK(stats.canvas_draws == 1);
+    CHECK(stats.canvas_vertices == 8);
+    CHECK(stats.canvas_indices == 12);
+    CHECK(stats.canvas_upload_bytes == 8 * sizeof(tgx::detail::BatchVertex) + 12 * sizeof(std::uint16_t));
 }
 
 TEST_CASE("Device::stats counts actual target switches across waiting batches") {

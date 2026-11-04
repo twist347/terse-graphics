@@ -88,6 +88,22 @@ namespace tgx {
         // A side is 0 or less.
         [[nodiscard]] constexpr auto empty() const noexcept -> bool { return width <= 0.f || height <= 0.f; }
 
+        // The rect grown by amount on every side. amount must be 0 or more.
+        [[nodiscard]] constexpr auto expanded(float amount) const noexcept -> Rect {
+            TGX_ASSERT_MSG(amount >= 0.f && amount <= std::numeric_limits<float>::max(), "expansion {}", amount);
+            return {x - amount, y - amount, width + 2.f * amount, height + 2.f * amount};
+        }
+
+        // The rect shrunk by amount on every side. amount must be 0 or more;
+        // an amount too large leaves an empty side.
+        [[nodiscard]] constexpr auto inset(float amount) const noexcept -> Rect {
+            TGX_ASSERT_MSG(amount >= 0.f && amount <= std::numeric_limits<float>::max(), "inset {}", amount);
+            return {
+                x + amount, y + amount,
+                std::max(0.f, width - 2.f * amount), std::max(0.f, height - 2.f * amount),
+            };
+        }
+
         [[nodiscard]] constexpr auto operator==(const Rect &) const noexcept -> bool = default;
     };
 
@@ -411,6 +427,94 @@ namespace tgx {
                 }
             }
         };
+    }
+
+    // Rows become columns, as in glm::transpose.
+    [[nodiscard]] constexpr auto transpose(const Mat4 &m) noexcept -> Mat4 {
+        const auto &c = m.columns;
+        return {
+            {
+                {
+                    {c[0].x, c[1].x, c[2].x, c[3].x},
+                    {c[0].y, c[1].y, c[2].y, c[3].y},
+                    {c[0].z, c[1].z, c[2].z, c[3].z},
+                    {c[0].w, c[1].w, c[2].w, c[3].w},
+                }
+            }
+        };
+    }
+
+    // The matrix inverse, as in glm::inverse. The matrix must be invertible
+    // (asserted). Gauss-Jordan with pivoting; no allocation.
+    [[nodiscard]] constexpr auto inverse(const Mat4 &m) noexcept -> Mat4 {
+        const auto component = [](Vec4 v, std::size_t row) constexpr {
+            switch (row) {
+                case 0: return v.x;
+                case 1: return v.y;
+                case 2: return v.z;
+                default: return v.w;
+            }
+        };
+        const auto set_component = [](Vec4 &v, std::size_t row, float value) constexpr {
+            switch (row) {
+                case 0: v.x = value; break;
+                case 1: v.y = value; break;
+                case 2: v.z = value; break;
+                default: v.w = value; break;
+            }
+        };
+
+        // Four rows of [matrix | identity], even though Mat4 stores columns.
+        std::array<std::array<float, 8>, 4> rows{};
+        for (std::size_t row = 0; row < 4; ++row) {
+            for (std::size_t column = 0; column < 4; ++column) {
+                rows[row][column] = component(m.columns[column], row);
+                rows[row][column + 4] = row == column ? 1.f : 0.f;
+            }
+        }
+
+        for (std::size_t column = 0; column < 4; ++column) {
+            std::size_t pivot = column;
+            float largest = 0.f;
+            for (std::size_t row = column; row < 4; ++row) {
+                const float value = rows[row][column];
+                const float magnitude = value < 0.f ? -value : value;
+                if (magnitude > largest) {
+                    largest = magnitude;
+                    pivot = row;
+                }
+            }
+            TGX_ASSERT_MSG(largest > 0.f, "inverting a singular matrix");
+
+            if (pivot != column) {
+                for (std::size_t at = 0; at < 8; ++at) {
+                    const float temporary = rows[pivot][at];
+                    rows[pivot][at] = rows[column][at];
+                    rows[column][at] = temporary;
+                }
+            }
+            const float divisor = rows[column][column];
+            for (float &value: rows[column]) {
+                value /= divisor;
+            }
+            for (std::size_t row = 0; row < 4; ++row) {
+                if (row == column) {
+                    continue;
+                }
+                const float factor = rows[row][column];
+                for (std::size_t at = 0; at < 8; ++at) {
+                    rows[row][at] -= factor * rows[column][at];
+                }
+            }
+        }
+
+        Mat4 result{};
+        for (std::size_t row = 0; row < 4; ++row) {
+            for (std::size_t column = 0; column < 4; ++column) {
+                set_component(result.columns[column], row, rows[row][column + 4]);
+            }
+        }
+        return result;
     }
 
     [[nodiscard]] constexpr auto translate(Vec3 offset) noexcept -> Mat4 {

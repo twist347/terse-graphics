@@ -129,6 +129,10 @@ TEST_CASE("Size and Rect") {
     static_assert(r.size() == tgx::Vec2{30, 40});
     static_assert(tgx::to_vec2(tgx::Size{1280, 720}) == tgx::Vec2{1280, 720});
     static_assert(tgx::Rect::from_center({25, 40}, {30, 40}) == tgx::Rect{10, 20, 30, 40});
+    static_assert(r.expanded(2) == tgx::Rect{8, 18, 34, 44});
+    static_assert(r.inset(2) == tgx::Rect{12, 22, 26, 36});
+    static_assert(r.inset(20).empty());
+    static_assert(r.inset(20).width == 0.f);
 
     // A 64x32 sheet of 16x16 frames: 4 columns, 2 rows.
     static_assert(tgx::frame_of({64, 32}, {16, 16}, 0) == tgx::Rect{0, 0, 16, 16});
@@ -147,6 +151,29 @@ TEST_CASE("Mat4") {
     // b first, then a: the point is scaled, then moved.
     CHECK(tgx::translate({10, 0, 0}) * tgx::scale({2, 2, 2}) * p == tgx::Vec4{12, 4, 6, 1});
     CHECK(nearly(tgx::rotate({0, 0, 1}, pi / 2) * tgx::Vec4{1, 0, 0, 1}, {0, 1, 0, 1}));
+
+    constexpr tgx::Mat4 by_columns{{{
+        {1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 16},
+    }}};
+    static_assert(tgx::transpose(by_columns) == tgx::Mat4{{{
+        {1, 5, 9, 13}, {2, 6, 10, 14}, {3, 7, 11, 15}, {4, 8, 12, 16},
+    }}});
+
+    // A zero in the first pivot's initial place makes inverse swap rows.
+    constexpr tgx::Mat4 swap_xy{{{
+        {0, 1, 0, 0}, {1, 0, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1},
+    }}};
+    static_assert(tgx::inverse(swap_xy) == swap_xy);
+
+    const tgx::Mat4 transform = tgx::translate({10, -2, 3})
+                              * tgx::rotate({1, 2, 3}, 0.7f)
+                              * tgx::scale({2, 4, 5});
+    const tgx::Mat4 roundtrip = tgx::inverse(transform) * transform;
+    const tgx::Mat4 identity{};
+    for (std::size_t column = 0; column < 4; ++column) {
+        CHECK(nearly(roundtrip.columns[column], identity.columns[column]));
+    }
+    CHECK(nearly(tgx::inverse(transform) * (transform * p), p));
 }
 
 TEST_CASE("ortho as 2D drawing uses it") {

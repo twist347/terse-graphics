@@ -68,7 +68,8 @@ In `tgx`:
 - **Collisions**: `contains` (a point in a rect, circle, triangle or polygon),
   `overlaps` (rects and circles in any pair, a circle and a segment),
   `intersection` (the part two rects share, the point two segments cross at),
-  `closest_point` (of a segment or a rect).
+  `closest_point` (of a segment or a rect), `raycast` (distance to a rect) and
+  `sweep` (the first contact of a moving rect).
 - **Images and textures**: `Image` (RGBA8 pixels in memory, loaded from PNG,
   JPEG, BMP, TGA or GIF, or made in code, saved as PNG) and `Texture` made
   from it, with nearest or linear filtering, wrapping, optional mipmaps and
@@ -84,13 +85,14 @@ In `tgx`:
   `Image`.
 - **Math**: `Vec2`/`Vec3`/`Vec4`/`Mat4`/`Rect` laid out for the GPU, with the
   usual operations and `ortho`, `perspective`, `look_at`, `translate`, `rotate`,
-  `scale`. Same conventions as glm, and glm values convert with `std::bit_cast`.
-  `fit` and `fit_whole` place a fixed-size picture in a window of any shape.
-  `frame_of` gives a sprite sheet's frame by index, as `Sprite::src`. For the
-  numbers in between: `remap` (a value from one range to another, or a point
-  from one rect to another, such as the mouse over a scaled picture),
-  `smoothstep`, `wrap` (whatever goes around: an angle, a screen edge),
-  `to_vec2` (a `Size` for math), `Rect::position()` and `size()`.
+  `scale`, `inverse` and `transpose`. Same conventions as glm, and glm values
+  convert with `std::bit_cast`. `fit` and `fit_whole` place a fixed-size picture
+  in a window of any shape. `frame_of` gives a sprite sheet's frame by index,
+  as `Sprite::src`. For the numbers in between: `remap` (a value from one range
+  to another, or a point from one rect to another, such as the mouse over a
+  scaled picture), `smoothstep`, `wrap` (whatever goes around: an angle, a
+  screen edge), `to_vec2` (a `Size` for math), `Rect::position()` and `size()`.
+  Rects can also be `expanded` or `inset`.
 - **Random**: `tgx::Random`, a seeded value with floats, ints, chances, points
   in a rect, directions, picks and shuffles; the same seed gives the same
   numbers on every run, and the same integers and shuffles on every platform
@@ -300,10 +302,11 @@ uniform of the canvas shader set, has the shapes waiting on it drawn first.
 they found it (see [Rules](#rules)).
 
 `device().stats()` counts the last frame's GL work: draws (and how many were
-the canvas's batches), clears, and switches of shader, texture and target. Many
-canvas draws for few shapes mean the batch keeps breaking: on a change of
-target, viewport, size, camera, clip, texture, blend or shader, or when its
-buffers fill.
+the canvas's batches), clears, switches of shader, texture and target, and the
+Canvas's uploaded vertices, indices and bytes. Texture and custom buffer
+uploads are not in the Canvas byte count. Many canvas draws for few shapes mean
+the batch keeps breaking: on a change of target, viewport, size, camera, clip,
+texture, blend or shader, or when its buffers fill.
 
 Textures load from image files or encoded bytes in one call; `Image` is for
 pixels made in code or read on the CPU, rows top to bottom. A sprite needs only

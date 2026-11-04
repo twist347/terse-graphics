@@ -6,6 +6,7 @@
 #include "tgx/core/handle.hpp"
 #include "tgx/core/image.hpp"
 
+#include <cstddef>
 #include <optional>
 
 namespace tgx {
@@ -47,6 +48,11 @@ namespace tgx {
         // the target, viewport, size, camera, clip, texture, blend or shader
         // changes, or when the batch fills.
         int canvas_draws{0};
+        // Geometry uploaded by those batches, and its total size in bytes.
+        // Texture uploads and tgx::gl buffer updates are not included.
+        std::size_t canvas_vertices{0};
+        std::size_t canvas_indices{0};
+        std::size_t canvas_upload_bytes{0};
         int clears{0};
         // Another shader made current.
         int shader_switches{0};

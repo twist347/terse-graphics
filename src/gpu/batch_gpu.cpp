@@ -99,6 +99,10 @@ namespace tgx::detail {
         TGX_ASSERT(!batch.empty());
         vertex_buffer_.update(0, batch.vertices());
         index_buffer_.update(0, batch.indices());
+        gl_state.count_canvas_upload(
+            batch.vertices().size(), batch.indices().size(),
+            batch.vertices().size_bytes() + batch.indices().size_bytes()
+        );
 
         // Set on every draw: a custom shader may be used elsewhere in between.
         // Raw GL, since Shader::set would call back into Context to flush.

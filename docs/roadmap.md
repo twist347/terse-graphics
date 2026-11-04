@@ -16,11 +16,10 @@ taken up; what is done leaves this file (the [guide](guide.md) and the
 - Text: TTF fonts, letter spacing, wrapping to a width.
 - Images on the CPU: crop, resize, flip, draw into, generate (gradients,
   checks, noise).
-- Audio: pitch and pan for `Music`, sound generated on the fly.
+- Audio: sound generated on the fly.
 - Shapes: splines and Bezier curves, outlines of circle sectors and rings.
-- Collisions: rays with the distance to the hit, moving rectangles (swept),
-  rotated rectangles and convex polygons (SAT).
-- Math: `reflect`, the angle between vectors, `Mat4` inverse and transpose.
+- Collisions: rotated rectangles and convex polygons (SAT).
+- Math: `reflect`, the angle between vectors.
 - Build: `BUILD_SHARED_LIBS` (an export macro on the public API, stb and
   miniaudio hidden, glad and GLFW exported, as raw GL and `native_handle()`
   call them, a SOVERSION; game code reloaded while the game runs needs it to

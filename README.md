@@ -6,9 +6,7 @@
 
 A small 2D-first graphics library on top of OpenGL 3.3 core, C++23: a window,
 a loop and a canvas for games in the spirit of raylib, with the OpenGL level
-underneath when you need your own shaders. Tested on Linux (NVIDIA, Mesa) and
-macOS; on Windows it builds with MSVC and passes the CPU tests in CI, but has
-not been run on a display yet. Early: before 1.0 a minor version may break the
+underneath when you need your own shaders. Early: before 1.0 a minor version may break the
 API, as the [changelog](CHANGELOG.md) lists.
 
 ![Rain over a city in pixel art, drawn with tgx](docs/night_city.png)

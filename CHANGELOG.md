@@ -11,6 +11,10 @@
 - **Music and individual plays have more playback controls.** `Music` adds pan
   and pitch; `Playback::set_volume`, `set_pan` and `set_pitch` change one live
   play without affecting the other plays of its sound.
+- **More math, collision and profiling helpers.** `Mat4` adds `inverse` and
+  `transpose`, `Rect` adds `expanded` and `inset`; `raycast` gives the distance
+  to a rect and `sweep` the first contact of a moving rect. `FrameStats` counts
+  Canvas vertices, indices and uploaded bytes.
 
 ### Changed
 
