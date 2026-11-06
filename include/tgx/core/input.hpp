@@ -12,6 +12,9 @@ namespace tgx {
         struct InputAccess;
     }
 
+    // Physical keys, named for the standard US layout: Key::w and the WASD in
+    // Input::direction() do not follow the user's keyboard layout. Typed text
+    // does; see Input::text().
     enum class Key : std::uint8_t {
         unknown,
 

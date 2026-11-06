@@ -280,7 +280,7 @@ namespace tgx {
 
         glfwDefaultWindowHints();
         // Explicit, not GLFW's defaults. Window draws may use depth testing
-        // (Device asserts it only for render targets), and raw GL a stencil.
+        // (Device checks both window and render target depth), and raw GL a stencil.
         glfwWindowHint(GLFW_DEPTH_BITS, 24);
         glfwWindowHint(GLFW_STENCIL_BITS, 8);
         glfwWindowHint(GLFW_SAMPLES, std::max(params.msaa, 0));

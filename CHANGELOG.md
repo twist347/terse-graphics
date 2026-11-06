@@ -103,10 +103,3 @@ is listed here, and `find_package(tgx 0.1)` accepts only 0.1.x.
   and GLFW headers exported for raw GL, stb and miniaudio kept inside
 - **Examples** — 16 lessons on the `tgx` level, 8 on the `gl` level,
   6 scenes, 2 games
-
-### Known issues
-
-- macOS ignores vsync: frames run as fast as they can unless an fps limit is
-  set.
-- Canvas units are logical pixels on macOS and Wayland but physical ones on
-  Windows and X11 (HiDPI, on the roadmap).

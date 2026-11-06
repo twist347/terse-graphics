@@ -8,6 +8,8 @@ taken up; what is done leaves this file (the [guide](guide.md) and the
 
 - The bunnymark against raylib, re-measured: one line in the README, the
   numbers and their scope in the guide.
+- macOS vsync: the swap interval is ignored; frames run at full speed without
+  an fps limit.
 - HiDPI the same everywhere: canvas units are logical on macOS and Wayland
   but pixels on Windows and X11 (GLFW's scale hints, Window::size, the
   mouse).

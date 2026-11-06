@@ -41,7 +41,8 @@ namespace tgx {
         // As PNG, creating or replacing the file; a failed write leaves the
         // old file. Must not be empty. Fails with Error::io, with
         // Error::out_of_memory when encoding fails, and with
-        // Error::unsupported at 2 GiB of pixels or more.
+        // Error::unsupported when the RGBA data approaches 2 GiB (roughly
+        // 537 million pixels; the exact limit also depends on the height).
         [[nodiscard]] auto save(const std::filesystem::path &path) const -> Result<void>;
 
         // A copy of a whole-pixel rectangle. (x, y) and size must fit inside

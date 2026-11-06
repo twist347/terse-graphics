@@ -62,6 +62,13 @@ The [guide](docs/guide.md) explains how the parts fit together; every function
 is documented in its header. What changed: the [changelog](CHANGELOG.md); what
 comes next: the [roadmap](docs/roadmap.md).
 
+## Known issues
+
+- macOS ignores vsync: frames run as fast as they can unless an fps limit is
+  set.
+- Canvas units are logical pixels on macOS and Wayland but physical ones on
+  Windows and X11 (HiDPI, on the [roadmap](docs/roadmap.md)).
+
 ## Examples
 
 Lessons, one idea each, in two folders by level: `examples/tgx/` uses only
