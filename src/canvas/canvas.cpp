@@ -42,7 +42,7 @@ namespace {
         return {value, value, value, value};
     }
 
-    // A viewport or clip: placed anywhere finite, a size of zero or more.
+    // A viewport, clip or rect shape: placed anywhere finite, a size of zero or more.
     [[maybe_unused, nodiscard]] auto valid_area(tgx::Rect rect) noexcept -> bool {
         return std::isfinite(rect.x) && std::isfinite(rect.y)
                && tgx::detail::valid_length(rect.width) && tgx::detail::valid_length(rect.height);
@@ -282,15 +282,20 @@ namespace tgx {
     }
 
     auto Canvas::rect(Rect rect, Color color) noexcept -> void {
+        TGX_ASSERT_MSG(valid_area(rect), "rect {} {} {}x{}", rect.x, rect.y, rect.width, rect.height);
+
         quad(detail::corners(rect), each_corner(color));
     }
 
     auto Canvas::rect(Rect rect, Color color, float rotation, Vec2 origin) noexcept -> void {
+        TGX_ASSERT_MSG(valid_area(rect), "rect {} {} {}x{}", rect.x, rect.y, rect.width, rect.height);
+
         const auto box = detail::placed_corners(rect.size(), origin, rect.position(), rotation);
         quad(box, each_corner(color));
     }
 
     auto Canvas::rect_lines(Rect rect, Color color, float thickness) noexcept -> void {
+        TGX_ASSERT_MSG(valid_area(rect), "rect {} {} {}x{}", rect.x, rect.y, rect.width, rect.height);
         TGX_ASSERT_MSG(detail::valid_length(thickness), "thickness {}", thickness);
 
         // Thick enough, the outline fills the rectangle.
@@ -307,6 +312,7 @@ namespace tgx {
     }
 
     auto Canvas::rect_rounded(Rect rect, float radius, Color color) noexcept -> void {
+        TGX_ASSERT_MSG(valid_area(rect), "rect {} {} {}x{}", rect.x, rect.y, rect.width, rect.height);
         TGX_ASSERT_MSG(detail::valid_length(radius), "corners of radius {}", radius);
 
         const float r = std::min({radius, rect.width / 2.f, rect.height / 2.f});
@@ -322,6 +328,7 @@ namespace tgx {
     }
 
     auto Canvas::rect_rounded_lines(Rect rect, float radius, Color color, float thickness) noexcept -> void {
+        TGX_ASSERT_MSG(valid_area(rect), "rect {} {} {}x{}", rect.x, rect.y, rect.width, rect.height);
         TGX_ASSERT_MSG(detail::valid_length(radius), "corners of radius {}", radius);
         TGX_ASSERT_MSG(detail::valid_length(thickness), "thickness {}", thickness);
 
@@ -360,6 +367,8 @@ namespace tgx {
         Color top_left, Color top_right,
         Color bottom_right, Color bottom_left
     ) noexcept -> void {
+        TGX_ASSERT_MSG(valid_area(rect), "rect {} {} {}x{}", rect.x, rect.y, rect.width, rect.height);
+
         const auto box = detail::corners(rect);
         const std::array colors{top_left, top_right, bottom_right, bottom_left};
         if (detail::blends_flat(colors)) {

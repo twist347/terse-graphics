@@ -1,6 +1,7 @@
-// Arkanoid: A/D or Left/Right moves the paddle, Space launches the ball. Where
-// the ball lands on the paddle sets its angle. Gray bricks take two hits.
-// Three lives; P pauses, Enter starts again once the game is won or lost.
+// Arkanoid: A/D or Left/Right moves the paddle, Space launches the ball or
+// pauses while it is in play; P pauses too. Where the ball lands on the paddle
+// sets its angle. Gray bricks take two hits.
+// Three lives; Enter starts again once the game is won or lost.
 
 #include "tgx/tgx.hpp"
 
@@ -195,7 +196,7 @@ namespace {
                 }
                 return;
             }
-            if (input.pressed(tgx::Key::p)) {
+            if (input.pressed(tgx::Key::p) || (!held && input.pressed(tgx::Key::space))) {
                 paused = !paused;
             }
             if (paused) {
