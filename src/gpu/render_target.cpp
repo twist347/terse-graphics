@@ -52,15 +52,27 @@ namespace tgx {
             depth = detail::Handle<detail::delete_renderbuffer>{*id};
         }
 
+        detail::drain_gl_errors();
+
         GLuint id = 0;
         glGenFramebuffers(1, &id);
-        detail::Handle<detail::delete_framebuffer> framebuffer{id};
+        if (const auto generated = detail::checked_allocation<detail::delete_framebuffer>(id); !generated) {
+            return std::unexpected{generated.error()};
+        }
+        // Framebuffer 0 is the window, not a failed render target.
+        if (id == 0) {
+            return std::unexpected{Error::platform};
+        }
 
         detail::context().bind_framebuffer(id);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture->id(), 0);
         if (depth) {
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth.get());
         }
+        if (const auto attached = detail::checked_allocation<detail::delete_framebuffer>(id); !attached) {
+            return std::unexpected{attached.error()};
+        }
+        detail::Handle<detail::delete_framebuffer> framebuffer{id};
 
         // GL 3.3 may refuse a combination of formats it does not draw into.
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
