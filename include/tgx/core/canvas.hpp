@@ -280,12 +280,19 @@ namespace tgx {
             float rotation = 0.f
         ) noexcept -> void;
 
-        // 3 to 1024 sides, corners on a circle of the radius. rotation is the
-        // first corner's angle, as in circle_sector(): 0 puts one on the right.
-        auto poly(Vec2 center, int sides, float radius, Color color, float rotation = 0.f) noexcept -> void;
+        // A filled simple polygon through the points, convex or concave, either
+        // winding. No self-intersections or holes. Fewer than 3 points draw
+        // nothing. Adjacent duplicates, a repeated closing point and collinear
+        // vertices are skipped. At most 1024 points (asserted).
+        auto polygon(std::span<const Vec2> points, Color color) noexcept -> void;
+
+        // A regular polygon: 3 to 1024 sides, corners on a circle of the radius.
+        // rotation is the first corner's angle, as in circle_sector(): 0 puts
+        // one on the right.
+        auto regular_polygon(Vec2 center, int sides, float radius, Color color, float rotation = 0.f) noexcept -> void;
 
         // Outline, drawn inside the edges.
-        auto poly_lines(
+        auto regular_polygon_lines(
             Vec2 center,
             int sides,
             float radius,

@@ -38,6 +38,12 @@ TEST_CASE("Vec2 products and lengths") {
     CHECK(nearly(tgx::normalize(tgx::Vec2{0, 7}), {0, 1}));
 }
 
+TEST_CASE("angle units") {
+    static_assert(tgx::radians(180.f) == pi);
+    static_assert(tgx::degrees(pi) == 180.f);
+    CHECK(tgx::degrees(tgx::radians(30.f)) == doctest::Approx(30.f));
+}
+
 TEST_CASE("Vec2 angles") {
     CHECK(tgx::from_angle(0.f) == tgx::Vec2{1, 0});
     CHECK(nearly(tgx::from_angle(pi / 2), {0, 1}));

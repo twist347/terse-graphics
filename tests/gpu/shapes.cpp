@@ -453,14 +453,14 @@ TEST_CASE("ellipse_lines thicker than its ends bend: no pixel drawn twice") {
     CHECK(image[64, 64] == tgx::colors::black);
 }
 
-TEST_CASE("poly: a square with a corner up, and its frame") {
+TEST_CASE("regular_polygon: a square with a corner up, and its frame") {
     const tgx::RenderTarget target = tgx_test::target({128, 128});
     tgx::Canvas canvas = tgx_test::canvas_on(target);
     constexpr float pi = std::numbers::pi_v<float>;
 
     // Corners at right, bottom, left, top: a diamond.
     canvas.clear(tgx::colors::black);
-    canvas.poly({64, 64}, 4, 50, tgx::colors::white);
+    canvas.regular_polygon({64, 64}, 4, 50, tgx::colors::white);
     tgx::Image image = target.read();
     CHECK(image[64, 16] == tgx::colors::white);
     CHECK(image[110, 64] == tgx::colors::white);
@@ -469,13 +469,39 @@ TEST_CASE("poly: a square with a corner up, and its frame") {
     // Turned an eighth, an upright square of side 50 * sqrt(2), its frame
     // 5 wide inside the edges.
     canvas.clear(tgx::colors::black);
-    canvas.poly_lines({64, 64}, 4, 50, tgx::colors::white, 5, pi / 4.f);
+    canvas.regular_polygon_lines({64, 64}, 4, 50, tgx::colors::white, 5, pi / 4.f);
     image = target.read();
     constexpr int edge = 64 - 35;
     CHECK(image[64, edge + 2] == tgx::colors::white);
     CHECK(image[64, edge - 2] == tgx::colors::black);
     CHECK(image[64, edge + 8] == tgx::colors::black);
     CHECK(image[edge + 2, edge + 2] == tgx::colors::white);
+}
+
+TEST_CASE("polygon: a concave simple polygon, in either winding") {
+    const tgx::RenderTarget target = tgx_test::target({128, 128});
+    tgx::Canvas canvas = tgx_test::canvas_on(target);
+    constexpr std::array u{
+        tgx::Vec2{10, 10}, tgx::Vec2{100, 10}, tgx::Vec2{100, 100}, tgx::Vec2{70, 100},
+        tgx::Vec2{70, 40}, tgx::Vec2{40, 40}, tgx::Vec2{40, 100}, tgx::Vec2{10, 100},
+    };
+
+    canvas.clear(tgx::colors::black);
+    canvas.polygon(u, tgx::colors::white);
+    const tgx::Image image = target.read();
+    CHECK(image[20, 20] == tgx::colors::white);
+    CHECK(image[55, 20] == tgx::colors::white);
+    CHECK(image[20, 70] == tgx::colors::white);
+    CHECK(image[85, 70] == tgx::colors::white);
+    CHECK(image[55, 70] == tgx::colors::black);
+    CHECK(image[110, 55] == tgx::colors::black);
+
+    std::array reversed = u;
+    std::ranges::reverse(reversed);
+    canvas.clear(tgx::colors::black);
+    canvas.polygon(reversed, tgx::colors::white);
+    const tgx::Image reverse_image = target.read();
+    CHECK(std::ranges::equal(image.pixels(), reverse_image.pixels()));
 }
 
 TEST_CASE("text draws known glyph pixels, tint, spacing, newlines and sizes") {

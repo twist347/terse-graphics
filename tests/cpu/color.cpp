@@ -22,15 +22,15 @@ TEST_CASE("named colors are CSS's") {
 
 TEST_CASE("Color::hsv") {
     CHECK(tgx::Color::hsv(0, 1, 1) == tgx::colors::red);
-    CHECK(tgx::Color::hsv(120, 1, 1) == tgx::colors::green);
-    CHECK(tgx::Color::hsv(240, 1, 1) == tgx::colors::blue);
+    CHECK(tgx::Color::hsv(tgx::radians(120), 1, 1) == tgx::colors::green);
+    CHECK(tgx::Color::hsv(tgx::radians(240), 1, 1) == tgx::colors::blue);
     // Hue wraps around the wheel either way.
-    CHECK(tgx::Color::hsv(360, 1, 1) == tgx::colors::red);
-    CHECK(tgx::Color::hsv(-120, 1, 1) == tgx::colors::blue);
+    CHECK(tgx::Color::hsv(tgx::radians(360), 1, 1) == tgx::colors::red);
+    CHECK(tgx::Color::hsv(tgx::radians(-120), 1, 1) == tgx::colors::blue);
     CHECK(tgx::Color::hsv(0, 0, 1) == tgx::colors::white);
     CHECK(tgx::Color::hsv(0, 1, 0) == tgx::colors::black);
     // Fractional channels round to the nearest byte, and s/v are clamped.
-    CHECK(tgx::Color::hsv(30, 1, 1) == tgx::Color{255, 128, 0, 255});
+    CHECK(tgx::Color::hsv(tgx::radians(30), 1, 1) == tgx::Color{255, 128, 0, 255});
     CHECK(tgx::Color::hsv(0, 0.5f, 0.5f) == tgx::Color{128, 64, 64, 255});
     CHECK(tgx::Color::hsv(0, -1, 2) == tgx::colors::white);
     CHECK(tgx::Color::hsv(0, 2, 1) == tgx::colors::red);
@@ -52,7 +52,11 @@ TEST_CASE("alpha") {
 
 TEST_CASE("Color lerp and to_vec4") {
     CHECK(tgx::lerp(tgx::colors::black, tgx::colors::white, 0.5f) == tgx::Color{128, 128, 128, 255});
-    // Unlike vector lerps, t is clamped: a channel has nowhere to go.
+    // As with vectors, t goes past the ends; byte channels saturate.
+    CHECK(tgx::lerp(tgx::Color{100, 100, 100, 100}, tgx::Color{200, 200, 200, 200}, 1.5f)
+          == tgx::Color{250, 250, 250, 250});
+    CHECK(tgx::lerp(tgx::Color{100, 100, 100, 100}, tgx::Color{200, 200, 200, 200}, -0.5f)
+          == tgx::Color{50, 50, 50, 50});
     CHECK(tgx::lerp(tgx::colors::black, tgx::colors::white, 2.f) == tgx::colors::white);
     CHECK(tgx::lerp(tgx::colors::black, tgx::colors::white, -1.f) == tgx::colors::black);
     CHECK(tgx_test::nearly(tgx::to_vec4(tgx::Color{255, 0, 51, 255}), {1, 0, 0.2f, 1}));

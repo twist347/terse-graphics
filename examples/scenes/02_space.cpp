@@ -146,7 +146,9 @@ int main() {
         for (int i = 0; i < count; ++i) {
             const tgx::Vec2 uv = rng.point_in({0.f, 0.f, 1.f, 1.f});
             const float size = depth * rng.next_float(1.2f, 2.4f) + rng.next_float(0.3f, 0.6f);
-            const auto tint = tgx::Color::hsv(rng.next_float(20.f, 240.f), rng.next_float(0.f, 0.25f), 1.f);
+            const auto tint = tgx::Color::hsv(
+                rng.next_float(tgx::radians(20.f), tgx::radians(240.f)), rng.next_float(0.f, 0.25f), 1.f
+            );
             stars.push_back({uv, depth, size, rng.next_float(0.f, 2.f * pi), rng.next_float(0.6f, 2.5f), tint});
         }
     }
@@ -157,7 +159,9 @@ int main() {
     for (int i = 0; i < 22; ++i) {
         const tgx::Vec2 along = tgx::lerp(tgx::Vec2{0.05f, 0.95f}, tgx::Vec2{0.75f, -0.05f}, rng.next_float());
         const tgx::Vec2 uv = along + tgx::Vec2{0.7f, 0.5f} * rng.next_float(-0.18f, 0.18f);
-        const auto hue = tgx::Color::hsv(hues[static_cast<std::size_t>(i) % hues.size()], 0.75f, 0.62f);
+        const auto hue = tgx::Color::hsv(
+            tgx::radians(hues[static_cast<std::size_t>(i) % hues.size()]), 0.75f, 0.62f
+        );
         nebula.push_back({uv, rng.next_float(0.18f, 0.36f), rng.next_float(0.f, 2.f * pi), hue});
     }
 

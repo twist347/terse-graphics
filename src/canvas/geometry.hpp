@@ -10,7 +10,9 @@
 #include <cstdint>
 #include <numbers>
 #include <optional>
+#include <span>
 #include <utility>
+#include <vector>
 
 // Math for drawing, apart from GL so tests can use it.
 namespace tgx::detail {
@@ -39,6 +41,127 @@ namespace tgx::detail {
     [[nodiscard]] inline auto has_direction(Vec2 v) noexcept -> bool {
         const float squared = length_squared(v);
         return squared > 0.f && std::isfinite(squared);
+    }
+
+    // Ear clipping of a simple polygon. Returns indices into points. Adjacent
+    // duplicates, a repeated closing point and straight-through vertices are
+    // skipped; either winding works.
+    [[nodiscard]] inline auto triangulate_polygon(
+        std::span<const Vec2> points
+    ) -> std::vector<std::array<std::size_t, 3>> {
+        std::vector<std::array<std::size_t, 3>> triangles;
+        if (points.size() < 3) {
+            return triangles;
+        }
+
+        std::vector<std::size_t> remaining;
+        remaining.reserve(points.size());
+        for (std::size_t i = 0; i < points.size(); ++i) {
+            if (i == 0 || points[i] != points[i - 1]) {
+                remaining.push_back(i);
+            }
+        }
+        if (remaining.size() > 1 && points[remaining.front()] == points[remaining.back()]) {
+            remaining.pop_back();
+        }
+        while (remaining.size() >= 3) {
+            bool removed = false;
+            for (std::size_t i = 0; i < remaining.size(); ++i) {
+                const Vec2 a = points[remaining[(i + remaining.size() - 1) % remaining.size()]];
+                const Vec2 b = points[remaining[i]];
+                const Vec2 c = points[remaining[(i + 1) % remaining.size()]];
+                if (cross(b - a, c - b) == 0.f && dot(b - a, c - b) >= 0.f) {
+                    remaining.erase(remaining.begin() + i);
+                    removed = true;
+                    break;
+                }
+            }
+            if (!removed) {
+                break;
+            }
+        }
+        if (remaining.size() < 3) {
+            return triangles;
+        }
+        triangles.reserve(remaining.size() - 2);
+
+        const Vec2 origin = points[remaining.front()];
+        float area = 0.f;
+        for (std::size_t i = 0; i < remaining.size(); ++i) {
+            const Vec2 a = points[remaining[i]] - origin;
+            const Vec2 b = points[remaining[(i + 1) % remaining.size()]] - origin;
+            area += cross(a, b);
+        }
+        if (area == 0.f) {
+            return triangles;
+        }
+        const float winding = area > 0.f ? 1.f : -1.f;
+
+        while (remaining.size() > 3) {
+            bool clipped = false;
+            for (std::size_t i = 0; i < remaining.size(); ++i) {
+                const std::size_t previous = remaining[(i + remaining.size() - 1) % remaining.size()];
+                const std::size_t current = remaining[i];
+                const std::size_t next = remaining[(i + 1) % remaining.size()];
+                const Vec2 a = points[previous];
+                const Vec2 b = points[current];
+                const Vec2 c = points[next];
+                if (cross(b - a, c - b) * winding <= 0.f) {
+                    continue;
+                }
+
+                bool blocked = false;
+                for (const std::size_t other: remaining) {
+                    if (other == previous || other == current || other == next) {
+                        continue;
+                    }
+                    const Vec2 p = points[other];
+                    const bool inside = cross(b - a, p - a) * winding >= 0.f
+                                        && cross(c - b, p - b) * winding >= 0.f
+                                        && cross(a - c, p - c) * winding >= 0.f;
+                    if (inside) {
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (blocked) {
+                    continue;
+                }
+
+                triangles.push_back({previous, current, next});
+                remaining.erase(remaining.begin() + i);
+                clipped = true;
+                break;
+            }
+            if (clipped) {
+                continue;
+            }
+
+            bool removed = false;
+            for (std::size_t i = 0; i < remaining.size(); ++i) {
+                const Vec2 a = points[remaining[(i + remaining.size() - 1) % remaining.size()]];
+                const Vec2 b = points[remaining[i]];
+                const Vec2 c = points[remaining[(i + 1) % remaining.size()]];
+                if (cross(b - a, c - b) == 0.f && dot(b - a, c - b) >= 0.f) {
+                    remaining.erase(remaining.begin() + i);
+                    removed = true;
+                    break;
+                }
+            }
+            if (!removed) {
+                break;
+            }
+        }
+
+        if (remaining.size() == 3) {
+            const Vec2 a = points[remaining[0]];
+            const Vec2 b = points[remaining[1]];
+            const Vec2 c = points[remaining[2]];
+            if (cross(b - a, c - b) * winding > 0.f) {
+                triangles.push_back({remaining[0], remaining[1], remaining[2]});
+            }
+        }
+        return triangles;
     }
 
     // Radians.

@@ -4,6 +4,9 @@
 
 ### Added
 
+- **`Canvas::polygon` fills arbitrary simple polygons.** Convex and concave
+  polygons in either winding are triangulated by ear clipping; adjacent
+  duplicates, a repeated closing point and collinear vertices are skipped.
 - **`Texture::decode` creates a texture from encoded image bytes.** It combines
   `Image::decode` and `Texture::create` for embedded assets.
 - **`Random::shuffle` shuffles a range in place.** Its Fisher-Yates sequence is
@@ -21,6 +24,14 @@
 
 ### Changed
 
+- **Regular polygons have explicit names.** `Canvas::poly` and `poly_lines`
+  are now `regular_polygon` and `regular_polygon_lines`, distinct from the
+  arbitrary-vertex `polygon`.
+- **Angles use radians consistently.** `Color::hsv` now takes hue in radians
+  instead of degrees; `degrees()` complements `radians()` for conversions.
+- **Color interpolation extrapolates like vector interpolation.** `lerp(Color,
+  Color, t)` no longer clamps `t` to [0, 1]; only channels outside the byte
+  range saturate.
 - **Text measurement and drawing share a font-independent layout.** Glyph
   metrics and built-in atlas construction are separated from the GPU batch;
   the public API and the built-in font's output are unchanged.

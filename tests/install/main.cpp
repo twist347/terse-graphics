@@ -30,7 +30,9 @@ int main(int argc, char **) {
     }
 
     tgx::Random random{42};
-    const auto image = tgx::Image::create({4, 4}, tgx::Color::hsv(random.next_float(0.f, 360.f), 1.f, 1.f));
+    const auto image = tgx::Image::create(
+        {4, 4}, tgx::Color::hsv(random.next_float(0.f, tgx::radians(360.f)), 1.f, 1.f)
+    );
     constexpr bool inside = tgx::contains(tgx::Rect{0, 0, 4, 4}, {1, 1});
     if (image.size() != tgx::Size{4, 4} || !inside) {
         std::println(stderr, "tgx check: wrong results");

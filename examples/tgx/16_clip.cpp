@@ -84,7 +84,7 @@ int main() {
         for (int y = -6; y <= 6; ++y) {
             for (int x = -6; x <= 6; ++x) {
                 const tgx::Vec2 cell{static_cast<float>(x) * 60, static_cast<float>(y) * 60};
-                const auto hue = static_cast<float>((x + y + 12) * 15);
+                const auto hue = tgx::radians(static_cast<float>((x + y + 12) * 15));
                 world.rect(tgx::Rect::from_center(cell, {40, 40}), tgx::Color::hsv(hue, 0.6f, 0.9f));
             }
         }

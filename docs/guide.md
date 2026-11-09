@@ -60,7 +60,8 @@ In `tgx`:
   and its shape: arrow, text, hand, crosshair, resize, not allowed
   (`window().set_cursor_shape(...)`).
 - **Canvas**: 2D drawing in screen coordinates: rectangles, triangles,
-  circles (also with gradients) and turned ellipses, lines and joined strips of them, outlines,
+  filled simple polygons, circles (also with gradients) and turned ellipses,
+  lines and joined strips of them, outlines,
   sprites (parts of textures, mirrored, turned, tinted), nine-slice frames
   that stretch with their corners kept, and text in a
   built-in pixel font, under a 2D camera, with a choice of blending.
@@ -85,8 +86,8 @@ In `tgx`:
   (pixel art scaled up, a whole frame through a shader) or read back into an
   `Image`.
 - **Math**: `Vec2`/`Vec3`/`Vec4`/`Mat4`/`Rect` laid out for the GPU, with the
-  usual operations and `ortho`, `perspective`, `look_at`, `translate`, `rotate`,
-  `scale`, `inverse` and `transpose`. Same conventions as glm, and glm values
+  usual operations, `radians`/`degrees`, and `ortho`, `perspective`, `look_at`,
+  `translate`, `rotate`, `scale`, `inverse` and `transpose`. Same conventions as glm, and glm values
   convert with `std::bit_cast`. `fit` and `fit_whole` place a fixed-size picture
   in a window of any shape. `frame_of` gives a sprite sheet's frame by index,
   as `Sprite::src`. For the numbers in between: `remap` (a value from one range
@@ -206,9 +207,10 @@ canvas.rect({x, y, 40, 20}, tgx::colors::red, angle, {20, 10});       // turned 
 canvas.rect_rounded({40, 40, 200, 100}, 12.f, tgx::colors::blue);     // corner radius
 canvas.rect_rounded_lines({40, 40, 200, 100}, 12.f, tgx::colors::white, 2.f);
 canvas.triangle_lines(a, b, c, tgx::colors::green, 2.f);
+canvas.polygon(points, tgx::colors::green);                            // filled, convex or concave
 canvas.line_loop(points, tgx::colors::white, 3.f);                     // back to the first point
-canvas.poly({600, 100}, 6, 50.f, tgx::colors::purple);                // sides, radius; rotation last, optional
-canvas.poly_lines({600, 100}, 6, 50.f, tgx::colors::white, 2.f);
+canvas.regular_polygon({600, 100}, 6, 50.f, tgx::colors::purple);      // sides, radius; rotation last, optional
+canvas.regular_polygon_lines({600, 100}, 6, 50.f, tgx::colors::white, 2.f);
 canvas.circle_sector({800, 100}, 50.f, start, end, tgx::colors::yellow);
 canvas.ring({1000, 100}, 40.f, 50.f, start, end, tgx::colors::green);  // an arc, a progress ring
 ```
@@ -217,7 +219,9 @@ Angles are radians, clockwise on screen from the right, as `from_angle`.
 Outlines (`*_lines`) keep inside the shape's edges, so a frame never grows the
 shape; `line`, `line_strip` and `line_loop` are centered on their points.
 Curves get as many segments as keep them within a quarter pixel of round, at
-the size they show.
+the size they show. `polygon` accepts a simple polygon without holes or
+self-intersections, in either winding; it skips adjacent duplicate points and
+may repeat the first point at the end.
 
 A canvas can instead have a size of its own, a fixed logical resolution as
 large as fits in the window, keeping its shape: in a window of another shape
@@ -627,8 +631,8 @@ asserts on, tgx stops at the call instead; the main cases:
 - a viewport or clip of negative size, for a draw or a canvas; a canvas of
   negative size;
 - a rect of negative size or a circle of negative radius, for a collision
-  check or a canvas shape; a negative, infinite or NaN thickness; a polygon of fewer
-  than 3 or more than 1024 sides; a nine-slice with a mirrored `src` or size,
+  check or a canvas shape; a negative, infinite or NaN thickness; a regular polygon
+  of fewer than 3 sides or any polygon of more than 1024 points; a nine-slice with a mirrored `src` or size,
   borders below 0 or wider than `src`, or a `border_scale` below 0;
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;

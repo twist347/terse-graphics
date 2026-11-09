@@ -563,7 +563,24 @@ namespace tgx {
         push_band(state, n, outer, inner, color, true);
     }
 
-    auto Canvas::poly(Vec2 center, int sides, float radius, Color color, float rotation) noexcept -> void {
+    auto Canvas::polygon(std::span<const Vec2> points, Color color) noexcept -> void {
+        TGX_ASSERT_MSG(points.size() <= detail::max_segments, "polygon of {} points", points.size());
+
+        const auto triangles = detail::triangulate_polygon(points);
+        if (triangles.empty()) {
+            return;
+        }
+
+        auto [batch, first] = start(state_for(0), points.size(), triangles.size() * 3);
+        for (const Vec2 point: points) {
+            batch.push_vertex({point, white_uv, color});
+        }
+        for (const auto &triangle: triangles) {
+            push_indices(batch, first, {triangle[0], triangle[1], triangle[2]});
+        }
+    }
+
+    auto Canvas::regular_polygon(Vec2 center, int sides, float radius, Color color, float rotation) noexcept -> void {
         TGX_ASSERT_MSG(detail::valid_length(radius), "polygon of radius {}", radius);
 
         const std::size_t n = poly_sides(sides);
@@ -574,7 +591,7 @@ namespace tgx {
         push_fan(state_for(0), center, n, detail::Rim{center, radius, arc, n}, color, color, true);
     }
 
-    auto Canvas::poly_lines(
+    auto Canvas::regular_polygon_lines(
         Vec2 center,
         int sides,
         float radius,
@@ -592,7 +609,7 @@ namespace tgx {
         // Thick enough, the outline fills the polygon.
         const float inradius = radius * std::cos(std::numbers::pi_v<float> / static_cast<float>(n));
         if (thickness >= inradius) {
-            poly(center, sides, radius, color, rotation);
+            regular_polygon(center, sides, radius, color, rotation);
             return;
         }
 

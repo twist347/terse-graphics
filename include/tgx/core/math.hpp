@@ -198,6 +198,10 @@ namespace tgx {
         return degrees * (std::numbers::pi_v<float> / 180.f);
     }
 
+    [[nodiscard]] constexpr auto degrees(float radians) noexcept -> float {
+        return radians * (180.f / std::numbers::pi_v<float>);
+    }
+
     // value at the same place between to_start and to_end as it is between
     // from_start and from_end, which must differ. Not clamped, like lerp.
     //

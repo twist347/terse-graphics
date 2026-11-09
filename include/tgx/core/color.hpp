@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <numbers>
 
 namespace tgx {
     struct Color {
@@ -29,7 +30,7 @@ namespace tgx {
             return rgba((rgb << 8) | 0xff);
         }
 
-        // Hue in degrees (0 red, 120 green, 240 blue; wraps around).
+        // Hue in radians (0 red, 2pi / 3 green, 4pi / 3 blue; wraps around).
         // Saturation and value in [0, 1]. Opaque. Stepping the hue gives
         // evenly spread, equally bright colors.
         [[nodiscard]] static auto hsv(float hue, float saturation, float value) noexcept -> Color {
@@ -40,14 +41,15 @@ namespace tgx {
                 hue, saturation, value
             );
 
-            float h = std::fmod(hue, 360.f);
+            constexpr float full_turn = 2.f * std::numbers::pi_v<float>;
+            float h = std::fmod(hue, full_turn);
             if (h < 0.f) {
-                h += 360.f;
+                h += full_turn;
             }
             const float s = std::clamp(saturation, 0.f, 1.f);
             const float v = std::clamp(value, 0.f, 1.f);
             const auto channel = [&](float n) {
-                const float k = std::fmod(n + h / 60.f, 6.f);
+                const float k = std::fmod(n + h / (full_turn / 6.f), 6.f);
                 const float f = v - v * s * std::clamp(std::min(k, 4.f - k), 0.f, 1.f);
                 return static_cast<std::uint8_t>(f * 255.f + 0.5f);
             };
@@ -89,15 +91,14 @@ namespace tgx {
         };
     }
 
-    // Every channel, alpha too. Unlike the vector lerps, t is clamped to
-    // [0, 1].
+    // Every channel, alpha too. Like the vector lerps, t is not clamped;
+    // channels that extrapolate past a byte's range are clamped.
     [[nodiscard]] inline auto lerp(Color a, Color b, float t) noexcept -> Color {
-        // A NaN would pass the clamp.
         TGX_ASSERT_MSG(std::isfinite(t), "lerp(a, b, {}): not a number", t);
-        const float k = std::clamp(t, 0.f, 1.f);
-        const auto mix = [k](std::uint8_t from, std::uint8_t to) {
+        const auto mix = [t](std::uint8_t from, std::uint8_t to) {
             const auto f = static_cast<float>(from);
-            return static_cast<std::uint8_t>(f + (static_cast<float>(to) - f) * k + 0.5f);
+            const float value = f + (static_cast<float>(to) - f) * t;
+            return static_cast<std::uint8_t>(std::clamp(value, 0.f, 255.f) + 0.5f);
         };
         return {mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b), mix(a.a, b.a)};
     }

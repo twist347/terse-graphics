@@ -83,6 +83,63 @@ TEST_CASE("ellipse rims") {
     }
 }
 
+TEST_CASE("polygon triangulation") {
+    using tgx::detail::triangulate_polygon;
+    const auto area = [](std::span<const tgx::Vec2> points) {
+        float result = 0.f;
+        for (std::size_t i = 0; i < points.size(); ++i) {
+            result += tgx::cross(points[i], points[(i + 1) % points.size()]);
+        }
+        return std::abs(result) / 2.f;
+    };
+    const auto triangles_area = [](std::span<const tgx::Vec2> points, const auto &triangles) {
+        float result = 0.f;
+        for (const auto &triangle: triangles) {
+            const tgx::Vec2 a = points[triangle[0]];
+            const tgx::Vec2 b = points[triangle[1]];
+            const tgx::Vec2 c = points[triangle[2]];
+            result += std::abs(tgx::cross(b - a, c - a)) / 2.f;
+        }
+        return result;
+    };
+
+    SUBCASE("convex, either winding") {
+        constexpr std::array square{tgx::Vec2{0, 0}, tgx::Vec2{10, 0}, tgx::Vec2{10, 10}, tgx::Vec2{0, 10}};
+        const auto triangles = triangulate_polygon(square);
+        REQUIRE(triangles.size() == 2);
+        CHECK(triangles_area(square, triangles) == doctest::Approx(area(square)));
+
+        std::array reversed = square;
+        std::ranges::reverse(reversed);
+        const auto reverse_triangles = triangulate_polygon(reversed);
+        REQUIRE(reverse_triangles.size() == 2);
+        CHECK(triangles_area(reversed, reverse_triangles) == doctest::Approx(area(reversed)));
+    }
+    SUBCASE("concave") {
+        constexpr std::array u{
+            tgx::Vec2{0, 0}, tgx::Vec2{90, 0}, tgx::Vec2{90, 90}, tgx::Vec2{60, 90},
+            tgx::Vec2{60, 30}, tgx::Vec2{30, 30}, tgx::Vec2{30, 90}, tgx::Vec2{0, 90},
+        };
+        const auto triangles = triangulate_polygon(u);
+        REQUIRE(triangles.size() == u.size() - 2);
+        CHECK(triangles_area(u, triangles) == doctest::Approx(area(u)));
+    }
+    SUBCASE("duplicates, a closing point and straight-through vertices") {
+        constexpr std::array points{
+            tgx::Vec2{0, 0}, tgx::Vec2{10, 0}, tgx::Vec2{10, 0}, tgx::Vec2{20, 0},
+            tgx::Vec2{20, 10}, tgx::Vec2{20, 10}, tgx::Vec2{0, 10}, tgx::Vec2{0, 0},
+        };
+        const auto triangles = triangulate_polygon(points);
+        REQUIRE(triangles.size() == 2);
+        CHECK(triangles_area(points, triangles) == doctest::Approx(200.f));
+    }
+    SUBCASE("no area") {
+        constexpr std::array line{tgx::Vec2{0, 0}, tgx::Vec2{10, 0}, tgx::Vec2{20, 0}};
+        CHECK(triangulate_polygon({}).empty());
+        CHECK(triangulate_polygon(line).empty());
+    }
+}
+
 TEST_CASE("corners") {
     SUBCASE("clockwise from the top-left") {
         constexpr auto box = tgx::detail::corners(tgx::Rect{1, 2, 3, 4});
