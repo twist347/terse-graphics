@@ -20,6 +20,10 @@ namespace {
         bit_repeated = 8,
     };
 
+    [[nodiscard]] constexpr auto has_flag(std::uint8_t bits, std::uint8_t flag) noexcept -> bool {
+        return (bits & flag) != 0;
+    }
+
     // Asserted: a value cast from outside the enum would read past the
     // array.
     [[nodiscard]] auto index_of(tgx::Key key) noexcept -> std::size_t {
@@ -54,19 +58,19 @@ namespace {
 
 namespace tgx {
     auto Input::down(Key key) const noexcept -> bool {
-        return (keys_[index_of(key)] & bit_down) != 0;
+        return has_flag(keys_[index_of(key)], bit_down);
     }
 
     auto Input::pressed(Key key) const noexcept -> bool {
-        return (keys_[index_of(key)] & bit_pressed) != 0;
+        return has_flag(keys_[index_of(key)], bit_pressed);
     }
 
     auto Input::released(Key key) const noexcept -> bool {
-        return (keys_[index_of(key)] & bit_released) != 0;
+        return has_flag(keys_[index_of(key)], bit_released);
     }
 
     auto Input::repeated(Key key) const noexcept -> bool {
-        return (keys_[index_of(key)] & bit_repeated) != 0;
+        return has_flag(keys_[index_of(key)], bit_repeated);
     }
 
     auto Input::axis(Key negative, Key positive) const noexcept -> float {
@@ -86,15 +90,15 @@ namespace tgx {
     }
 
     auto Input::down(MouseButton button) const noexcept -> bool {
-        return (buttons_[index_of(button)] & bit_down) != 0;
+        return has_flag(buttons_[index_of(button)], bit_down);
     }
 
     auto Input::pressed(MouseButton button) const noexcept -> bool {
-        return (buttons_[index_of(button)] & bit_pressed) != 0;
+        return has_flag(buttons_[index_of(button)], bit_pressed);
     }
 
     auto Input::released(MouseButton button) const noexcept -> bool {
-        return (buttons_[index_of(button)] & bit_released) != 0;
+        return has_flag(buttons_[index_of(button)], bit_released);
     }
 
     auto Input::mouse() const noexcept -> Vec2 {
