@@ -125,8 +125,9 @@ namespace tgx::gl {
     // it.
     class Shader {
     public:
-        // Fails with Error::compile or Error::link. The driver's log always
-        // goes to out_log; on success it may hold warnings.
+        // Fails with Error::compile or Error::link for GLSL errors, and
+        // Error::out_of_memory or Error::platform for driver failures. The
+        // driver's log goes to out_log; on success it may hold warnings.
         [[nodiscard]] static auto from_source(
             std::string_view vertex,
             std::string_view fragment,

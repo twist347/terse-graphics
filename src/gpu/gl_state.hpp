@@ -73,9 +73,13 @@ namespace tgx::detail {
         // Unless already bound/current. Texture binding leaves the slot
         // active; slot must be below gl::max_texture_slots.
         auto bind_framebuffer(GlId next) noexcept -> void;
+        // For allocation setup, with earlier errors drained by the caller.
+        // A rejected bind leaves both GL and the cache at the previous id.
+        [[nodiscard]] auto try_bind_framebuffer(GlId next) noexcept -> Result<void>;
         auto use_program(GlId next) noexcept -> void;
         auto bind_vertex_array(GlId next) noexcept -> void;
         auto bind_texture(std::uint32_t slot, GlId texture) noexcept -> void;
+        [[nodiscard]] auto try_bind_texture(std::uint32_t slot, GlId texture) noexcept -> Result<void>;
 
         // Call before deletion: GL unbinds the object and may reuse its id.
         auto forget_framebuffer(GlId id) noexcept -> void;

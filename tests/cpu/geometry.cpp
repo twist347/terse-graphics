@@ -85,20 +85,24 @@ TEST_CASE("ellipse rims") {
 
 TEST_CASE("polygon triangulation") {
     using tgx::detail::triangulate_polygon;
-    const auto area = [](std::span<const tgx::Vec2> points) {
-        float result = 0.f;
-        for (std::size_t i = 0; i < points.size(); ++i) {
-            result += tgx::cross(points[i], points[(i + 1) % points.size()]);
-        }
-        return std::abs(result) / 2.f;
+    const auto cross = [](tgx::Vec2 a, tgx::Vec2 b, tgx::Vec2 c) {
+        return (static_cast<double>(b.x) - a.x) * (static_cast<double>(c.y) - a.y)
+               - (static_cast<double>(b.y) - a.y) * (static_cast<double>(c.x) - a.x);
     };
-    const auto triangles_area = [](std::span<const tgx::Vec2> points, const auto &triangles) {
-        float result = 0.f;
+    const auto area = [&](std::span<const tgx::Vec2> points) {
+        double result = 0.;
+        for (std::size_t i = 0; i < points.size(); ++i) {
+            result += cross(points.front(), points[i], points[(i + 1) % points.size()]);
+        }
+        return std::abs(result) / 2.;
+    };
+    const auto triangles_area = [&](std::span<const tgx::Vec2> points, const auto &triangles) {
+        double result = 0.;
         for (const auto &triangle: triangles) {
             const tgx::Vec2 a = points[triangle[0]];
             const tgx::Vec2 b = points[triangle[1]];
             const tgx::Vec2 c = points[triangle[2]];
-            result += std::abs(tgx::cross(b - a, c - a)) / 2.f;
+            result += std::abs(cross(a, b, c)) / 2.;
         }
         return result;
     };
@@ -123,6 +127,71 @@ TEST_CASE("polygon triangulation") {
         const auto triangles = triangulate_polygon(u);
         REQUIRE(triangles.size() == u.size() - 2);
         CHECK(triangles_area(u, triangles) == doctest::Approx(area(u)));
+    }
+    SUBCASE("a point on an ear's edge, either winding and every starting vertex") {
+        // The fourth point is exactly on the diagonal from the second to
+        // the fifth. Float differences put it outside an ear that must be
+        // blocked, leaving only two overlapping triangles in one winding.
+        std::array points{
+            tgx::Vec2{0.f, 0.f}, tgx::Vec2{114.440994f, 7.62962341f},
+            tgx::Vec2{100.f, 150.f}, tgx::Vec2{63.5782852f, 43.2333679f},
+            tgx::Vec2{-38.1471329f, 114.440857f},
+        };
+        CHECK(cross(points[1], points[4], points[3]) == 0.);
+        for (int winding = 0; winding < 2; ++winding) {
+            for (std::size_t start = 0; start < points.size(); ++start) {
+                CAPTURE(winding);
+                CAPTURE(start);
+                const auto triangles = triangulate_polygon(points);
+                CHECK(triangles.size() == 3);
+                CHECK(triangles_area(points, triangles) == doctest::Approx(area(points)).epsilon(1e-12));
+                for (const auto &triangle: triangles) {
+                    CHECK(cross(points[triangle[0]], points[triangle[1]], points[triangle[2]])
+                          * (winding == 0 ? 1. : -1.) > 0.);
+                }
+                std::rotate(points.begin(), points.begin() + 1, points.end());
+            }
+            std::ranges::reverse(points);
+        }
+    }
+    SUBCASE("rotated concave polygon with extra vertices on straight edges") {
+        constexpr std::array u{
+            tgx::Vec2{0, 0}, tgx::Vec2{45, 0}, tgx::Vec2{90, 0}, tgx::Vec2{90, 45},
+            tgx::Vec2{90, 90}, tgx::Vec2{75, 90}, tgx::Vec2{60, 90}, tgx::Vec2{60, 60},
+            tgx::Vec2{60, 30}, tgx::Vec2{45, 30}, tgx::Vec2{30, 30}, tgx::Vec2{30, 60},
+            tgx::Vec2{30, 90}, tgx::Vec2{15, 90}, tgx::Vec2{0, 90}, tgx::Vec2{0, 45},
+        };
+        for (const float angle: {0.102f, 0.7f, 1.3f, 2.8f}) {
+            auto points = u;
+            for (auto &point: points) {
+                point = tgx::detail::turned(point, tgx::from_angle(angle));
+            }
+            for (int winding = 0; winding < 2; ++winding) {
+                CAPTURE(angle);
+                CAPTURE(winding);
+                const auto triangles = triangulate_polygon(points);
+                CHECK(triangles_area(points, triangles) == doctest::Approx(area(points)).epsilon(1e-12));
+                for (const auto &triangle: triangles) {
+                    CHECK(cross(points[triangle[0]], points[triangle[1]], points[triangle[2]])
+                          * (winding == 0 ? 1. : -1.) > 0.);
+                }
+                std::ranges::reverse(points);
+            }
+        }
+    }
+    SUBCASE("finite coordinates whose products overflow or underflow float") {
+        for (const float scale: {1e-25f, 1e20f}) {
+            std::array points{tgx::Vec2{0, 0}, tgx::Vec2{scale, 0},
+                              tgx::Vec2{scale, scale}, tgx::Vec2{0, scale}};
+            for (int winding = 0; winding < 2; ++winding) {
+                CAPTURE(scale);
+                CAPTURE(winding);
+                const auto triangles = triangulate_polygon(points);
+                CHECK(triangles.size() == 2);
+                CHECK(triangles_area(points, triangles) == doctest::Approx(area(points)).epsilon(1e-12));
+                std::ranges::reverse(points);
+            }
+        }
     }
     SUBCASE("duplicates, a closing point and straight-through vertices") {
         constexpr std::array points{

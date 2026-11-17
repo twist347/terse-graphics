@@ -50,13 +50,22 @@ namespace {
 
         GLuint id = 0;
         glGenTextures(1, &id);
-        tgx::detail::context().edit_texture(id);
+        if (const auto generated = tgx::detail::checked_creation<tgx::detail::delete_texture>(id); !generated) {
+            return std::unexpected{generated.error()};
+        }
+        if (const auto bound = tgx::detail::context().try_bind_texture(id); !bound) {
+            tgx::detail::delete_texture(id);
+            return std::unexpected{bound.error()};
+        }
 
         glTexImage2D(
             GL_TEXTURE_2D, 0, tgx::detail::pixel_storage,
             size.width, size.height, 0,
             tgx::detail::pixel_format, tgx::detail::pixel_type, pixels
         );
+        if (const auto stored = tgx::detail::checked_allocation<tgx::detail::delete_texture>(id); !stored) {
+            return std::unexpected{stored.error()};
+        }
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter(params));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter(params));
@@ -69,7 +78,7 @@ namespace {
             glGenerateMipmap(GL_TEXTURE_2D);
         }
 
-        // One check for all of the above; the levels need memory too.
+        // Mipmap levels need memory too.
         return tgx::detail::checked_allocation<tgx::detail::delete_texture>(id);
     }
 }

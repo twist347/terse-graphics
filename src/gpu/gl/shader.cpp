@@ -5,6 +5,7 @@
 #include "gpu/context.hpp"
 #include "gpu/gl/shader_internal.hpp"
 #include "gpu/gl/shader_reflection.hpp"
+#include "gpu/gl_error.hpp"
 
 #include <glad/gl.h>
 
@@ -70,29 +71,42 @@ namespace {
         }
     }
 
-    // Returns an empty handle if the stage failed to compile.
+    // GLSL errors and driver failures are distinct. Keep ownership while
+    // collecting the log too, since appending to it may throw.
     [[nodiscard]] auto compile(
         GLenum stage,
         std::string_view label,
         std::string_view source,
         std::string *out_log
-    ) -> Stage {
+    ) -> tgx::Result<Stage> {
         TGX_ASSERT(std::in_range<GLint>(source.size()));
 
-        // Owned right away: append_log may throw.
-        Stage shader{glCreateShader(stage)};
+        const auto created = tgx::detail::checked_creation<delete_shader>(glCreateShader(stage));
+        if (!created) {
+            return std::unexpected{created.error()};
+        }
+        Stage shader{*created};
 
         const GLchar *text = source.data();
         const auto length = static_cast<GLint>(source.size());
         glShaderSource(shader.get(), 1, &text, &length);
+        if (const auto uploaded = tgx::detail::check_gl_errors(); !uploaded) {
+            return std::unexpected{uploaded.error()};
+        }
         glCompileShader(shader.get());
+        if (const auto compiled = tgx::detail::check_gl_errors(); !compiled) {
+            return std::unexpected{compiled.error()};
+        }
 
         append_log(out_log, label, shader.get(), glGetShaderiv, glGetShaderInfoLog);
 
         GLint ok = GL_FALSE;
         glGetShaderiv(shader.get(), GL_COMPILE_STATUS, &ok);
+        if (const auto queried = tgx::detail::check_gl_errors(); !queried) {
+            return std::unexpected{queried.error()};
+        }
         if (ok != GL_TRUE) {
-            return {};
+            return std::unexpected{tgx::Error::compile};
         }
         return shader;
     }
@@ -239,26 +253,49 @@ namespace tgx::gl {
             out_log->clear();
         }
 
-        // Compiles both stages even if one fails, to report all errors.
-        const Stage vs = compile(GL_VERTEX_SHADER, "vertex", vertex, out_log);
-        const Stage fs = compile(GL_FRAGMENT_SHADER, "fragment", fragment, out_log);
-        if (!vs || !fs) {
-            return std::unexpected{Error::compile};
+        tgx::detail::drain_gl_errors();
+
+        // Compile both on a GLSL error to report both logs. A driver failure
+        // aborts setup before using an object that could not be created.
+        const auto vs = compile(GL_VERTEX_SHADER, "vertex", vertex, out_log);
+        if (!vs && vs.error() != Error::compile) {
+            return std::unexpected{vs.error()};
+        }
+        const auto fs = compile(GL_FRAGMENT_SHADER, "fragment", fragment, out_log);
+        if (!fs) {
+            return std::unexpected{fs.error()};
+        }
+        if (!vs) {
+            return std::unexpected{vs.error()};
         }
 
-        tgx::detail::Handle<detail::delete_program> program{glCreateProgram()};
-        glAttachShader(program.get(), vs.get());
-        glAttachShader(program.get(), fs.get());
+        const auto created = tgx::detail::checked_creation<detail::delete_program>(glCreateProgram());
+        if (!created) {
+            return std::unexpected{created.error()};
+        }
+
+        tgx::detail::Handle<detail::delete_program> program{*created};
+        glAttachShader(program.get(), vs->get());
+        glAttachShader(program.get(), fs->get());
+        if (const auto attached = tgx::detail::check_gl_errors(); !attached) {
+            return std::unexpected{attached.error()};
+        }
         glLinkProgram(program.get());
+        if (const auto linked = tgx::detail::check_gl_errors(); !linked) {
+            return std::unexpected{linked.error()};
+        }
 
         // The linked program does not need the stages.
-        glDetachShader(program.get(), vs.get());
-        glDetachShader(program.get(), fs.get());
+        glDetachShader(program.get(), vs->get());
+        glDetachShader(program.get(), fs->get());
 
         append_log(out_log, "link", program.get(), glGetProgramiv, glGetProgramInfoLog);
 
         GLint ok = GL_FALSE;
         glGetProgramiv(program.get(), GL_LINK_STATUS, &ok);
+        if (const auto queried = tgx::detail::check_gl_errors(); !queried) {
+            return std::unexpected{queried.error()};
+        }
         if (ok != GL_TRUE) {
             return std::unexpected{Error::link};
         }
@@ -269,6 +306,9 @@ namespace tgx::gl {
         std::vector<VertexInput> inputs{};
         if constexpr (TGX_ENABLE_ASSERTS != 0) {
             inputs = detail::collect_vertex_inputs(program.get());
+        }
+        if (const auto reflected = tgx::detail::check_gl_errors(); !reflected) {
+            return std::unexpected{reflected.error()};
         }
         return Shader{std::move(program), std::move(uniforms), std::move(inputs), std::move(samplers)};
     }

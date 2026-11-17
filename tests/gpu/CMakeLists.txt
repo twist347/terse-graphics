@@ -4,6 +4,7 @@
 # under Xvfb with Mesa's software renderer.
 tgx_add_test(tgx_tests_gpu LABEL gpu TIMEOUT 120 INTERNAL SOURCES
         main.cpp
+        allocations.cpp
         buffers.cpp
         clip.cpp
         context.cpp
@@ -13,6 +14,7 @@ tgx_add_test(tgx_tests_gpu LABEL gpu TIMEOUT 120 INTERNAL SOURCES
         raw.cpp
         read.cpp
         render_target.cpp
+        shader_allocations.cpp
         shaders.cpp
         shapes.cpp
         stats.cpp

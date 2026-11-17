@@ -4,6 +4,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 
 TEST_CASE("contains") {
@@ -24,6 +25,42 @@ TEST_CASE("contains") {
     CHECK_FALSE(tgx::contains({0, 0}, {10, 0}, {0, 10}, {8, 8}));
     // Corners on a line: no inside.
     CHECK_FALSE(tgx::contains({0, 0}, {5, 5}, {10, 10}, {5, 5}));
+}
+
+TEST_CASE("triangle containment includes exact boundaries in every vertex order") {
+    // This edge point is exactly collinear in the input floats, but float
+    // subtraction puts it outside in one winding.
+    constexpr tgx::Vec2 a{-38.1471329f, 114.440857f};
+    constexpr tgx::Vec2 b{0.f, 0.f};
+    constexpr tgx::Vec2 c{114.440994f, 7.62962341f};
+    constexpr tgx::Vec2 edge{63.5782852f, 43.2333679f};
+    constexpr std::array vertices{a, b, c};
+    std::array order{0, 1, 2};
+    do {
+        CAPTURE(order[0]);
+        CAPTURE(order[1]);
+        CAPTURE(order[2]);
+        const auto x = vertices[order[0]];
+        const auto y = vertices[order[1]];
+        const auto z = vertices[order[2]];
+        CHECK(tgx::contains(x, y, z, edge));
+        CHECK(tgx::contains(x, y, z, {10, 20}));
+        CHECK_FALSE(tgx::contains(x, y, z, {100, 100}));
+        for (const auto vertex: vertices) {
+            CHECK(tgx::contains(x, y, z, vertex));
+        }
+        CHECK_FALSE(tgx::contains(a, edge, c, {10, 20}));
+        CHECK_FALSE(tgx::contains(a, edge, c, edge));
+    } while (std::next_permutation(order.begin(), order.end()));
+
+    // Keep the boundary rule usable in constant expressions too.
+    static_assert(tgx::contains(a, b, c, edge));
+    for (const float scale: {1e-25f, 1e20f}) {
+        const tgx::Vec2 x{0, 0}, y{scale, 0}, z{0, scale};
+        CHECK(tgx::contains(x, y, z, {scale / 4, scale / 4}));
+        CHECK(tgx::contains(z, y, x, {scale / 2, scale / 2}));
+        CHECK_FALSE(tgx::contains(x, y, z, {scale, scale}));
+    }
 }
 
 TEST_CASE("contains for a polygon") {
@@ -148,4 +185,36 @@ TEST_CASE("sweep gives the fraction of a rect's movement to contact") {
     CHECK_FALSE(tgx::sweep(moving, {-1, 0}, touching).has_value());
     CHECK_FALSE(tgx::sweep(moving, {0, 1}, touching).has_value());
     CHECK_FALSE(tgx::sweep({}, {10, 0}, wall).has_value());
+}
+
+TEST_CASE("sweep accepts initial contact only when moving inward on every touching axis") {
+    constexpr tgx::Rect moving{0, 0, 2, 2};
+    for (const float x: {-1.f, 1.f}) {
+        for (const float y: {-1.f, 1.f}) {
+            const tgx::Rect corner{2 * x, 2 * y, 2, 2};
+            for (const tgx::Vec2 movement: std::array{
+                     tgx::Vec2{x, 0}, tgx::Vec2{0, y}, tgx::Vec2{-x, y},
+                     tgx::Vec2{x, -y}, tgx::Vec2{-x, -y}, tgx::Vec2{0, 0}, tgx::Vec2{x, y}}) {
+                CAPTURE(x);
+                CAPTURE(y);
+                CAPTURE(movement);
+                const bool inward = movement.x * x > 0 && movement.y * y > 0;
+                const auto hit = tgx::sweep(moving, movement, corner);
+                CHECK(hit.has_value() == inward);
+                if (hit) {
+                    CHECK(*hit == 0.f);
+                }
+                CHECK(tgx::sweep(corner, -movement, moving) == hit);
+            }
+            // Side contact requires inward motion only along its normal;
+            // sliding in either direction on the other axis is still a hit.
+            const tgx::Rect side{2 * x, 0, 2, 2};
+            CHECK(tgx::sweep(moving, {x, y}, side) == 0.f);
+            CHECK_FALSE(tgx::sweep(moving, {0, y}, side).has_value());
+            CHECK_FALSE(tgx::sweep(moving, {-x, y}, side).has_value());
+        }
+    }
+    // Later first contact and an initial overlap retain their usual rules.
+    CHECK(tgx::sweep(moving, {2, 2}, {4, 4, 2, 2}) == 1.f);
+    CHECK(tgx::sweep(moving, {-1, -1}, {1, 1, 2, 2}) == 0.f);
 }

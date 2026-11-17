@@ -79,15 +79,15 @@ namespace tgx {
     // The triangle a b c, either winding. The edges count as inside. A
     // triangle with no area has no inside.
     [[nodiscard]] constexpr auto contains(Vec2 a, Vec2 b, Vec2 c, Vec2 point) noexcept -> bool {
-        if (cross(b - a, c - a) == 0.f) {
+        if (detail::orient2d(a, b, c) == 0.0) {
             return false;
         }
         // An inside point is on the same side of all three edges, or on one.
-        const float ab = cross(b - a, point - a);
-        const float bc = cross(c - b, point - b);
-        const float ca = cross(a - c, point - c);
-        const bool any_negative = ab < 0.f || bc < 0.f || ca < 0.f;
-        const bool any_positive = ab > 0.f || bc > 0.f || ca > 0.f;
+        const double ab = detail::orient2d(a, b, point);
+        const double bc = detail::orient2d(b, c, point);
+        const double ca = detail::orient2d(c, a, point);
+        const bool any_negative = ab < 0.0 || bc < 0.0 || ca < 0.0;
+        const bool any_positive = ab > 0.0 || bc > 0.0 || ca > 0.0;
         return !(any_negative && any_positive);
     }
 
@@ -244,33 +244,34 @@ namespace tgx {
         }
 
         // A closed raycast also reports touching when the movement separates
-        // the rects. At time 0, accept only motion into the touching side.
-        bool approaching = false;
+        // the rects. At a corner, motion must go inward on both touching
+        // axes; staying on either boundary only slides along the other rect.
+        bool touching = false;
         if (moving.right() == stationary.x) {
-            if (movement.x < 0.f) {
+            if (movement.x <= 0.f) {
                 return std::nullopt;
             }
-            approaching = movement.x > 0.f;
+            touching = true;
         }
         if (stationary.right() == moving.x) {
-            if (movement.x > 0.f) {
+            if (movement.x >= 0.f) {
                 return std::nullopt;
             }
-            approaching = movement.x < 0.f;
+            touching = true;
         }
         if (moving.bottom() == stationary.y) {
-            if (movement.y < 0.f) {
+            if (movement.y <= 0.f) {
                 return std::nullopt;
             }
-            approaching = approaching || movement.y > 0.f;
+            touching = true;
         }
         if (stationary.bottom() == moving.y) {
-            if (movement.y > 0.f) {
+            if (movement.y >= 0.f) {
                 return std::nullopt;
             }
-            approaching = approaching || movement.y < 0.f;
+            touching = true;
         }
-        if (!approaching) {
+        if (!touching) {
             return std::nullopt;
         }
         return 0.f;

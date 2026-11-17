@@ -4,15 +4,133 @@
 #include "gpu.hpp"
 
 #include <doctest/doctest.h>
+#include <glad/gl.h>
 
+#include <array>
 #include <initializer_list>
 #include <utility>
 
 namespace {
+    // A rejected bind leaves the current framebuffer and its attachments
+    // intact. Inject once, so later binds can test cache recovery too.
+    class FramebufferBindFailure {
+    public:
+        explicit FramebufferBindFailure(GLenum error) noexcept
+            : error_{error}, bind_{std::exchange(glad_glBindFramebuffer, bind)},
+              attach_texture_{std::exchange(glad_glFramebufferTexture2D, attach_texture)},
+              attach_depth_{std::exchange(glad_glFramebufferRenderbuffer, attach_depth)},
+              delete_{std::exchange(glad_glDeleteFramebuffers, delete_framebuffers)},
+              get_error_{std::exchange(glad_glGetError, get_error)} {
+            current_ = this;
+        }
+        FramebufferBindFailure(const FramebufferBindFailure &) = delete;
+        auto operator=(const FramebufferBindFailure &) -> FramebufferBindFailure & = delete;
+        ~FramebufferBindFailure() {
+            glad_glBindFramebuffer = bind_;
+            glad_glFramebufferTexture2D = attach_texture_;
+            glad_glFramebufferRenderbuffer = attach_depth_;
+            glad_glDeleteFramebuffers = delete_;
+            glad_glGetError = get_error_;
+            current_ = nullptr;
+        }
+
+        GLuint rejected{0};
+        bool deleted{false};
+        int attachments{0};
+
+    private:
+        static void GLAD_API_PTR bind(GLenum target, GLuint id) {
+            if (current_->rejected == 0 && id != 0) {
+                current_->rejected = id;
+                current_->pending_ = true;
+                return;
+            }
+            current_->bind_(target, id);
+        }
+        static void GLAD_API_PTR attach_texture(GLenum target, GLenum attachment, GLenum type, GLuint id, GLint level) {
+            ++current_->attachments;
+            current_->attach_texture_(target, attachment, type, id, level);
+        }
+        static void GLAD_API_PTR attach_depth(GLenum target, GLenum attachment, GLenum type, GLuint id) {
+            ++current_->attachments;
+            current_->attach_depth_(target, attachment, type, id);
+        }
+        static void GLAD_API_PTR delete_framebuffers(GLsizei count, const GLuint *ids) {
+            for (GLsizei i = 0; i < count; ++i) {
+                current_->deleted |= ids[i] == current_->rejected;
+            }
+            current_->delete_(count, ids);
+        }
+        static auto GLAD_API_PTR get_error() -> GLenum {
+            return std::exchange(current_->pending_, false) ? current_->error_ : current_->get_error_();
+        }
+
+        static inline FramebufferBindFailure *current_{nullptr};
+        GLenum error_;
+        bool pending_{false};
+        PFNGLBINDFRAMEBUFFERPROC bind_;
+        PFNGLFRAMEBUFFERTEXTURE2DPROC attach_texture_;
+        PFNGLFRAMEBUFFERRENDERBUFFERPROC attach_depth_;
+        PFNGLDELETEFRAMEBUFFERSPROC delete_;
+        PFNGLGETERRORPROC get_error_;
+    };
+
     // Red top-left quarter on blue.
     auto draw_quarter(tgx::Canvas &canvas) -> void {
         canvas.clear(tgx::colors::blue);
         canvas.rect({0, 0, 32, 16}, tgx::colors::red);
+    }
+}
+
+TEST_CASE("a rejected framebuffer bind preserves the previous target and cached binding") {
+    const auto cover = tgx_test::Cover::create();
+    auto &device = tgx_test::app().device();
+    for (const GLenum error: std::array<GLenum, 2>{GL_OUT_OF_MEMORY, GL_INVALID_OPERATION}) {
+        for (const bool depth: {false, true}) {
+            CAPTURE(error);
+            CAPTURE(depth);
+            const auto previous = tgx_test::target({8, 8}, true);
+            device.clear({.target = &previous, .color = tgx::colors::red, .depth = 1.f});
+            GLint old_depth = 0;
+            glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                                  GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &old_depth);
+            {
+                FramebufferBindFailure failure{error};
+                const auto result = tgx::RenderTarget::create({8, 8}, {.depth = depth});
+                REQUIRE_FALSE(result.has_value());
+                CHECK(result.error() == (error == GL_OUT_OF_MEMORY ? tgx::Error::out_of_memory : tgx::Error::platform));
+                CHECK(failure.rejected != 0);
+                CHECK(failure.deleted);
+                CHECK(failure.attachments == 0);
+            }
+            CHECK(glGetError() == GL_NO_ERROR);
+            GLint binding = 0;
+            GLint color = 0;
+            GLint depth_attachment = 0;
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &binding);
+            CHECK(static_cast<tgx::GlId>(binding) == previous.id());
+            glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                                  GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &color);
+            glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                                  GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &depth_attachment);
+            REQUIRE(static_cast<tgx::GlId>(color) == previous.texture().id());
+            REQUIRE(depth_attachment == old_depth);
+
+            // If cleanup forgot a bind that GL rejected, the cache would say
+            // 0 while the old target was still bound. This clear must switch
+            // to the window rather than overwrite the old target.
+            device.clear({.color = tgx::colors::blue});
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &binding);
+            CHECK(binding == 0);
+            CHECK(previous.read()[4, 4] == tgx::colors::red);
+            cover.draw({.target = &previous, .state = {.depth = tgx::gl::Depth::less}});
+            CHECK(previous.read()[4, 4] == tgx::colors::green);
+
+            const auto after = tgx_test::target({8, 8}, depth);
+            cover.draw({.target = &after});
+            CHECK(after.read()[4, 4] == tgx::colors::green);
+            CHECK(glGetError() == GL_NO_ERROR);
+        }
     }
 }
 

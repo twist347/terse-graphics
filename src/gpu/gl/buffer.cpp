@@ -41,7 +41,13 @@ namespace tgx::gl {
 
         GLuint id = 0;
         glGenBuffers(1, &id);
+        if (const auto generated = tgx::detail::checked_creation<detail::delete_buffer>(id); !generated) {
+            return std::unexpected{generated.error()};
+        }
         glBindBuffer(edit_target, id);
+        if (const auto bound = tgx::detail::checked_allocation<detail::delete_buffer>(id); !bound) {
+            return std::unexpected{bound.error()};
+        }
         glBufferData(edit_target, static_cast<GLsizeiptr>(byte_size), data, to_gl(access));
 
         // Any error leaves the buffer without storage.

@@ -6,6 +6,7 @@
 #include "tgx/core/math.hpp"
 
 #include "base/log_internal.hpp"
+#include "gpu/gl_error.hpp"
 #include "gpu/gl_pixels.hpp"
 #include "gpu/surface.hpp"
 
@@ -302,6 +303,18 @@ namespace tgx::detail {
         }
     }
 
+    auto GlState::try_bind_framebuffer(GlId next) noexcept -> Result<void> {
+        if (next != framebuffer_) {
+            glBindFramebuffer(GL_FRAMEBUFFER, next);
+            if (const auto checked = check_gl_errors(); !checked) {
+                return std::unexpected{checked.error()};
+            }
+            framebuffer_ = next;
+            ++work_.target_switches;
+        }
+        return {};
+    }
+
     auto GlState::forget_framebuffer(GlId id) noexcept -> void {
         if (id == framebuffer_) {
             framebuffer_ = 0;
@@ -349,5 +362,24 @@ namespace tgx::detail {
 
     auto GlState::forget_texture(GlId texture) noexcept -> void {
         std::ranges::replace(textures_, texture, GLuint{0});
+    }
+
+    auto GlState::try_bind_texture(std::uint32_t slot, GlId texture) noexcept -> Result<void> {
+        if (slot != active_slot_) {
+            glActiveTexture(GL_TEXTURE0 + slot);
+            if (const auto checked = check_gl_errors(); !checked) {
+                return std::unexpected{checked.error()};
+            }
+            active_slot_ = slot;
+        }
+        if (texture != textures_[slot]) {
+            glBindTexture(GL_TEXTURE_2D, texture);
+            if (const auto checked = check_gl_errors(); !checked) {
+                return std::unexpected{checked.error()};
+            }
+            textures_[slot] = texture;
+            ++work_.texture_switches;
+        }
+        return {};
     }
 }

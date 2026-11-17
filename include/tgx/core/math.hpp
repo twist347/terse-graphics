@@ -376,6 +376,15 @@ namespace tgx {
     // screen (y down), negative counter-clockwise, zero when parallel.
     [[nodiscard]] constexpr auto cross(Vec2 a, Vec2 b) noexcept -> float { return a.x * b.y - a.y * b.x; }
 
+    namespace detail {
+        // The signed area of a b c, doubled. Promote before subtracting:
+        // float differences can move a point across an edge.
+        [[nodiscard]] constexpr auto orient2d(Vec2 a, Vec2 b, Vec2 c) noexcept -> double {
+            return (static_cast<double>(b.x) - a.x) * (static_cast<double>(c.y) - a.y)
+                   - (static_cast<double>(b.y) - a.y) * (static_cast<double>(c.x) - a.x);
+        }
+    }
+
     // 2D angles are radians from +x, clockwise on screen (y down), like Canvas
     // and Camera2D rotations.
 

@@ -15,7 +15,13 @@ namespace {
 
         GLuint id = 0;
         glGenRenderbuffers(1, &id);
+        if (const auto generated = tgx::detail::checked_creation<tgx::detail::delete_renderbuffer>(id); !generated) {
+            return std::unexpected{generated.error()};
+        }
         glBindRenderbuffer(GL_RENDERBUFFER, id);
+        if (const auto bound = tgx::detail::checked_allocation<tgx::detail::delete_renderbuffer>(id); !bound) {
+            return std::unexpected{bound.error()};
+        }
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, size.width, size.height);
 
         return tgx::detail::checked_allocation<tgx::detail::delete_renderbuffer>(id);
@@ -64,7 +70,11 @@ namespace tgx {
             return std::unexpected{Error::platform};
         }
 
-        detail::context().bind_framebuffer(id);
+        // Attaching after a rejected bind would modify the previous target.
+        if (const auto bound = detail::context().try_bind_framebuffer(id); !bound) {
+            detail::delete_framebuffer(id);
+            return std::unexpected{bound.error()};
+        }
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture->id(), 0);
         if (depth) {
             glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth.get());

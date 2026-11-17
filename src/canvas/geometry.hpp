@@ -54,6 +54,12 @@ namespace tgx::detail {
             return triangles;
         }
 
+        const auto straight_through = [](Vec2 a, Vec2 b, Vec2 c) noexcept -> bool {
+            return orient2d(a, b, c) == 0.
+                   && (static_cast<double>(b.x) - a.x) * (static_cast<double>(c.x) - b.x)
+                      + (static_cast<double>(b.y) - a.y) * (static_cast<double>(c.y) - b.y) >= 0.;
+        };
+
         std::vector<std::size_t> remaining;
         remaining.reserve(points.size());
         for (std::size_t i = 0; i < points.size(); ++i) {
@@ -70,7 +76,7 @@ namespace tgx::detail {
                 const Vec2 a = points[remaining[(i + remaining.size() - 1) % remaining.size()]];
                 const Vec2 b = points[remaining[i]];
                 const Vec2 c = points[remaining[(i + 1) % remaining.size()]];
-                if (cross(b - a, c - b) == 0.f && dot(b - a, c - b) >= 0.f) {
+                if (straight_through(a, b, c)) {
                     remaining.erase(remaining.begin() + i);
                     removed = true;
                     break;
@@ -86,16 +92,14 @@ namespace tgx::detail {
         triangles.reserve(remaining.size() - 2);
 
         const Vec2 origin = points[remaining.front()];
-        float area = 0.f;
+        double area = 0.;
         for (std::size_t i = 0; i < remaining.size(); ++i) {
-            const Vec2 a = points[remaining[i]] - origin;
-            const Vec2 b = points[remaining[(i + 1) % remaining.size()]] - origin;
-            area += cross(a, b);
+            area += orient2d(origin, points[remaining[i]], points[remaining[(i + 1) % remaining.size()]]);
         }
-        if (area == 0.f) {
+        if (area == 0.) {
             return triangles;
         }
-        const float winding = area > 0.f ? 1.f : -1.f;
+        const double winding = area > 0. ? 1. : -1.;
 
         while (remaining.size() > 3) {
             bool clipped = false;
@@ -106,7 +110,7 @@ namespace tgx::detail {
                 const Vec2 a = points[previous];
                 const Vec2 b = points[current];
                 const Vec2 c = points[next];
-                if (cross(b - a, c - b) * winding <= 0.f) {
+                if (orient2d(a, b, c) * winding <= 0.) {
                     continue;
                 }
 
@@ -116,9 +120,9 @@ namespace tgx::detail {
                         continue;
                     }
                     const Vec2 p = points[other];
-                    const bool inside = cross(b - a, p - a) * winding >= 0.f
-                                        && cross(c - b, p - b) * winding >= 0.f
-                                        && cross(a - c, p - c) * winding >= 0.f;
+                    const bool inside = orient2d(a, b, p) * winding >= 0.
+                                        && orient2d(b, c, p) * winding >= 0.
+                                        && orient2d(c, a, p) * winding >= 0.;
                     if (inside) {
                         blocked = true;
                         break;
@@ -142,7 +146,7 @@ namespace tgx::detail {
                 const Vec2 a = points[remaining[(i + remaining.size() - 1) % remaining.size()]];
                 const Vec2 b = points[remaining[i]];
                 const Vec2 c = points[remaining[(i + 1) % remaining.size()]];
-                if (cross(b - a, c - b) == 0.f && dot(b - a, c - b) >= 0.f) {
+                if (straight_through(a, b, c)) {
                     remaining.erase(remaining.begin() + i);
                     removed = true;
                     break;
@@ -157,7 +161,7 @@ namespace tgx::detail {
             const Vec2 a = points[remaining[0]];
             const Vec2 b = points[remaining[1]];
             const Vec2 c = points[remaining[2]];
-            if (cross(b - a, c - b) * winding > 0.f) {
+            if (orient2d(a, b, c) * winding > 0.) {
                 triangles.push_back({remaining[0], remaining[1], remaining[2]});
             }
         }

@@ -56,9 +56,10 @@ namespace tgx::detail {
         auto shader = gl::Shader::from_source(vertex_source, fragment_source);
         if (!shader) {
             // Tested on every supported platform; a driver rejecting it is
-            // the platform's fault.
-            TGX_ASSERT_MSG(false, "the 2D batch shader failed: {}", shader.error());
-            return std::unexpected{Error::platform};
+            // the platform's fault. Allocation failures remain recoverable.
+            const bool glsl_error = shader.error() == Error::compile || shader.error() == Error::link;
+            TGX_ASSERT_MSG(!glsl_error, "the 2D batch shader failed: {}", shader.error());
+            return std::unexpected{glsl_error ? Error::platform : shader.error()};
         }
         const auto bindings = canvas_shader_bindings(&*shader);
         shader->set(shader->uniform<gl::TextureSlot>("u_texture"), {0});

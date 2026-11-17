@@ -57,6 +57,12 @@ namespace tgx::detail {
 
         // For resource setup; changes tracked GL bindings.
         auto bind_framebuffer(GlId next) noexcept -> void { gl_state_.bind_framebuffer(next); }
+        [[nodiscard]] auto try_bind_framebuffer(GlId next) noexcept -> Result<void> {
+            return gl_state_.try_bind_framebuffer(next);
+        }
+        [[nodiscard]] auto try_bind_texture(GlId texture) noexcept -> Result<void> {
+            return gl_state_.try_bind_texture(0, texture);
+        }
         auto bind_vertex_array(GlId next) noexcept -> void { gl_state_.bind_vertex_array(next); }
 
         // Flush waiting uses before changing a program's uniforms or pixels.
