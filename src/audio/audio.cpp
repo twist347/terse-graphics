@@ -319,6 +319,12 @@ namespace tgx {
             "{} samples do not split into {} channels",
             samples.size(), channels
         );
+        TGX_ASSERT_MSG(
+            std::ranges::all_of(samples, [](float sample) {
+                return std::isfinite(sample) && sample >= -1.f && sample <= 1.f;
+            }),
+            "sound samples must be finite and in [-1, 1]"
+        );
 
         return Sound{std::vector<float>(samples.begin(), samples.end()), channels, sample_rate};
     }

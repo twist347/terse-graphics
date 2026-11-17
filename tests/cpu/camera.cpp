@@ -43,3 +43,13 @@ TEST_CASE("camera rotation is clockwise on the screen") {
     CHECK(nearly(counterclockwise.to_world({100, 194}), {13, 20}));
     CHECK(nearly(counterclockwise.matrix() * tgx::Vec4{13, 20, 0, 1}, {100, 194, 0, 1}));
 }
+
+TEST_CASE("negative camera zoom mirrors both axes and remains invertible") {
+    constexpr tgx::Camera2D camera{.target = {30, -20}, .offset = {400, 300}, .rotation = 0.7f, .zoom = -1.5f};
+    CHECK(nearly(camera.to_screen(camera.target), camera.offset));
+    for (const tgx::Vec2 point: {tgx::Vec2{0, 0}, tgx::Vec2{123, -45}}) {
+        CHECK(nearly(camera.to_world(camera.to_screen(point)), point));
+        const tgx::Vec4 mapped = camera.matrix() * tgx::Vec4{point.x, point.y, 0, 1};
+        CHECK(nearly({mapped.x, mapped.y}, camera.to_screen(point)));
+    }
+}

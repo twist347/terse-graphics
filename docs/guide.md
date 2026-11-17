@@ -631,20 +631,23 @@ asserts on, tgx stops at the call instead; the main cases:
 - a viewport or clip of negative size, for a draw or a canvas; a canvas of
   negative size;
 - a rect of negative size or a circle of negative radius, for a collision
-  check or a canvas shape; a negative, infinite or NaN thickness; a regular polygon
-  of fewer than 3 sides or any polygon of more than 1024 points; a nine-slice with a mirrored `src` or size,
+  check or a canvas shape; a negative, infinite or NaN thickness; a regular
+  polygon of fewer than 3 sides or with an infinite or NaN rotation, or any
+  polygon of more than 1024 points; a nine-slice with a mirrored `src` or size,
   borders below 0 or wider than `src`, or a `border_scale` below 0;
 - a vertex layout that does not fit its stride, or uses a location twice;
 - writing to an immutable buffer or texture, or past the end of a dynamic one;
 - an `Image` of negative size, a pixel outside one, or saving an empty one;
 - `Random::next_int` or `next_float` with an empty range, a pick from no
-  items; `remap` or `smoothstep` from a range of no length, `wrap` within a
-  span of 0 or less;
-- a sound made of samples that do not split into its channels, or of more
-  than 254 of them; a sound played at a pitch of 0 or less, or infinite; a
-  volume below 0, a seek before the start;
+  items or more than fit in an `int`; `remap` or `smoothstep` from a range of
+  no length, `wrap` within a span of 0 or less;
+- a sound made of non-finite samples or samples outside [-1, 1], samples
+  that do not split into its channels, or more than 254 channels; a sound
+  played at a pitch of 0 or less, or infinite; a volume below 0, a seek before
+  the start;
 - a canvas shader without `u_projection`, or with a sampler other than
-  `u_texture`; a camera with zoom 0, or an infinite zoom or rotation;
+  `u_texture`; a camera with zoom 0, or an infinite or NaN zoom or rotation,
+  used directly or through a canvas;
 - a `Key`, `MouseButton` or `CursorShape` cast from outside its values;
 - `move_towards` with a negative step; a `Timer` of 0 seconds or less, or
   ticked by a negative or infinite step; `frame_of` with an empty cell or a

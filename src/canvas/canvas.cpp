@@ -241,10 +241,9 @@ namespace tgx {
     }
 
     auto Canvas::set_camera(const Camera2D &camera) noexcept -> void {
-        TGX_ASSERT_MSG(camera.zoom != 0.f, "a camera with zoom 0 shows nothing and cannot map back");
         TGX_ASSERT_MSG(
-            std::isfinite(camera.zoom) && std::isfinite(camera.rotation),
-            "a camera with zoom {} and rotation {}",
+            detail::valid_camera_transform(camera.zoom, camera.rotation),
+            "camera zoom {} and rotation {}",
             camera.zoom, camera.rotation
         );
 
@@ -582,6 +581,7 @@ namespace tgx {
 
     auto Canvas::regular_polygon(Vec2 center, int sides, float radius, Color color, float rotation) noexcept -> void {
         TGX_ASSERT_MSG(detail::valid_length(radius), "polygon of radius {}", radius);
+        TGX_ASSERT_MSG(std::isfinite(rotation), "rotation {}", rotation);
 
         const std::size_t n = poly_sides(sides);
         if (radius == 0.f) {
@@ -601,6 +601,7 @@ namespace tgx {
     ) noexcept -> void {
         TGX_ASSERT_MSG(detail::valid_length(radius), "polygon of radius {}", radius);
         TGX_ASSERT_MSG(detail::valid_length(thickness), "thickness {}", thickness);
+        TGX_ASSERT_MSG(std::isfinite(rotation), "rotation {}", rotation);
 
         const std::size_t n = poly_sides(sides);
         if (radius == 0.f || thickness <= 0.f) {
@@ -732,7 +733,8 @@ namespace tgx {
         text(position, std::string_view{buffer.data(), length}, color, size);
     }
 
-    Canvas::Canvas(Size size) noexcept : size_{size} {
+    Canvas::Canvas(Size size) noexcept {
+        set_size(size);
     }
 
     auto Canvas::state_for(GlId texture) noexcept -> detail::BatchState {

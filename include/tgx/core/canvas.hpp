@@ -102,7 +102,8 @@ namespace tgx {
     // The Device must exist while the canvas draws.
     class Canvas {
     public:
-        // An empty size follows the target, like App's canvas. See set_size().
+        // An empty size follows the target, like App's canvas. Components
+        // must be zero or more (asserted). See set_size().
         [[nodiscard]] static auto create(Size size = {}) noexcept -> Canvas;
 
         // Size of the coordinate space. Empty (default): the size of the

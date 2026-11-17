@@ -105,14 +105,15 @@ namespace tgx {
         }
 
         // One item of an array, vector or span, each equally likely; at least
-        // one (asserted). Returned by reference, so not from a temporary
-        // container.
+        // one, with the count fitting in int (asserted). Returned by reference,
+        // so not from a temporary container.
         //
         //     const tgx::Color color = random.pick(palette);
         template<std::ranges::random_access_range Items>
             requires std::ranges::sized_range<Items> && std::ranges::borrowed_range<Items>
         [[nodiscard]] auto pick(Items &&items) noexcept -> std::ranges::range_reference_t<Items> {
             TGX_ASSERT_MSG(!std::ranges::empty(items), "picking from no items");
+            TGX_ASSERT_MSG(std::in_range<int>(std::ranges::size(items)), "too many items to pick from");
 
             const int last = static_cast<int>(std::ranges::size(items)) - 1;
             return std::ranges::begin(items)[next_int(0, last)];
