@@ -305,3 +305,63 @@ TEST_CASE("a clear of a target premultiplies its color, as drawing does") {
     tgx_test::app().device().clear({.target = &layer, .color = tgx::colors::white.with_alpha(128)});
     CHECK(layer.read()[4, 4] == tgx::Color{128, 128, 128, 128});
 }
+
+TEST_CASE("a transparent target saved as straight-alpha PNG draws like the original layer") {
+    const auto layer = tgx_test::target({8, 8});
+    auto canvas = tgx_test::canvas_on(layer);
+    canvas.rect({0, 0, 8, 4}, tgx::Color{255, 128, 0, 128});
+    auto image = layer.read();
+    CHECK(tgx_test::nearly(image[1, 1], {128, 64, 0, 128}, 1));
+    CHECK(image[1, 6] == tgx::colors::transparent);
+
+    image.unpremultiply_alpha();
+    CHECK(tgx_test::nearly(image[1, 1], {255, 128, 0, 128}, 1));
+    const tgx_test::TempFile file{"transparent-layer.png"};
+    REQUIRE(image.save(file.path).has_value());
+    const auto loaded = tgx_test::required(tgx::Image::load(file.path));
+    CHECK(loaded.size() == tgx::Size{8, 8});
+    CHECK(loaded[1, 1] == image[1, 1]);
+    CHECK(loaded[1, 6] == tgx::colors::transparent);
+
+    const auto restored = tgx_test::texture(loaded);
+    const auto out = tgx_test::target({8, 8});
+    auto screen = tgx_test::canvas_on(out);
+    screen.clear(tgx::colors::blue);
+    screen.set_blend(tgx::Blend::premultiplied);
+    screen.sprite(layer.texture(), {});
+    const auto original = out.read();
+    CHECK(tgx_test::nearly(original[1, 1], {128, 64, 127, 255}, 1));
+
+    screen.clear(tgx::colors::blue);
+    screen.set_blend(tgx::Blend::alpha);
+    screen.sprite(restored, {});
+    const auto back = out.read();
+    CHECK(tgx_test::nearly(back[1, 1], original[1, 1], 1));
+    CHECK(back[1, 6] == tgx::colors::blue);
+    CHECK(tgx_test::nearly(layer.read()[1, 1], {128, 64, 0, 128}, 1));
+}
+
+TEST_CASE("premultiplied tints scale both RGB and alpha for sprites and nine-slices") {
+    const auto layer = tgx_test::target({8, 8});
+    auto canvas = tgx_test::canvas_on(layer);
+    canvas.rect({0, 0, 8, 4}, tgx::colors::white.with_alpha(128));
+    const auto out = tgx_test::target({16, 8});
+    auto screen = tgx_test::canvas_on(out);
+    screen.set_blend(tgx::Blend::premultiplied);
+    const std::array expected{
+        tgx::Color{0, 0, 0, 0}, tgx::Color{64, 32, 16, 64}, tgx::Color{128, 64, 32, 128},
+    };
+    const std::array opacity{0.f, 0.5f, 1.f};
+    for (std::size_t i = 0; i < opacity.size(); ++i) {
+        CAPTURE(opacity[i]);
+        const auto tint = tgx::Color{255, 128, 64, 255}.fade(opacity[i]).premultiplied();
+        screen.clear(tgx::colors::transparent);
+        screen.sprite(layer.texture(), {.tint = tint});
+        screen.nine_slice(layer.texture(), {.position = {8, 0}, .borders = {1, 1, 1, 1}, .tint = tint});
+        const auto image = out.read();
+        CHECK(tgx_test::nearly(image[1, 1], expected[i], 1));
+        CHECK(tgx_test::nearly(image[9, 1], expected[i], 1));
+        CHECK(image[1, 6] == tgx::colors::transparent);
+        CHECK(image[9, 6] == tgx::colors::transparent);
+    }
+}

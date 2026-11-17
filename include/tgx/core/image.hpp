@@ -19,7 +19,8 @@ namespace tgx {
     };
 
     // RGBA8 pixels in memory, rows top to bottom like image files. Empty by
-    // default.
+    // default. Alpha representation is not tracked: load/decode give straight
+    // colors; RenderTarget::read gives premultiplied colors.
     class Image {
     public:
         Image() noexcept = default;
@@ -43,6 +44,8 @@ namespace tgx {
         // Error::out_of_memory when encoding fails, and with
         // Error::unsupported when the RGBA data approaches 2 GiB (roughly
         // 537 million pixels; the exact limit also depends on the height).
+        // Writes channels as stored: call unpremultiply_alpha() on
+        // premultiplied data first, since PNG expects straight colors.
         [[nodiscard]] auto save(const std::filesystem::path &path) const -> Result<void>;
 
         // A copy of a whole-pixel rectangle. (x, y) and size must fit inside
@@ -50,13 +53,23 @@ namespace tgx {
         [[nodiscard]] auto crop(int x, int y, Size size) const -> Image;
 
         // A resized copy. Pixel centers are sampled; linear interpolates all
-        // four straight RGBA channels. An empty source gives transparent
+        // four stored RGBA channels. An empty source gives transparent
         // pixels; an empty destination is empty.
         [[nodiscard]] auto resize(Size size, ImageFilter filter = ImageFilter::linear) const -> Image;
 
         // In place, mirrored left-right or top-bottom.
         auto flip_horizontal() noexcept -> void;
         auto flip_vertical() noexcept -> void;
+
+        // In place, straight RGB to RGB multiplied by alpha, rounded to the
+        // nearest byte. Alpha is unchanged. Empty images are unchanged.
+        auto premultiply_alpha() noexcept -> void;
+
+        // In place, premultiplied RGB to straight RGB, rounded and clamped
+        // to bytes. Alpha is unchanged; zero alpha clears RGB. Conversion
+        // loses precision, especially at low alpha, and cannot recover RGB
+        // from zero alpha. Empty images are unchanged.
+        auto unpremultiply_alpha() noexcept -> void;
 
         [[nodiscard]] auto size() const noexcept -> Size { return size_; }
 

@@ -42,6 +42,8 @@ namespace tgx {
         // Radians, clockwise.
         float rotation{0.f};
         // Multiplies the texture's colors. White keeps them.
+        // With Blend::premultiplied, premultiply the tint too:
+        // colors::white.fade(0.5f).premultiplied() draws at half opacity.
         Color tint{colors::white};
     };
 

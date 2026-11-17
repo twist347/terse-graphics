@@ -69,6 +69,7 @@ namespace tgx {
 
         // Pixels back to the CPU, rows top to bottom. Draws the waiting shapes
         // and waits for the GPU, so not every frame. Colors stay premultiplied.
+        // Call Image::unpremultiply_alpha() before saving them as PNG.
         [[nodiscard]] auto read() const -> Image;
 
     private:

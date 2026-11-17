@@ -293,10 +293,35 @@ overlay.set_blend(tgx::Blend::premultiplied);
 overlay.sprite(layer->texture(), {});
 ```
 
+For a translucent tint in this mode, premultiply the tint too. This scales
+both the layer's RGB and alpha by the opacity; the same applies to nine-slices:
+
+```cpp
+overlay.sprite(layer->texture(), {
+    .tint = tgx::colors::white.fade(0.5f).premultiplied(),
+});
+```
+
 `pixels->read()` gives its contents back as an `Image`, rows top to bottom
 (see-through pixels premultiplied). Its texture's rows run bottom to top, as GL
 draws (`Texture::bottom_up()`): sprites come out the right way up anyway, a
 shader of your own reads `v = 0` as its bottom.
+
+PNG stores straight colors. Before saving a transparent target, convert the
+read-back image explicitly:
+
+```cpp
+auto image = layer->read();
+image.unpremultiply_alpha();
+const auto saved = image.save("layer.png");
+```
+
+`Image::premultiply_alpha()` converts the other way, e.g. before uploading an
+image for `Blend::premultiplied`. Both operations work in place and preserve
+alpha. Unpremultiplying clears RGB where alpha is zero and clamps channels to
+bytes. Byte rounding loses color precision, especially at low alpha. Images
+do not track their alpha representation; each call applies the conversion
+again, and `save()` writes the channels as stored.
 
 Shapes are collected and drawn together, but the picture always follows the
 order of the calls: the `Device` collects them and draws them before any draw

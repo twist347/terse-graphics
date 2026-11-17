@@ -139,6 +139,25 @@ namespace tgx {
         }
     }
 
+    auto Image::premultiply_alpha() noexcept -> void {
+        for (Color &pixel: pixels_) {
+            pixel = pixel.premultiplied();
+        }
+    }
+
+    auto Image::unpremultiply_alpha() noexcept -> void {
+        for (Color &pixel: pixels_) {
+            if (pixel.a == 0) {
+                pixel = colors::transparent;
+                continue;
+            }
+            const auto restore = [alpha = pixel.a](std::uint8_t channel) {
+                return static_cast<std::uint8_t>(std::min((channel * 255 + alpha / 2) / alpha, 255));
+            };
+            pixel = {restore(pixel.r), restore(pixel.g), restore(pixel.b), pixel.a};
+        }
+    }
+
     auto Image::load(const std::filesystem::path &path) -> Result<Image> {
         return detail::read_file(path).and_then(decode);
     }

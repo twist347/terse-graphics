@@ -127,6 +127,53 @@ TEST_CASE("Image flips mirror pixels in place") {
     CHECK(std::ranges::equal(vertical.pixels(), source.pixels()));
 }
 
+TEST_CASE("Image alpha conversions round RGB in place and preserve alpha") {
+    SUBCASE("straight to premultiplied") {
+        auto image = tgx::Image::from_pixels({3, 2}, std::array{
+            tgx::Color{10, 20, 30, 0}, tgx::Color{128, 64, 32, 128}, tgx::Color{255, 127, 1, 1},
+            tgx::Color{200, 100, 50, 255}, tgx::Color{255, 255, 255, 127}, tgx::Color{1, 128, 255, 254},
+        });
+        const auto *storage = image.pixels().data();
+        image.premultiply_alpha();
+        CHECK(image.size() == tgx::Size{3, 2});
+        CHECK(image.pixels().data() == storage);
+        CHECK(std::ranges::equal(image.pixels(), std::array{
+            tgx::Color{0, 0, 0, 0}, tgx::Color{64, 32, 16, 128}, tgx::Color{1, 0, 0, 1},
+            tgx::Color{200, 100, 50, 255}, tgx::Color{127, 127, 127, 127}, tgx::Color{1, 127, 254, 254},
+        }));
+    }
+    SUBCASE("premultiplied to straight, clearing zero alpha and saturating RGB above alpha") {
+        auto image = tgx::Image::from_pixels({3, 2}, std::array{
+            tgx::Color{43, 99, 1, 0}, tgx::Color{128, 64, 1, 128}, tgx::Color{1, 0, 1, 1},
+            tgx::Color{200, 100, 50, 255}, tgx::Color{127, 63, 1, 127}, tgx::Color{200, 129, 1, 128},
+        });
+        const auto *storage = image.pixels().data();
+        image.unpremultiply_alpha();
+        CHECK(image.size() == tgx::Size{3, 2});
+        CHECK(image.pixels().data() == storage);
+        CHECK(std::ranges::equal(image.pixels(), std::array{
+            tgx::Color{0, 0, 0, 0}, tgx::Color{255, 128, 2, 128}, tgx::Color{255, 0, 255, 1},
+            tgx::Color{200, 100, 50, 255}, tgx::Color{255, 126, 2, 127}, tgx::Color{255, 255, 2, 128},
+        }));
+    }
+    SUBCASE("round trips have byte quantization loss, especially at low alpha") {
+        auto image = tgx::Image::from_pixels({2, 1}, std::array{
+            tgx::Color{200, 100, 50, 128}, tgx::Color{100, 200, 50, 1},
+        });
+        image.premultiply_alpha();
+        image.unpremultiply_alpha();
+        CHECK(image[0, 0] == tgx::Color{199, 100, 50, 128});
+        CHECK(image[1, 0] == tgx::Color{0, 255, 0, 1});
+    }
+    SUBCASE("empty images") {
+        tgx::Image image{};
+        image.premultiply_alpha();
+        image.unpremultiply_alpha();
+        CHECK(image.empty());
+        CHECK(image.pixels().empty());
+    }
+}
+
 TEST_CASE("Image::decode") {
     const auto image = tgx::Image::decode(std::as_bytes(std::span{png}));
     REQUIRE(image.has_value());
